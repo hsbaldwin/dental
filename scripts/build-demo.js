@@ -40,5 +40,5 @@ const page = fs.readFileSync(path.join(out, "index.html"), "utf8")
   .split("\n")
   .filter((l) => !/^(<!doctype html>|<html lang="ko">|<head>|<\/head>|<body>|<\/body>|<\/html>|<meta charset|<meta name="viewport")/.test(l.trim()))
   .join("\n");
-fs.writeFileSync(path.join(out, "artifact-page.html"), page);
+fs.writeFileSync(path.join(out, "artifact-page.html"), page.replace("<title>W치과</title>", "<title>W치과 웹사이트 시안</title>"));
 console.log("체험판을 만들었습니다:", path.relative(root, out));
