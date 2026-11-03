@@ -67,6 +67,9 @@ const DEFAULT_BOOKING = {
   retentionDays: 180     // 지난 예약의 개인정보 보관 기간
 };
 
+// 직원이 대시보드에서 바꾸는 '지금 병원 상황' (홈페이지 상단에 실시간 표시)
+const DEFAULT_LIVE = { wait: null, message: "", updatedAt: null, updatedBy: null };
+
 function nowIso() { return new Date().toISOString(); }
 
 function openDb(file) {
@@ -74,8 +77,15 @@ function openDb(file) {
   const db = new DatabaseSync(file);
   db.exec("PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 3000;");
   db.exec(SCHEMA);
+  migrate(db);
   seed(db);
   return db;
+}
+
+// 기존 데이터 파일을 그대로 쓰면서 새 열을 추가합니다.
+function migrate(db) {
+  const cols = db.prepare("PRAGMA table_info(doctors)").all().map((c) => c.name);
+  if (!cols.includes("days")) db.exec("ALTER TABLE doctors ADD COLUMN days TEXT NOT NULL DEFAULT '월화수목금토'");
 }
 
 function seed(db) {
@@ -112,6 +122,8 @@ function seed(db) {
   d.run("원장 성함", "대표원장 · 통합치의학과 전문의", "치의학 석사\n임플란트 · 보철 진료", "뽑지 않고 살릴 수 있는 치아부터 찾습니다.", 1);
   d.run("원장 성함", "원장 · 치과교정과 전문의", "교정 · 턱관절 진료\n투명교정 인증의", "교정 기간과 비용은 첫 상담에서 정해 드립니다.", 2);
   d.run("원장 성함", "원장 · 소아치과 전문의", "소아 · 보존 진료\n장애인 치과 진료", "아이가 다음에도 오고 싶어 하는 치과를 만듭니다.", 3);
+  db.prepare("UPDATE doctors SET days = ? WHERE sort = ?").run("화목토", 2);
+  db.prepare("UPDATE doctors SET days = ? WHERE sort = ?").run("월수금토", 3);
 
   db.prepare("INSERT INTO notices (title, body, pinned, published, created_at) VALUES (?, ?, ?, ?, ?)")
     .run("홈페이지에서 바로 예약할 수 있습니다", "원하는 날짜와 시간을 고르면 확인 후 문자로 확정 안내를 드립니다.", 1, 1, nowIso());
@@ -119,7 +131,7 @@ function seed(db) {
 
 function getSetting(db, key) {
   const row = db.prepare("SELECT value FROM settings WHERE key = ?").get(key);
-  const base = key === "clinic" ? DEFAULT_CLINIC : key === "booking" ? DEFAULT_BOOKING : {};
+  const base = key === "clinic" ? DEFAULT_CLINIC : key === "booking" ? DEFAULT_BOOKING : key === "live" ? DEFAULT_LIVE : {};
   return Object.assign({}, base, row ? JSON.parse(row.value) : {});
 }
 function setSetting(db, key, value) {

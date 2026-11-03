@@ -112,7 +112,11 @@ const RESOURCES = {
   },
   doctors: {
     order: "sort, id",
-    clean: (b) => ({ name: str(b.name, 40, true, "성함"), role: str(b.role, 80), career: str(b.career, 500), quote: str(b.quote, 200), sort: int(b.sort || 0, 0, 9999, "순서") })
+    clean: (b) => {
+      const days = str(b.days, 7, false, "진료 요일");
+      if (/[^일월화수목금토]/.test(days)) throw new HttpError(400, "진료 요일은 '월화수목금' 처럼 요일 글자로 입력해 주세요.");
+      return { name: str(b.name, 40, true, "성함"), role: str(b.role, 80), career: str(b.career, 500), quote: str(b.quote, 200), days, sort: int(b.sort || 0, 0, 9999, "순서") };
+    }
   },
   notices: {
     order: "pinned DESC, id DESC",
@@ -131,6 +135,30 @@ function createApp(opts) {
   const limitReserve = rateLimiter(Number(env.RESERVE_LIMIT_PER_HOUR || 10), 3600 * 1000);
   const limitLookup = rateLimiter(30, 3600 * 1000);
   const limitLogin = rateLimiter(10, 15 * 60 * 1000);
+
+  /* ---------- 실시간 알림 (Server-Sent Events) ----------
+   * 예약·설정이 바뀌면 열려 있는 홈페이지에 'update' 신호만 보냅니다(개인정보 없음).
+   * 브라우저는 신호를 받으면 /api/live 를 다시 읽습니다. */
+  const streams = new Set();
+  const MAX_STREAMS = Number(env.MAX_LIVE_CONNECTIONS || 1000);
+  let liveVersion = Date.now();
+  function emit(kind) {
+    liveVersion++;
+    const msg = "event: update\ndata: " + JSON.stringify({ kind, v: liveVersion }) + "\n\n";
+    for (const res of streams) res.write(msg);
+  }
+  const heartbeat = setInterval(() => { for (const res of streams) res.write(": ping\n\n"); }, 25000);
+  heartbeat.unref();
+  function openStream(req, res) {
+    if (streams.size >= MAX_STREAMS) return send(res, 503, { error: "접속이 많습니다. 잠시 후 다시 시도해 주세요." });
+    res.writeHead(200, Object.assign({}, SECURITY_HEADERS, {
+      "Content-Type": "text/event-stream; charset=utf-8", "Cache-Control": "no-store", Connection: "keep-alive", "X-Accel-Buffering": "no"
+    }));
+    res.write("retry: 5000\nevent: hello\ndata: " + JSON.stringify({ v: liveVersion }) + "\n\n");
+    streams.add(res);
+    req.on("close", () => streams.delete(res));
+  }
+  function closeStreams() { clearInterval(heartbeat); for (const res of streams) res.end(); streams.clear(); }
 
   const clientIp = (req) => (trustProxy && req.headers["x-forwarded-for"] ? String(req.headers["x-forwarded-for"]).split(",")[0].trim() : req.socket.remoteAddress) || "unknown";
   const isSecure = (req) => env.COOKIE_SECURE === "1" || (trustProxy && req.headers["x-forwarded-proto"] === "https");
@@ -194,11 +222,28 @@ function createApp(opts) {
       today: now.date,
       fees: db.prepare("SELECT id, name, unit, price, note FROM fees ORDER BY sort, id").all(),
       feesUpdatedAt: (db.prepare("SELECT MAX(at) AS at FROM audit WHERE target LIKE 'fees%'").get() || {}).at || null,
-      doctors: db.prepare("SELECT id, name, role, career, quote FROM doctors ORDER BY sort, id").all(),
+      doctors: db.prepare("SELECT id, name, role, career, quote, days FROM doctors ORDER BY sort, id").all(),
       notices: db.prepare("SELECT id, title, body, pinned, created_at FROM notices WHERE published = 1 ORDER BY pinned DESC, id DESC LIMIT 10").all(),
       treatments: core.TREATMENTS
     };
   });
+
+  function liveData() {
+    const now = clock(), rules = getSetting(db, "booking"), hours = hoursAll();
+    const to = core.addDays(now.date, rules.windowDays);
+    const hol = holidayMap(now.date, to);
+    const status = core.openStatus(hours, hol, now);
+    const ov = core.overview(hours, hol, rules, slotCounts(now.date, to), now, 7);
+    const doctors = db.prepare("SELECT name, role, days FROM doctors ORDER BY sort, id").all();
+    return {
+      v: liveVersion, serverTime: nowIso(), now, status,
+      notice: core.liveNotice(getSetting(db, "live"), status, Date.now()),
+      today: { date: now.date, plan: core.dayPlan(now.date, hours, hol), remaining: ov.today.remaining, openSlots: ov.today.openSlots, slots: ov.today.slots },
+      next: ov.next, week: ov.week,
+      doctorsToday: hol[now.date] ? [] : doctors.filter((d) => core.worksOn(d.days, now.weekday)).map((d) => ({ name: d.name, role: d.role }))
+    };
+  }
+  on("GET", /^\/api\/live$/, () => liveData());
 
   on("GET", /^\/api\/days$/, () => {
     const now = clock();
@@ -410,6 +455,17 @@ function createApp(opts) {
     return { item: saved, warning };
   }, "staff");
 
+  /* 홈페이지 실시간 안내 (대기 시간 · 오늘의 메시지) */
+  on("GET", /^\/api\/admin\/live$/, () => getSetting(db, "live"), "staff");
+  on("PUT", /^\/api\/admin\/live$/, async (req, url, user) => {
+    const b = await readJson(req);
+    const wait = b.wait === null || b.wait === "" || b.wait === undefined ? null : int(b.wait, 0, 240, "대기 시간");
+    const v = { wait, message: str(b.message, 120, false, "안내 문구"), updatedAt: nowIso(), updatedBy: user.name };
+    setSetting(db, "live", v);
+    audit(db, user.username, "live.update", "live", { wait, message: v.message });
+    return v;
+  }, "staff");
+
   /* 병원 정보 · 예약 규칙 */
   on("GET", /^\/api\/admin\/settings$/, () => ({ clinic: getSetting(db, "clinic"), booking: getSetting(db, "booking"), hours: hoursAll() }), "staff");
 
@@ -596,6 +652,7 @@ function createApp(opts) {
     const u = new URL(req.url, "http://localhost");
     try {
       if (!u.pathname.startsWith("/api/")) return serveStatic(req, res, u);
+      if (u.pathname === "/api/live/stream" && req.method === "GET") return openStream(req, res);
       const route = routes.find((r) => r.method === req.method && r.pattern.test(u.pathname));
       if (!route) {
         const any = routes.some((r) => r.pattern.test(u.pathname));
@@ -616,6 +673,7 @@ function createApp(opts) {
         }
       }
       const out = await route.handler(req, u, user, u.pathname.match(route.pattern));
+      if (req.method !== "GET" && !/\/(login|logout|lookup|password|users)(\/|$)/.test(u.pathname)) emit(u.pathname.startsWith("/api/admin/") ? "admin" : "booking");
       if (out && out.raw !== undefined) {
         res.writeHead(200, Object.assign({}, SECURITY_HEADERS, { "Cache-Control": "no-store" }, out.headers));
         return res.end(out.raw);
@@ -629,7 +687,7 @@ function createApp(opts) {
     }
   }
 
-  return { handler, runJobs };
+  return { handler, runJobs, closeStreams, emit };
 }
 
 module.exports = { createApp, HttpError };

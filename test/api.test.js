@@ -22,7 +22,7 @@ test.before(async () => {
   await new Promise((r) => server.listen(0, r));
   base = "http://127.0.0.1:" + server.address().port;
 });
-test.after(() => { server.close(); db.close(); });
+test.after(() => { app.closeStreams(); server.close(); db.close(); });
 
 async function call(method, path, body, opts = {}) {
   const headers = Object.assign({ "content-type": "application/json" }, opts.headers || {});
@@ -194,4 +194,46 @@ test("jobs send reminders and purge old personal data", async () => {
   assert.equal(app.runJobs().reminded, 0);
   await new Promise((r) => setTimeout(r, 20));
   assert.ok(sent.some((m) => /내일/.test(m.body.text)));
+});
+
+test("live overview and server-sent update events", async () => {
+  const live = await call("GET", "/api/live");
+  assert.equal(live.status, 200);
+  assert.equal(live.json.week.length, 7);
+  assert.deepEqual(live.json.week[0].parts.map((p) => p.key), ["am", "pm", "eve"]);
+  assert.equal(live.json.next.date, "2026-11-04");
+  assert.equal(live.json.next.time, "11:00");
+  assert.ok(live.json.today.openSlots > 0);
+  assert.ok(Array.isArray(live.json.doctorsToday));
+  assert.equal(live.json.notice.wait, null);
+
+  // SSE: 예약이 들어오면 열린 연결로 update 신호가 와야 함
+  const ctrl = new AbortController();
+  const r = await fetch(base + "/api/live/stream", { signal: ctrl.signal });
+  assert.match(r.headers.get("content-type"), /text\/event-stream/);
+  const reader = r.body.getReader();
+  const dec = new TextDecoder();
+  let buf = "";
+  const waitFor = async (re) => {
+    const until = Date.now() + 3000;
+    while (!re.test(buf) && Date.now() < until) { const { value, done } = await reader.read(); if (done) break; buf += dec.decode(value); }
+    return re.test(buf);
+  };
+  assert.ok(await waitFor(/event: hello/));
+  const made = await call("POST", "/api/reservations", booking({ phone: "010-3333-1212", date: "2026-11-06", time: "15:00" }));
+  assert.equal(made.status, 201);
+  assert.ok(await waitFor(/event: update\ndata: \{"kind":"booking"/));
+  ctrl.abort();
+
+  // 직원이 대기 안내를 올리면 홈페이지 live 에 표시
+  const cookie = await login();
+  const up = await call("PUT", "/api/admin/live", { wait: 15, message: "오후 2시 수술로 대기가 길 수 있습니다" }, { cookie });
+  assert.equal(up.status, 200);
+  const after = await call("GET", "/api/live");
+  assert.equal(after.json.notice.wait, 15);
+  assert.match(after.json.notice.message, /수술/);
+  assert.equal((await call("PUT", "/api/admin/live", { wait: 999 }, { cookie })).status, 400);
+
+  const doc = await call("POST", "/api/admin/doctors", { name: "테스트", days: "월X" }, { cookie });
+  assert.equal(doc.status, 400);
 });

@@ -1,9 +1,12 @@
-/* W치과 홈페이지 — 서버 API에서 병원 정보·진료시간·진료비를 읽고 온라인 예약을 처리합니다. */
+/* W치과 홈페이지 — 병원 예약 시스템과 실시간으로 연결된 화면 */
 (function () {
   "use strict";
   var C = window.WCore;
   var $ = function (id) { return document.getElementById(id); };
-  var site = null;
+  var site = null;          // 병원 정보·진료비 등 (자주 안 바뀜)
+  var live = null;          // 예약 현황·진료 상태 (실시간)
+  var liveAt = 0;           // 마지막으로 받은 시각(ms)
+  var mode = "connecting";  // live | poll | off
 
   /* ---------- 공통 ---------- */
   function api(path, body) {
@@ -18,25 +21,45 @@
   function el(tag, attrs, children) {
     var n = document.createElement(tag);
     if (attrs) Object.keys(attrs).forEach(function (k) {
-      if (k === "text") n.textContent = attrs[k];
-      else if (k === "class") n.className = attrs[k];
-      else if (k.slice(0, 2) === "on") n.addEventListener(k.slice(2), attrs[k]);
-      else if (attrs[k] !== null && attrs[k] !== undefined && attrs[k] !== false) n.setAttribute(k, attrs[k] === true ? "" : attrs[k]);
+      var v = attrs[k];
+      if (k === "text") n.textContent = v;
+      else if (k === "class") n.className = v;
+      else if (k.slice(0, 2) === "on") n.addEventListener(k.slice(2), v);
+      else if (v !== null && v !== undefined && v !== false) n.setAttribute(k, v === true ? "" : v);
     });
-    (children || []).forEach(function (c) { if (c != null) n.appendChild(typeof c === "string" ? document.createTextNode(c) : c); });
+    (children || []).forEach(function (c) { if (c != null && c !== false) n.appendChild(typeof c === "string" ? document.createTextNode(c) : c); });
     return n;
   }
   var store = {
     get: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
-    set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+    set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
+    del: function (k) { try { localStorage.removeItem(k); } catch (e) {} }
   };
   function won(n) { return n == null ? "상담 후 안내" : n.toLocaleString("ko-KR") + "원"; }
+  function hhmmss(d) { return d.toLocaleTimeString("ko-KR", { timeZone: "Asia/Seoul", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }); }
+  function ago(ms) {
+    var s = Math.max(0, Math.round((Date.now() - ms) / 1000));
+    if (s < 10) return "방금";
+    if (s < 60) return s + "초 전";
+    if (s < 3600) return Math.floor(s / 60) + "분 전";
+    return Math.floor(s / 3600) + "시간 전";
+  }
+  function relDay(ds) {
+    var d = C.diffDays(live ? live.now.date : C.seoulNow().date, ds);
+    return d === 0 ? "오늘" : d === 1 ? "내일" : d === 2 ? "모레" : C.formatDate(ds);
+  }
   function copy(btn, text) {
     var label = btn.textContent;
     var done = function (msg) { btn.textContent = msg; setTimeout(function () { btn.textContent = label; }, 1600); };
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { done("복사했어요"); }, function () { done(text); });
     else done(text);
   }
+  var toastTimer;
+  function toast(msg) {
+    var t = $("liveToast"); t.textContent = msg; t.hidden = false;
+    clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.hidden = true; }, 4500);
+  }
+  function flash(node) { if (!node) return; node.classList.remove("flash"); void node.offsetWidth; node.classList.add("flash"); }
 
   /* ---------- 글자 크게 / 테마 ---------- */
   var root = document.documentElement, textBtn = $("textBtn");
@@ -50,74 +73,190 @@
     root.setAttribute("data-theme", next); store.set("w-theme", next);
   });
 
-  /* ---------- 증상으로 진료 찾기 ---------- */
-  var SYMPTOMS = [
-    { id: "cold", label: "이가 시려요", t: "endo", time: "약 40분", tip: "찬물·단 음식에 반응하는 치아 위치를 기억해 오세요.", ins: "검사와 기본 치료는 건강보험 적용" },
-    { id: "bite", label: "씹을 때 아파요", t: "endo", time: "약 50분", tip: "금 간 치아인지 확인하려면 X-ray와 교합 검사를 합니다.", ins: "신경치료는 건강보험 적용" },
-    { id: "gum", label: "잇몸에서 피가 나요", t: "perio", time: "약 60분", tip: "스케일링 후 잇몸 염증 정도를 측정합니다.", ins: "만 19세 이상 스케일링 연 1회 보험" },
-    { id: "lost", label: "이가 빠졌어요", t: "implant", time: "60 – 90분 (CT 포함)", tip: "복용 중인 약(특히 혈액 응고제·골다공증 약)을 알려주세요.", ins: "만 65세 이상 평생 2개 보험" },
-    { id: "crooked", label: "치아가 삐뚤어요", t: "ortho", time: "약 60분 (정밀 진단)", tip: "투명교정과 고정식 교정의 기간·비용을 비교해 드립니다.", ins: "비급여 (진료비 안내 참고)" },
-    { id: "jaw", label: "턱에서 소리가 나요", t: "tmj", time: "약 60분", tip: "입 벌릴 때 아픈 쪽과 이 갈이 여부를 확인합니다.", ins: "검사 일부 건강보험 적용" },
-    { id: "kid", label: "아이 첫 검진", t: "kids", time: "약 30분", tip: "아이가 평소 쓰는 칫솔을 가져오시면 칫솔질을 같이 연습합니다.", ins: "만 18세 이하 실란트 보험" },
-    { id: "color", label: "치아 색이 누래요", t: "esthetic", time: "약 40분", tip: "셰이드 가이드로 현재 치아 색을 기록해 둡니다.", ins: "비급여 (진료비 안내 참고)" }
-  ];
-  var chips = $("chips"), out = $("finderResult");
-  SYMPTOMS.forEach(function (s, i) {
-    var input = el("input", { type: "radio", name: "sym", id: "sym-" + s.id, value: s.id, checked: i === 0 });
-    chips.appendChild(el("label", { class: "chip", for: "sym-" + s.id }, [input, el("span", { text: s.label })]));
-  });
-  function showSymptom(id) {
-    var s = SYMPTOMS.filter(function (x) { return x.id === id; })[0]; if (!s) return;
-    out.textContent = "";
-    [["추천 진료", C.labelOf(C.TREATMENTS, s.t)], ["첫 방문", s.time], ["미리 알아두세요", s.tip], ["보험", s.ins]].forEach(function (p, i) {
-      out.appendChild(el("dt", { text: p[0] }));
-      out.appendChild(el("dd", null, [i === 0 ? el("b", { text: p[1] }) : p[1]]));
-    });
-    out.appendChild(el("a", { class: "btn btn-primary go", href: "#reserve", text: "이 진료로 예약하기", onclick: function () {
-      $("rClinic").value = s.t;
-      if (!$("rMemo").value) $("rMemo").value = s.label;
-    } }));
+  /* =========================================================
+   * 1. 실시간 현황 (상단 띠 · 현황판 · 오늘의 병원)
+   * ========================================================= */
+  function renderLivebar() {
+    var conn = $("lvConn");
+    conn.setAttribute("data-mode", mode);
+    $("lvConnText").textContent = mode === "live" ? "실시간 연결" : mode === "poll" ? "자동 갱신 중" : mode === "off" ? "연결 끊김" : "연결 중";
+    if (!live) return;
+    $("lvStatus").setAttribute("data-open", live.status.open ? "true" : "false");
+    $("lvStatusText").textContent = live.status.text;
+    var w = $("lvWait");
+    w.hidden = live.notice.wait === null;
+    if (!w.hidden) w.textContent = "현재 " + C.waitLabel(live.notice.wait);
+    $("lvToday").textContent = live.today.openSlots ? "오늘 예약 가능 " + live.today.openSlots + "타임" : "오늘 예약 마감";
+    var n = $("lvNext");
+    n.hidden = !live.next;
+    if (live.next) n.textContent = "가장 빠른 예약 " + relDay(live.next.date) + " " + live.next.time + " →";
+    tickClock();
   }
-  chips.addEventListener("change", function (e) { if (e.target.name === "sym") showSymptom(e.target.value); });
-  showSymptom(SYMPTOMS[0].id);
+  function tickClock() {
+    if (!liveAt) return;
+    var d = new Date(liveAt);
+    $("lvTime").textContent = hhmmss(d) + " 기준 · " + ago(liveAt);
+    $("boardTime").textContent = "LIVE · " + ago(liveAt) + " 갱신";
+    if (live && live.notice.updatedAt) $("liveMsgAt").textContent = "병원에서 " + ago(Date.parse(live.notice.updatedAt)) + " 업데이트";
+  }
 
-  /* ---------- 병원 정보 렌더링 ---------- */
+  function level(p) {
+    if (!p.total) return "off";
+    if (!p.available) return "full";
+    return p.available / p.total <= 0.34 ? "few" : "ok";
+  }
+  function renderBoard(changed) {
+    if (!live) return;
+    var nx = $("nextText"), nb = $("nextBtn"), q = $("quickNext");
+    nx.classList.remove("skeleton");
+    if (live.next) {
+      nx.textContent = relDay(live.next.date) + " " + live.next.time;
+      nb.disabled = false;
+      q.textContent = "가장 빠른 시간 예약 · " + relDay(live.next.date) + " " + live.next.time;
+    } else {
+      nx.textContent = "예약 가능한 시간이 없습니다";
+      nb.disabled = true;
+      q.textContent = "예약하기";
+    }
+    if (changed) flash($("boardNext"));
+
+    var table = $("heat"), headRow = table.tHead.rows[0], body = table.tBodies[0];
+    while (headRow.cells.length > 1) headRow.deleteCell(1);
+    body.textContent = "";
+    live.week.forEach(function (d, i) {
+      var p = d.date.split("-");
+      headRow.appendChild(el("th", { scope: "col", class: d.weekday === 0 ? "sun" : null }, [
+        i === 0 ? "오늘" : i === 1 ? "내일" : C.WEEKDAYS[d.weekday], el("b", { text: parseInt(p[2], 10) + "" })
+      ]));
+    });
+    C.PARTS.forEach(function (part, pi) {
+      var tr = el("tr", null, [el("th", { scope: "row", text: part.label })]);
+      live.week.forEach(function (d) {
+        var cell = d.parts[pi], lv = d.closed ? "off" : level(cell);
+        var label = d.closed ? (pi === 1 ? "휴진" : "") : lv === "off" ? "–" : lv === "full" ? "마감" : cell.available + "";
+        var title = C.formatDate(d.date) + " " + part.label + ": " + (d.closed ? (d.reason || "휴진") : lv === "off" ? "진료 없음" : lv === "full" ? "마감" : "예약 가능 " + cell.available + "타임");
+        var btn = el("button", { type: "button", class: lv, title: title, "aria-label": title, text: label, disabled: lv === "off" || lv === "full" });
+        btn.addEventListener("click", function () { goBook(d.date); });
+        tr.appendChild(el("td", null, [btn]));
+      });
+      body.appendChild(tr);
+    });
+  }
+
+  function pct(m, plan) { return ((m - plan.open) / (plan.close - plan.open)) * 100; }
+  function renderToday() {
+    if (!live) return;
+    $("todayLabel").textContent = C.formatDate(live.now.date);
+    var plan = live.today.plan, box = $("timeline");
+    box.textContent = "";
+    if (plan.closed) {
+      $("tlHours").textContent = plan.reason;
+      box.appendChild(el("div", { class: "tl-closed", text: "오늘은 " + plan.reason + "입니다." + (live.next ? " 가장 빠른 예약은 " + relDay(live.next.date) + " " + live.next.time + "입니다." : "") }));
+    } else {
+      $("tlHours").textContent = C.toHHMM(plan.open) + " – " + C.toHHMM(plan.close) + (plan.lunchStart !== null ? " · 점심 " + C.toHHMM(plan.lunchStart) + "–" + C.toHHMM(plan.lunchEnd) : "");
+      var track = el("div", { class: "tl-track" });
+      var nowM = live.now.minutes;
+      if (nowM > plan.open) { var past = el("div", { class: "tl-past" }); past.style.width = Math.min(100, pct(nowM, plan)) + "%"; track.appendChild(past); }
+      if (plan.lunchStart !== null) { var l = el("div", { class: "tl-lunch", title: "점심시간" }); l.style.left = pct(plan.lunchStart, plan) + "%"; l.style.width = (pct(plan.lunchEnd, plan) - pct(plan.lunchStart, plan)) + "%"; track.appendChild(l); }
+      var step = (site && site.booking.slotMinutes) || 30;
+      live.today.slots.forEach(function (s) {
+        var m = C.toMin(s.time), seg = el("div", { class: "tl-slot" + (s.remaining > 0 ? "" : " full"), title: s.time + (s.remaining > 0 ? " 예약 가능" : " 마감") });
+        seg.style.left = "calc(" + pct(m, plan) + "% + 1px)"; seg.style.width = "calc(" + (pct(m + step, plan) - pct(m, plan)) + "% - 2px)";
+        track.appendChild(seg);
+      });
+      box.appendChild(track);
+      for (var h = Math.ceil(plan.open / 60) * 60; h <= plan.close; h += 60) {
+        var t = el("span", { class: "tl-tick", text: String(h / 60) }); t.style.left = pct(h, plan) + "%"; box.appendChild(t);
+      }
+      if (nowM >= plan.open && nowM <= plan.close) {
+        var nw = el("div", { class: "tl-now" }, [el("span", { text: "지금 " + C.toHHMM(nowM) })]); nw.style.left = pct(nowM, plan) + "%"; box.appendChild(nw);
+      }
+    }
+    var wb = $("waitBig");
+    if (live.notice.wait !== null) { wb.textContent = C.waitLabel(live.notice.wait); wb.className = "wait-big" + (live.notice.wait <= 10 ? " ok" : ""); }
+    else { wb.textContent = live.status.open ? "진료 중" : live.status.text; wb.className = "wait-big"; }
+    $("liveMsg").textContent = live.notice.message || "오늘은 별도 안내가 없습니다.";
+    if (!live.notice.updatedAt) $("liveMsgAt").textContent = "";
+    var dl = $("docToday"); dl.textContent = "";
+    if (live.doctorsToday.length) live.doctorsToday.forEach(function (d) { dl.appendChild(el("li", null, [el("b", { text: d.name }), el("small", { text: d.role || "" })])); });
+    else dl.appendChild(el("li", { class: "none", text: "오늘은 진료하는 의료진이 없습니다." }));
+    markDoctors();
+  }
+
+  /* 실시간 데이터 읽기 */
+  var refreshing = null;
+  function refreshLive(reason) {
+    if (refreshing) return refreshing;
+    var prevNext = live && live.next ? live.next.date + live.next.time : null;
+    refreshing = api("live").then(function (d) {
+      var changed = live && (live.v !== d.v || (d.next ? d.next.date + d.next.time : null) !== prevNext);
+      live = d; liveAt = Date.now();
+      renderLivebar(); renderBoard(changed); renderToday();
+      if (reason === "event") {
+        refreshSlots();
+        if (tracked()) refreshTracker(true);
+      }
+      return d;
+    }).catch(function () { if (mode !== "live") setMode("off"); })
+      .then(function (d) { refreshing = null; return d; });
+    return refreshing;
+  }
+  function setMode(m) { mode = m; renderLivebar(); }
+
+  /* 병원 서버의 실시간 신호(SSE) 연결. 안 되면 20초마다 다시 읽기 */
+  var pollTimer = null;
+  function schedulePoll() {
+    clearInterval(pollTimer);
+    pollTimer = setInterval(function () { refreshLive(mode === "live" ? "tick" : "event"); }, mode === "live" ? 60000 : 20000);
+  }
+  var debounce = null, siteTimer = null;
+  function onSignal(e) {
+    clearTimeout(debounce); debounce = setTimeout(function () { refreshLive("event"); }, 250);
+    // 관리자 화면에서 공지·진료비·의료진 등을 바꾼 경우 그 내용도 다시 읽음
+    var kind = e && e.data ? (function () { try { return JSON.parse(e.data).kind; } catch (x) { return null; } })() : "admin";
+    if (kind === "admin") { clearTimeout(siteTimer); siteTimer = setTimeout(function () { loadSite().catch(function () {}); }, 400); }
+  }
+  function connect() {
+    if (!window.EventSource) { setMode("poll"); schedulePoll(); return; }
+    var es;
+    try { es = new EventSource("api/live/stream"); } catch (e) { setMode("poll"); schedulePoll(); return; }
+    es.addEventListener("hello", function () { if (mode !== "live") { setMode("live"); schedulePoll(); refreshLive("event"); } });
+    es.addEventListener("update", onSignal);
+    es.onerror = function () { if (mode !== "poll") { setMode("poll"); schedulePoll(); } };
+  }
+  window.addEventListener("w-live-update", onSignal); // 체험판: 다른 탭(관리 화면)에서 바뀐 경우
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) refreshLive("event"); });
+  setInterval(tickClock, 5000);
+
+  /* =========================================================
+   * 2. 병원 정보 (진료시간표 · 진료비 · 의료진 · 공지)
+   * ========================================================= */
   function renderClinic(c) {
     document.querySelectorAll("[data-bind]").forEach(function (n) { var v = c[n.getAttribute("data-bind")]; if (v) n.textContent = v; });
-    document.querySelectorAll("[data-href]").forEach(function (n) {
-      var v = c[n.getAttribute("data-href")];
-      if (v) n.setAttribute("href", v); else n.hidden = true;
-    });
+    document.querySelectorAll("[data-href]").forEach(function (n) { var v = c[n.getAttribute("data-href")]; if (v) n.setAttribute("href", v); else n.hidden = true; });
     $("dockTel").setAttribute("href", "tel:" + C.normalizePhone(c.phone));
-    document.title = c.shortName + " | 치료 계획부터 보여드리는 치과";
+    document.title = c.shortName + " | 실시간 예약";
   }
-
   function renderHours(hours, holidays) {
     var tb = $("hoursRows"); tb.textContent = "";
-    var order = [1, 2, 3, 4, 5, 6, 0], lunch = {}, lateDays = [];
-    order.forEach(function (w) {
+    var today = C.seoulNow().weekday, lunch = {}, lateDays = [];
+    [1, 2, 3, 4, 5, 6, 0].forEach(function (w) {
       var h = hours.filter(function (x) { return x.weekday === w; })[0] || { closed: 1 };
-      var tr = el("tr", { "data-day": w, class: w === site.now.weekday ? "today" : null });
-      var label = w === 0 ? "일 · 공휴일" : C.WEEKDAYS[w] + "요일";
       var td = el("td", null, [h.closed ? "휴진" : h.open + " – " + h.close]);
       if (!h.closed && h.note) td.appendChild(el("span", { class: "tag", text: h.note }));
       if (!h.closed && h.lunch_start) lunch[h.lunch_start + " – " + h.lunch_end] = true;
       if (!h.closed && C.toMin(h.close) >= 20 * 60) lateDays.push(C.WEEKDAYS[w]);
-      tr.appendChild(el("th", { scope: "row", text: label }));
-      tr.appendChild(td);
-      tb.appendChild(tr);
+      tb.appendChild(el("tr", { class: w === today ? "today" : null }, [el("th", { scope: "row", text: w === 0 ? "일 · 공휴일" : C.WEEKDAYS[w] + "요일" }), td]));
     });
-    var notes = [];
-    var l = Object.keys(lunch); if (l.length) notes.push("점심시간 " + l.join(", "));
+    var notes = [], l = Object.keys(lunch);
+    if (l.length) notes.push("점심시간 " + l.join(", "));
     notes.push("접수는 진료 종료 " + site.booking.lastEntryMinutes + "분 전까지 받습니다.");
     $("hoursNote").textContent = notes.join(" · ");
-    if (lateDays.length) $("hoursLead").textContent = lateDays.join("·") + "요일은 저녁까지 진료합니다. 퇴근 후에도 예약하고 오세요.";
-
+    if (lateDays.length) $("hoursLead").textContent = lateDays.join("·") + "요일은 저녁까지 진료합니다. 진료시간과 휴진일은 병원에서 바뀌는 즉시 반영됩니다.";
     var list = $("holidayList"); list.textContent = "";
-    holidays.slice(0, 8).forEach(function (h) { list.appendChild(el("li", { text: C.formatDate(h.date) + " " + h.label })); });
-    $("holidayBox").hidden = !holidays.length;
+    holidays.slice(0, 5).forEach(function (h) { list.appendChild(el("li", null, [el("span", { text: h.label }), el("span", { class: "mono small", text: C.formatDate(h.date) })])); });
+    if (!holidays.length) list.appendChild(el("li", null, [el("small", { text: "예정된 휴진일이 없습니다." })]));
   }
-
   function renderFees(fees, updatedAt) {
     var tb = $("feeRows"); tb.textContent = "";
     if (!fees.length) { tb.appendChild(el("tr", null, [el("td", { colspan: 3, text: "등록된 비급여 항목이 없습니다." })])); return; }
@@ -126,9 +265,8 @@
       if (f.note) name.appendChild(el("span", { class: "fee-note", text: f.note }));
       tb.appendChild(el("tr", null, [name, el("td", { text: f.unit || "" }), el("td", { class: "num", text: won(f.price) })]));
     });
-    if (updatedAt) $("feeCaption").textContent = "비급여 진료비 · " + updatedAt.slice(0, 10) + " 기준";
+    $("feeCaption").textContent = "비급여 진료비 · " + (updatedAt ? updatedAt.slice(0, 10) + " 병원 수정 반영" : "병원 고지 금액");
   }
-
   function renderDoctors(docs) {
     var box = $("doctorList"); box.textContent = "";
     docs.forEach(function (d) {
@@ -136,13 +274,23 @@
       portrait.innerHTML = '<svg viewBox="0 0 64 40" aria-hidden="true"><use href="#w-mark"/></svg>';
       var career = el("ul");
       String(d.career || "").split("\n").filter(Boolean).forEach(function (c) { career.appendChild(el("li", { text: c })); });
-      box.appendChild(el("article", { class: "doctor" }, [
-        portrait, el("p", { class: "role", text: d.role || "" }), el("h3", { text: d.name }), career,
-        d.quote ? el("blockquote", { text: d.quote }) : null
+      box.appendChild(el("article", { class: "doctor", "data-days": d.days || "" }, [
+        portrait, el("p", { class: "role" }, [d.role || "", " ", el("span", { class: "today-mark", hidden: true, text: "오늘 진료" })]),
+        el("h3", { text: d.name }), d.days ? el("p", { class: "days", text: "진료 요일 " + d.days.split("").join(" · ") }) : null,
+        career, d.quote ? el("blockquote", { text: d.quote }) : null
       ]));
     });
+    markDoctors();
   }
-
+  function markDoctors() {
+    if (!live) return;
+    var closed = live.today.plan.closed;
+    document.querySelectorAll("#doctorList .doctor").forEach(function (a) {
+      var on = !closed && C.worksOn(a.getAttribute("data-days"), live.now.weekday);
+      a.classList.toggle("off", !on);
+      a.querySelector(".today-mark").hidden = !on;
+    });
+  }
   function renderNotices(notices) {
     var list = $("noticeList"); list.textContent = "";
     notices.forEach(function (n) {
@@ -153,55 +301,96 @@
     });
     $("notices").hidden = !notices.length;
     var pinned = notices.filter(function (n) { return n.pinned; })[0];
-    if (pinned) { $("noticeBarText").textContent = pinned.title; $("noticeBar").hidden = false; }
+    $("noticeBar").hidden = !pinned;
+    if (pinned) $("noticeBarText").textContent = pinned.title;
   }
-
-  function renderStatus(s) {
-    $("status").setAttribute("data-open", s.open ? "true" : "false");
-    $("statusText").textContent = s.text;
-  }
-  function refreshStatus() {
-    if (!site) return;
-    var hm = {}; site.holidays.forEach(function (h) { hm[h.date] = h.label; });
-    site.now = C.seoulNow();
-    renderStatus(C.openStatus(site.hours, hm, site.now));
-  }
-
-  /* ---------- 온라인 예약 ---------- */
-  var pick = { date: null, time: null };
-  var sel = $("rClinic");
-
-  function loadDays() {
-    return api("days").then(function (d) {
-      var strip = $("dayStrip"); strip.textContent = "";
-      var first = null;
-      d.days.forEach(function (day) {
-        var p = day.date.split("-");
-        var disabled = day.closed || day.available === 0;
-        var btn = el("button", {
-          type: "button", class: "day" + (day.weekday === 0 ? " sun" : ""), "data-date": day.date, disabled: disabled,
-          "aria-pressed": "false", "aria-label": C.formatDate(day.date) + (disabled ? " 예약 불가" + (day.reason ? " (" + day.reason + ")" : "") : " 예약 가능 " + day.available + "개"),
-          title: day.reason || null
-        }, [
-          el("span", { class: "dw", text: day.date === site.now.date ? "오늘" : C.WEEKDAYS[day.weekday] }),
-          el("span", { class: "dd", text: String(parseInt(p[2], 10)) }),
-          el("span", { class: "da", text: day.closed ? (day.reason === "정기 휴진" ? "휴진" : day.reason.length <= 4 ? day.reason : "휴진") : day.available ? "예약 가능" : "마감" })
-        ]);
-        btn.addEventListener("click", function () { chooseDate(day.date); });
-        strip.appendChild(btn);
-        if (!disabled && !first) first = day.date;
-      });
-      if (pick.date && strip.querySelector('[data-date="' + pick.date + '"]:not(:disabled)')) chooseDate(pick.date, true);
-      else if (first) chooseDate(first, true);
+  function loadSite() {
+    return api("site").then(function (s) {
+      var first = !site;
+      site = s;
+      if (first) {
+        var sel = $("rClinic"); sel.textContent = "";
+        s.treatments.forEach(function (t) { sel.appendChild(el("option", { value: t.key, text: t.label })); });
+      }
+      renderClinic(s.clinic); renderHours(s.hours, s.holidays); renderFees(s.fees, s.feesUpdatedAt);
+      renderDoctors(s.doctors); renderNotices(s.notices);
+      if (s.booking.retentionDays) $("retention").textContent = s.booking.retentionDays;
     });
   }
 
-  function chooseDate(ds, keepScroll) {
+  /* =========================================================
+   * 3. 예약
+   * ========================================================= */
+  var SYMPTOMS = [
+    { id: "cold", label: "이가 시려요", t: "endo", time: "약 40분", ins: "검사와 기본 치료는 건강보험 적용" },
+    { id: "bite", label: "씹을 때 아파요", t: "endo", time: "약 50분", ins: "신경치료는 건강보험 적용" },
+    { id: "gum", label: "잇몸에서 피가 나요", t: "perio", time: "약 60분", ins: "만 19세 이상 스케일링 연 1회 보험" },
+    { id: "lost", label: "이가 빠졌어요", t: "implant", time: "60 – 90분 (CT 포함)", ins: "만 65세 이상 평생 2개 보험" },
+    { id: "crooked", label: "치아가 삐뚤어요", t: "ortho", time: "약 60분 (정밀 진단)", ins: "비급여 (진료비 안내 참고)" },
+    { id: "jaw", label: "턱에서 소리가 나요", t: "tmj", time: "약 60분", ins: "검사 일부 건강보험 적용" },
+    { id: "kid", label: "아이 첫 검진", t: "kids", time: "약 30분", ins: "만 18세 이하 실란트 보험" },
+    { id: "color", label: "치아 색이 누래요", t: "esthetic", time: "약 40분", ins: "비급여 (진료비 안내 참고)" }
+  ];
+  var chips = $("symChips");
+  SYMPTOMS.forEach(function (s) {
+    chips.appendChild(el("label", { class: "chip", for: "sym-" + s.id }, [el("input", { type: "radio", name: "sym", id: "sym-" + s.id, value: s.id }), el("span", { text: s.label })]));
+  });
+  chips.addEventListener("change", function (e) {
+    var s = SYMPTOMS.filter(function (x) { return x.id === e.target.value; })[0]; if (!s) return;
+    $("rClinic").value = s.t;
+    if (!$("rMemo").value) $("rMemo").value = s.label;
+    var h = $("symHint"); h.hidden = false;
+    h.textContent = C.labelOf(C.TREATMENTS, s.t) + " · 첫 방문 " + s.time + " · " + s.ins;
+  });
+
+  var pick = { date: null, time: null };
+  function goBook(date, time) {
+    pick.time = time || null;
+    document.getElementById("reserve").scrollIntoView({ behavior: "smooth", block: "start" });
+    loadDays(date);
+  }
+  $("nextBtn").addEventListener("click", function () { if (live && live.next) goBook(live.next.date, live.next.time); });
+  $("quickNext").addEventListener("click", function (e) { if (live && live.next) { e.preventDefault(); goBook(live.next.date, live.next.time); } });
+  $("lvNext").addEventListener("click", function (e) { if (live && live.next) { e.preventDefault(); goBook(live.next.date, live.next.time); } });
+
+  function loadDays(want) {
+    return api("days").then(function (d) {
+      var strip = $("dayStrip"); strip.textContent = "";
+      var first = null, wantOk = false;
+      d.days.forEach(function (day) {
+        var p = day.date.split("-"), disabled = day.closed || day.available === 0;
+        var btn = el("button", {
+          type: "button", class: "day" + (day.weekday === 0 ? " sun" : ""), "data-date": day.date, disabled: disabled, "aria-pressed": "false",
+          "aria-label": C.formatDate(day.date) + (disabled ? " 예약 불가" + (day.reason ? " (" + day.reason + ")" : "") : " 예약 가능 " + day.available + "타임"),
+          title: day.reason || null
+        }, [
+          el("span", { class: "dw", text: C.diffDays(d.days[0].date, day.date) === 0 ? "오늘" : C.WEEKDAYS[day.weekday] }),
+          el("span", { class: "dd", text: String(parseInt(p[2], 10)) }),
+          el("span", { class: "da", text: day.closed ? (day.reason.length <= 4 ? day.reason.replace("정기 휴진", "휴진") : "휴진") : day.available ? day.available + "타임" : "마감" })
+        ]);
+        btn.addEventListener("click", function () { pick.time = null; chooseDate(day.date); });
+        strip.appendChild(btn);
+        if (!disabled && !first) first = day.date;
+        if (!disabled && day.date === (want || pick.date)) wantOk = true;
+      });
+      var target = wantOk ? (want || pick.date) : first;
+      if (target) {
+        chooseDate(target, true);
+        var b = strip.querySelector('[data-date="' + target + '"]'); if (b) strip.scrollLeft = b.offsetLeft - strip.offsetLeft - 8;
+      } else { $("slotBox").textContent = ""; $("slotBox").appendChild(el("div", { class: "slot-empty", text: "예약 가능한 날짜가 없습니다. 전화로 문의해 주세요." })); }
+    });
+  }
+
+  function chooseDate(ds, keepFocus) {
     pick.date = ds;
     document.querySelectorAll("#dayStrip .day").forEach(function (b) { b.setAttribute("aria-pressed", b.getAttribute("data-date") === ds ? "true" : "false"); });
+    return renderSlots(ds, !keepFocus, false);
+  }
+  function renderSlots(ds, focus, fromLive) {
     var box = $("slotBox");
-    box.textContent = ""; box.appendChild(el("div", { class: "slot-empty", text: "예약 가능한 시간을 확인하는 중입니다." }));
+    if (!fromLive) { box.textContent = ""; box.appendChild(el("div", { class: "slot-empty", text: "병원 예약 장부에서 남은 시간을 확인하는 중입니다." })); }
     return api("slots?date=" + ds).then(function (r) {
+      if (pick.date !== ds) return;
       box.textContent = "";
       if (r.closed || !r.slots.length) { box.appendChild(el("div", { class: "slot-empty", text: r.reason || "이 날은 예약할 수 있는 시간이 없습니다." })); setTime(null); return; }
       var grid = el("div", { class: "slots", role: "group", "aria-label": C.formatDate(ds) + " 예약 시간" });
@@ -211,23 +400,34 @@
         if (s.time === pick.time && !full) stillOk = true;
         grid.appendChild(el("button", {
           type: "button", class: "slot", disabled: full, "aria-pressed": s.time === pick.time && !full ? "true" : "false",
-          "aria-label": s.time + (full ? " 마감" : " 예약 가능"), "data-time": s.time, text: s.time,
-          onclick: function () { setTime(s.time); }
+          "aria-label": s.time + (full ? " 마감" : " 예약 가능"), "data-time": s.time, text: s.time, onclick: function () { setTime(s.time); }
         }));
       });
       box.appendChild(grid);
-      if (!stillOk) setTime(null);
-      if (!keepScroll) grid.querySelector(".slot:not(:disabled)") && grid.querySelector(".slot:not(:disabled)").focus({ preventScroll: true });
+      if (pick.time && !stillOk) { toast("선택하신 " + C.formatDate(ds) + " " + pick.time + "이 방금 마감되었습니다. 다른 시간을 골라주세요."); setTime(null); }
+      else setTime(pick.time);
+      if (focus) { var f = grid.querySelector(".slot:not(:disabled)"); if (f) f.focus({ preventScroll: true }); }
     }).catch(function (e) { box.textContent = ""; box.appendChild(el("div", { class: "slot-empty", text: e.message })); });
   }
-
+  function refreshSlots() {
+    if (!pick.date || $("reserveForm").hidden) return;
+    api("days").then(function (d) {
+      d.days.forEach(function (day) {
+        var b = document.querySelector('#dayStrip [data-date="' + day.date + '"]'); if (!b) return;
+        var disabled = day.closed || day.available === 0;
+        b.disabled = disabled;
+        b.querySelector(".da").textContent = day.closed ? (day.reason.length <= 4 ? day.reason.replace("정기 휴진", "휴진") : "휴진") : day.available ? day.available + "타임" : "마감";
+      });
+    }).catch(function () {});
+    renderSlots(pick.date, false, true);
+    flash($("slotTag"));
+  }
   function setTime(t) {
     pick.time = t;
     document.querySelectorAll("#slotBox .slot").forEach(function (b) { b.setAttribute("aria-pressed", b.getAttribute("data-time") === t ? "true" : "false"); });
     var p = $("picked"); p.textContent = "선택한 시간: ";
     p.appendChild(el("b", { text: t && pick.date ? C.formatDate(pick.date) + " " + t : "없음" }));
   }
-
   function showError(msg, fieldId) {
     var fe = $("formError"); fe.textContent = msg; fe.hidden = !msg;
     ["fName", "fPhone"].forEach(function (id) { $(id).classList.toggle("invalid", id === fieldId); });
@@ -236,87 +436,115 @@
   $("reserveForm").addEventListener("submit", function (e) {
     e.preventDefault();
     var payload = {
-      name: $("rName").value, phone: $("rTel").value, treatment: sel.value, memo: $("rMemo").value,
+      name: $("rName").value, phone: $("rTel").value, treatment: $("rClinic").value, memo: $("rMemo").value,
       date: pick.date, time: pick.time, consent: $("rAgree").checked, website: $("rWebsite").value
     };
     var v = C.validateReservation(payload);
     if (!v.ok) {
-      var order = ["treatment", "date", "time", "name", "phone", "memo", "consent"];
-      var k = order.filter(function (x) { return v.errors[x]; })[0];
+      var k = ["treatment", "date", "time", "name", "phone", "memo", "consent"].filter(function (x) { return v.errors[x]; })[0];
       showError(v.errors[k], k === "name" ? "fName" : k === "phone" ? "fPhone" : null);
       if (k === "name") $("rName").focus(); else if (k === "phone") $("rTel").focus();
       return;
     }
     showError("");
-    var btn = $("submitBtn"); btn.disabled = true; btn.textContent = "신청하는 중…";
+    var btn = $("submitBtn"); btn.disabled = true; btn.textContent = "병원 예약 장부에 등록하는 중…";
     api("reservations", payload).then(function (r) {
+      track(r.code, payload.phone, $("rRemember").checked);
+      renderTracker(r, false);
+      $("rName").value = ""; $("rTel").value = ""; $("rMemo").value = ""; $("rAgree").checked = false; pick.time = null;
+      $("symHint").hidden = true; document.querySelectorAll("#symChips input").forEach(function (i) { i.checked = false; });
       $("reserveForm").hidden = true;
-      $("doneCode").textContent = r.code;
-      var dl = $("doneInfo"); dl.textContent = "";
-      [["일시", C.formatDate(r.date) + " " + r.time], ["진료", r.treatmentLabel], ["예약자", r.name], ["상태", r.statusLabel]].forEach(function (p) {
-        dl.appendChild(el("dt", { text: p[0] })); dl.appendChild(el("dd", { text: p[1] }));
-      });
-      $("bookDone").hidden = false; $("bookDone").focus();
-      $("lCode").value = r.code; $("lTel").value = payload.phone;
+      var tr = $("tracker"); tr.scrollIntoView({ behavior: "smooth", block: "start" }); tr.focus({ preventScroll: true });
+      refreshLive("tick");
     }).catch(function (err) {
       showError(err.message, err.data && err.data.fields && err.data.fields.phone ? "fPhone" : null);
-      if (err.status === 409) loadDays();
+      if (err.status === 409) { pick.time = null; loadDays(pick.date); }
     }).then(function () { btn.disabled = false; btn.textContent = "예약 신청하기"; });
   });
 
-  $("newBooking").addEventListener("click", function () {
-    $("bookDone").hidden = true; $("reserveForm").hidden = false;
-    $("rMemo").value = ""; $("rAgree").checked = false; pick.time = null;
-    loadDays();
-  });
+  /* =========================================================
+   * 4. 내 예약 진행 상황 (직원이 확정하면 바로 바뀜)
+   * ========================================================= */
+  var TRACK_KEY = "w-my-booking";
+  var mine = null;      // { code, phone }
+  var lastStatus = null;
+  function tracked() { return mine; }
+  function track(code, phone, remember) {
+    mine = { code: code, phone: C.normalizePhone(phone) };
+    if (remember) store.set(TRACK_KEY, JSON.stringify(mine)); else store.del(TRACK_KEY);
+  }
+  function untrack() { mine = null; lastStatus = null; store.del(TRACK_KEY); $("tracker").hidden = true; $("minePill").hidden = true; $("reserveForm").hidden = false; }
 
-  /* ---------- 예약 확인 · 취소 ---------- */
-  function renderLookup(r) {
-    var box = $("lookupResult"); box.textContent = "";
-    var card = el("div", { class: "lookup-result" }, [
-      el("div", null, [el("span", { class: "pill " + r.status, text: r.statusLabel }), " ", el("b", { text: C.formatDate(r.date) + " " + r.time })]),
-      el("div", { text: r.treatmentLabel + " · " + r.name + " · 예약번호 " + r.code })
-    ]);
+  var STEP_INDEX = { requested: 1, confirmed: 2, visited: 4, no_show: -1, cancelled: -1 };
+  function renderTracker(r, announce) {
+    var t = $("tracker"); t.hidden = false;
+    $("trCode").textContent = r.code;
+    var steps = $("trSteps"); steps.textContent = "";
+    var idx = STEP_INDEX[r.status], stopped = idx < 0;
+    steps.className = "track-steps" + (stopped ? " stopped" : "");
+    ["신청 접수", "병원 확인", "예약 확정", "내원"].forEach(function (label, i) {
+      var cls = stopped ? "" : i < idx ? "st-done" : i === idx && r.status === "requested" ? "st-now" : i === idx ? "st-done" : "";
+      if (r.status === "confirmed" && i === 3) cls = "";
+      steps.appendChild(el("li", { class: cls || null, text: label }));
+    });
+    var when = C.formatDate(r.date) + " " + r.time;
+    var msg = {
+      requested: "병원에서 예약을 확인하고 있습니다. 직원이 확정하면 이 화면이 바로 바뀌고 문자로도 알려드립니다.",
+      confirmed: "예약이 확정되었습니다. " + when + "에 뵙겠습니다. 전날 안내 문자를 보내드립니다.",
+      visited: "내원해 주셔서 감사합니다. 다음 정기검진 일정은 병원에서 안내해 드립니다.",
+      no_show: "예약 시간에 오시지 않은 것으로 기록되었습니다. 다시 예약해 주세요.",
+      cancelled: "취소된 예약입니다."
+    }[r.status];
+    var m = $("trMsg"); m.textContent = msg; m.className = "track-msg" + (stopped ? " bad" : "");
+    var info = $("trInfo"); info.textContent = "";
+    [["일시", when], ["진료", r.treatmentLabel], ["예약자", r.name], ["상태", r.statusLabel]].forEach(function (p) { info.appendChild(el("dt", { text: p[0] })); info.appendChild(el("dd", { text: p[1] })); });
+    var acts = $("trActs"); acts.textContent = "";
     if (r.canCancel) {
-      var armed = false;
-      var cancel = el("button", { class: "btn btn-ghost", type: "button", text: "예약 취소" });
+      var armed = false, cancel = el("button", { class: "btn btn-ghost", type: "button", text: "예약 취소" });
       cancel.addEventListener("click", function () {
         if (!armed) { armed = true; cancel.textContent = "한 번 더 누르면 취소됩니다"; return; }
         cancel.disabled = true;
-        api("reservations/cancel", { code: r.code, phone: $("lTel").value }).then(function (x) { renderLookup(x); loadDays(); })
-          .catch(function (e) { box.appendChild(el("p", { class: "form-error", text: e.message })); });
+        api("reservations/cancel", { code: mine.code, phone: mine.phone }).then(function (x) { renderTracker(x, false); refreshLive("event"); }).catch(function (e) { toast(e.message); cancel.disabled = false; });
       });
-      card.appendChild(cancel);
+      acts.appendChild(cancel);
     }
-    box.appendChild(card);
+    acts.appendChild(el("button", { class: "btn btn-ghost", type: "button", text: "새 예약 하기", onclick: function () { $("reserveForm").hidden = false; loadDays(pick.date); $("reserveForm").scrollIntoView({ behavior: "smooth" }); } }));
+    acts.appendChild(el("button", { class: "btn btn-ghost", type: "button", text: "이 기기에서 지우기", onclick: untrack }));
+    var pill = $("minePill"); pill.hidden = false;
+    $("mineText").textContent = "내 예약 · " + r.statusLabel;
+    pill.setAttribute("href", "#tracker");
+    if (announce && lastStatus && lastStatus !== r.status) {
+      toast(r.status === "confirmed" ? "병원에서 예약을 확정했습니다 · " + when : "내 예약이 '" + r.statusLabel + "'(으)로 바뀌었습니다");
+      flash(t);
+    } else if (announce && lastStatus === r.status && r.status === "confirmed") { /* 변경 없음 */ }
+    lastStatus = r.status;
+  }
+  function refreshTracker(announce) {
+    if (!mine) return Promise.resolve();
+    return api("reservations/lookup", mine).then(function (r) { renderTracker(r, announce); }).catch(function (e) { if (e.status === 404) untrack(); });
   }
   $("lookupForm").addEventListener("submit", function (e) {
     e.preventDefault();
-    var box = $("lookupResult");
-    api("reservations/lookup", { code: $("lCode").value, phone: $("lTel").value })
-      .then(renderLookup)
-      .catch(function (err) { box.textContent = ""; box.appendChild(el("p", { class: "form-error", text: err.message })); });
+    var err = $("lookupErr"); err.hidden = true;
+    api("reservations/lookup", { code: $("lCode").value, phone: $("lTel").value }).then(function (r) {
+      track(r.code, $("lTel").value, true);
+      lastStatus = null; renderTracker(r, false);
+      $("tracker").scrollIntoView({ behavior: "smooth", block: "start" });
+    }).catch(function (x) { err.textContent = x.message; err.hidden = false; });
   });
 
   /* ---------- 시작 ---------- */
   $("copyAddr").addEventListener("click", function (e) { copy(e.currentTarget, site ? site.clinic.address : ""); });
   $("copyTel").addEventListener("click", function (e) { copy(e.currentTarget, site ? site.clinic.phone : ""); });
 
-  api("site").then(function (s) {
-    site = s; site.now = C.seoulNow();
-    sel.textContent = "";
-    s.treatments.forEach(function (t) { sel.appendChild(el("option", { value: t.key, text: t.label })); });
-    renderClinic(s.clinic);
-    renderHours(s.hours, s.holidays);
-    renderFees(s.fees, s.feesUpdatedAt);
-    renderDoctors(s.doctors);
-    renderNotices(s.notices);
-    renderStatus(s.status);
-    if (s.booking.retentionDays) $("retention").textContent = s.booking.retentionDays;
-    setInterval(refreshStatus, 60000);
+  try { mine = JSON.parse(store.get(TRACK_KEY) || "null"); } catch (e) { mine = null; }
+  renderLivebar();
+  loadSite().then(function () { return refreshLive("tick"); }).then(function () {
+    connect();
+    if (mine) refreshTracker(false).then(function () { if (mine) $("reserveForm").hidden = true; });
     return loadDays();
   }).catch(function (e) {
-    renderStatus({ open: false, text: "정보를 불러오지 못했습니다" });
-    $("slotBox").textContent = e.message + " 전화로 예약해 주세요.";
+    setMode("off");
+    $("slotBox").textContent = (e && e.message ? e.message + " " : "") + "전화로 예약해 주세요.";
   });
 })();

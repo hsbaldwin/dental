@@ -125,7 +125,8 @@
     return Promise.all([
       poll(true),
       api("GET", "reservations?from=" + now.date + "&to=" + now.date),
-      api("GET", "reservations?status=requested&from=" + now.date + "&to=" + C.addDays(now.date, 180))
+      api("GET", "reservations?status=requested&from=" + now.date + "&to=" + C.addDays(now.date, 180)),
+      api("GET", "live")
     ]).then(function (r) {
       var s = r[0] || S.summary || {}, today = r[1].items, pending = r[2].items;
       v.textContent = "";
@@ -143,6 +144,7 @@
         kp.appendChild(el("div", { class: "kpi" + (k[3] ? " alert" : "") }, [el("span", { text: k[0] }), el("b", { text: String(k[1] == null ? 0 : k[1]) }), el("small", { text: k[2] })]));
       });
       v.appendChild(kp);
+      v.appendChild(livePanel(r[3]));
 
       var pendPanel = el("section", { class: "panel" }, [el("h2", null, ["확인 대기", el("span", { class: "muted small", text: pending.length + "건" })])]);
       var pl = el("ul", { class: "agenda" });
@@ -181,6 +183,34 @@
       v.appendChild(el("div", { class: "cols" }, [pendPanel, todayPanel]));
     });
   };
+
+  /* 홈페이지 상단에 바로 뜨는 '지금 병원 상황' */
+  var WAITS = [{ v: null, t: "표시 안 함" }, { v: 0, t: "바로 진료" }, { v: 10, t: "약 10분" }, { v: 20, t: "약 20분" }, { v: 30, t: "약 30분" }, { v: 45, t: "45분 이상" }];
+  function livePanel(cur) {
+    var chosen = cur.updatedAt ? cur.wait : null;
+    var btns = el("div", { class: "wait-btns", role: "group", "aria-label": "현재 대기 시간" });
+    WAITS.forEach(function (w) {
+      var b = el("button", { type: "button", class: "btn btn-sm " + (w.v === chosen ? "btn-primary" : "btn-ghost"), text: w.t, "aria-pressed": w.v === chosen ? "true" : "false" });
+      b.addEventListener("click", function () {
+        chosen = w.v;
+        btns.querySelectorAll("button").forEach(function (x) { x.className = "btn btn-sm btn-ghost"; x.setAttribute("aria-pressed", "false"); });
+        b.className = "btn btn-sm btn-primary"; b.setAttribute("aria-pressed", "true");
+      });
+      btns.appendChild(b);
+    });
+    var msg = input({ type: "text", id: "liveMsgIn", maxlength: 120, value: cur.message || "", placeholder: "예: 오후 2–3시는 원장님 수술로 대기가 길 수 있습니다" });
+    var age = cur.updatedAt ? Math.round((Date.now() - Date.parse(cur.updatedAt)) / 60000) : null;
+    var stateText = cur.updatedAt ? (age < 180 ? "홈페이지에 표시 중 · " + (age < 1 ? "방금" : age + "분 전") + " " + (cur.updatedBy || "") + " 입력" : "3시간이 지나 홈페이지에서 자동으로 내려갔습니다") : "아직 입력한 안내가 없습니다";
+    var save = el("button", { type: "button", class: "btn btn-primary btn-sm", text: "홈페이지에 바로 반영", onclick: function () {
+      api("PUT", "live", { wait: chosen, message: msg.value }).then(function () { toast("홈페이지에 반영했습니다. 지금 보고 있는 환자 화면에도 바로 바뀝니다."); route(); }).catch(fail);
+    } });
+    return el("section", { class: "panel live-panel" }, [
+      el("h2", null, ["홈페이지 실시간 안내", el("span", { class: "muted small", text: stateText })]),
+      el("div", { class: "field" }, [el("span", { class: "small", text: "현재 대기 시간 (진료 중일 때만 표시)" }), btns]),
+      field("오늘의 안내 문구", msg, "비워두면 표시하지 않습니다. 입력 후 3시간이 지나면 자동으로 내려갑니다."),
+      el("div", null, [save])
+    ]);
+  }
 
   function setStatus(x, status, notify) {
     return api("PATCH", "reservations/" + x.id, { status: status, notify: notify !== false })
@@ -441,8 +471,8 @@
     { key: "name", label: "항목" }, { key: "unit", label: "단위", ph: "1개 / 1치아" }, { key: "price", label: "금액 (원)", type: "number", ph: "비우면 '상담 후 안내'" },
     { key: "sort", label: "표시 순서", type: "number" }, { key: "note", label: "비고", wide: true }
   ], { sort: 99 });
-  VIEWS.doctors = listEditor("doctors", "의료진", "확인 가능한 학력·자격만 적으세요. 이력은 한 줄에 하나씩 입력합니다.", [
-    { key: "name", label: "성함" }, { key: "role", label: "직함 · 전문의" }, { key: "sort", label: "표시 순서", type: "number" },
+  VIEWS.doctors = listEditor("doctors", "의료진", "확인 가능한 학력·자격만 적으세요. 진료 요일은 홈페이지 '오늘 진료 의료진'에 쓰입니다.", [
+    { key: "name", label: "성함" }, { key: "role", label: "직함 · 전문의" }, { key: "days", label: "진료 요일", ph: "월화수목금토" }, { key: "sort", label: "표시 순서", type: "number" },
     { key: "career", label: "이력 (한 줄에 하나)", type: "textarea", wide: true }, { key: "quote", label: "한마디", wide: true }
   ], { sort: 99 });
   VIEWS.notices = listEditor("notices", "공지사항", "'상단 고정'을 켠 공지는 홈페이지 맨 위 띠에 표시됩니다.", [
@@ -489,7 +519,7 @@
     "settings.clinic": "병원 정보 변경", "settings.booking": "예약 규칙 변경", "settings.hours": "진료시간 변경", "holiday.set": "휴진일 등록", "holiday.delete": "휴진일 삭제",
     "fees.create": "진료비 추가", "fees.update": "진료비 수정", "fees.delete": "진료비 삭제", "doctors.create": "의료진 추가", "doctors.update": "의료진 수정", "doctors.delete": "의료진 삭제",
     "notices.create": "공지 추가", "notices.update": "공지 수정", "notices.delete": "공지 삭제", "user.create": "계정 추가", "user.delete": "계정 삭제", "user.password": "비밀번호 변경",
-    "privacy.purge": "개인정보 자동 파기"
+    "privacy.purge": "개인정보 자동 파기", "live.update": "홈페이지 실시간 안내 변경"
   };
   var OUT = { sent: "발송", failed: "실패", skipped: "미발송 (연동 전)", sending: "발송 중" };
   function when(iso) { var d = new Date(iso); return isNaN(d) ? iso : d.toLocaleString("ko-KR", { timeZone: "Asia/Seoul", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }); }

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>W치과</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<meta name="description" content="치료 계획과 비용을 먼저 보여드리는 W치과. 임플란트·교정·보존·심미·소아·턱관절 진료와 온라인 예약.">
+<meta name="description" content="W치과 실시간 예약. 남은 예약 시간, 오늘 진료 의료진, 대기 상황을 병원 시스템과 연결해 바로 보여드립니다.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hahmlet:wght@500;600;700&family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -23,66 +23,171 @@
 </div>
 
 <header class="site-header">
-  <div class="wrap">
+  <div class="wrap head-row">
     <a class="brand" href="#top"><svg aria-hidden="true"><use href="#w-mark"/></svg><span data-bind="shortName">W치과</span></a>
     <nav class="nav" aria-label="주요 메뉴">
+      <a href="#today">오늘의 병원</a>
+      <a href="#reserve">예약</a>
       <a href="#clinics">진료 안내</a>
-      <a href="#first-visit">첫 방문</a>
       <a href="#doctors">의료진</a>
       <a href="#price">진료비</a>
       <a href="#visit">오시는 길</a>
     </nav>
     <div class="tools">
-      <span class="status" id="status" data-open="false"><i aria-hidden="true"></i><span id="statusText">진료시간 확인 중</span></span>
+      <a class="mine" id="minePill" href="#reserve" hidden><span class="mine-dot" aria-hidden="true"></span><span id="mineText">내 예약</span></a>
       <button class="icon-btn" id="textBtn" type="button" aria-pressed="false" title="글자 크게 보기">가<span aria-hidden="true">+</span></button>
       <button class="icon-btn" id="themeBtn" type="button" aria-label="화면 밝기 전환">◐</button>
       <a class="btn btn-primary header-cta" href="#reserve">예약하기</a>
     </div>
   </div>
+  <div class="livebar" aria-label="병원 실시간 현황">
+    <div class="wrap livebar-row" id="livebar">
+      <span class="lv lv-conn" id="lvConn" data-mode="connecting"><i aria-hidden="true"></i><span id="lvConnText">연결 중</span></span>
+      <span class="lv" id="lvStatus" data-open="false"><b id="lvStatusText">진료시간 확인 중</b></span>
+      <span class="lv" id="lvWait" hidden></span>
+      <span class="lv" id="lvToday"></span>
+      <a class="lv lv-next" id="lvNext" href="#reserve" hidden></a>
+      <span class="lv lv-time" id="lvTime"></span>
+    </div>
+  </div>
 </header>
 
 <main id="main">
+  <!-- 히어로: 브랜드 약속 + 실시간 예약 현황판 -->
   <section class="hero" id="top">
     <div class="wrap hero-grid">
-      <div>
-        <p class="eyebrow">W Dental Clinic</p>
+      <div class="hero-copy">
+        <p class="eyebrow">W Dental Clinic · 병원 예약 시스템과 실시간 연결</p>
         <h1>치료하기 전에<br><em>계획서</em>부터 보여드립니다</h1>
-        <p class="lede">어느 치아를, 왜, 몇 번 방문해서, 얼마에 치료하는지. W치과는 모든 치료를 시작하기 전에 종이 한 장으로 설명하고 동의를 받습니다.</p>
-
-        <form class="finder" id="finder">
-          <fieldset>
-            <legend>어디가 불편하세요?</legend>
-            <div class="chips" id="chips"></div>
-          </fieldset>
-          <dl class="finder-result" id="finderResult" aria-live="polite"></dl>
-        </form>
-
-        <svg class="cusp-line" viewBox="0 0 640 90" aria-hidden="true" preserveAspectRatio="none">
-          <path d="M2 18 C 40 18, 60 80, 110 82 C 150 84, 160 34, 200 34 C 240 34, 250 84, 290 82 C 340 80, 350 18, 400 18 C 450 18, 460 76, 500 78 C 540 80, 560 40, 600 40 L 638 40" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-        </svg>
+        <p class="lede">이 홈페이지의 예약 시간, 진료 상황, 휴진 안내는 병원 접수 데스크와 같은 화면을 보고 있습니다. 직원이 예약을 확정하면 지금 보시는 화면에서도 바로 바뀝니다.</p>
+        <div class="quick">
+          <a class="btn btn-primary btn-lg" id="quickNext" href="#reserve">가장 빠른 시간 예약</a>
+          <a class="btn btn-ghost btn-lg" href="#lookup">내 예약 확인</a>
+        </div>
+        <ul class="proof">
+          <li><b>남은 자리</b> 병원 예약 장부에서 바로 계산</li>
+          <li><b>확정 알림</b> 직원 확인 즉시 화면 · 문자로</li>
+          <li><b>휴진 · 대기</b> 병원에서 바꾸면 바로 표시</li>
+        </ul>
       </div>
 
-      <div>
-        <article class="plan" aria-label="치료계획서 예시">
-          <header>
-            <h2>치료계획서</h2>
-            <span class="meta">예시 · 초진</span>
-          </header>
-          <table>
-            <thead><tr><th scope="col">치아</th><th scope="col">진단 · 치료</th><th scope="col">방문</th></tr></thead>
-            <tbody>
-              <tr><td class="tooth">#36</td><td>깊은 충치 → 신경치료 후 지르코니아 크라운</td><td class="mono">4회</td></tr>
-              <tr><td class="tooth">#47</td><td>인접면 충치 → 레진 충전</td><td class="mono">1회</td></tr>
-              <tr><td class="tooth">전체</td><td>치석 제거 (건강보험 연 1회)</td><td class="mono">1회</td></tr>
-            </tbody>
+      <article class="board" aria-labelledby="bd-h">
+        <header class="board-head">
+          <h2 id="bd-h">실시간 예약 현황</h2>
+          <span class="live-tag" id="boardTag"><i aria-hidden="true"></i><span id="boardTime">불러오는 중</span></span>
+        </header>
+        <div class="board-next" id="boardNext">
+          <span class="muted">가장 빠른 예약 가능 시간</span>
+          <strong id="nextText" class="skeleton">&nbsp;</strong>
+          <button class="btn btn-primary" type="button" id="nextBtn" disabled>이 시간으로 예약</button>
+        </div>
+        <div class="heat-box">
+          <table class="heat" id="heat" aria-label="이번 주 시간대별 예약 가능 현황">
+            <thead><tr><th scope="col"><span class="vh">시간대</span></th></tr></thead>
+            <tbody></tbody>
           </table>
-          <div class="sum"><span>예상 본인부담</span><span class="mono">약 62만 원</span></div>
-          <div class="foot">
-            <p class="note">치식 번호는 국제 표기(FDI) 기준입니다. #36 = 아래 왼쪽 첫째 큰어금니.</p>
-            <span class="stamp">설명 완료</span>
-          </div>
+        </div>
+        <footer class="board-foot">
+          <span class="legend"><i class="lg ok"></i>여유 <i class="lg few"></i>얼마 안 남음 <i class="lg full"></i>마감</span>
+          <span class="muted" id="boardFoot">칸을 누르면 그 날짜로 예약합니다.</span>
+        </footer>
+      </article>
+    </div>
+  </section>
+
+  <!-- 오늘의 병원 -->
+  <section class="band band-alt" id="today" aria-labelledby="td-h">
+    <div class="wrap">
+      <div class="sec-head">
+        <div><p class="eyebrow">Today · <span id="todayLabel"></span></p><h2 id="td-h">오늘의 W치과</h2></div>
+        <p>진료시간표, 오늘 진료하는 의료진, 병원 안내는 직원이 관리 화면에서 바꾸는 즉시 이곳에 반영됩니다.</p>
+      </div>
+      <div class="today-grid">
+        <article class="tcard wide" aria-labelledby="tl-h">
+          <div class="tcard-head"><h3 id="tl-h">오늘 진료 타임라인</h3><span class="muted small" id="tlHours"></span></div>
+          <div class="timeline" id="timeline" role="img" aria-label="오늘 진료시간과 예약 가능 시간"></div>
+          <p class="legend small"><i class="lg ok"></i>예약 가능 <i class="lg full"></i>마감 <i class="lg lunch"></i>점심시간 <i class="lg nowl"></i>지금</p>
         </article>
-        <p class="plan-cap">상담이 끝나면 이 계획서를 그대로 카카오톡으로 보내드립니다. 집에서 다시 읽어보고 결정하셔도 됩니다.</p>
+        <article class="tcard" aria-labelledby="nt2-h">
+          <div class="tcard-head"><h3 id="nt2-h">병원 안내</h3><span class="live-tag sm"><i aria-hidden="true"></i>병원 직접 입력</span></div>
+          <p class="wait-big" id="waitBig">–</p>
+          <p id="liveMsg" class="live-msg">오늘은 별도 안내가 없습니다.</p>
+          <p class="muted small" id="liveMsgAt"></p>
+        </article>
+        <article class="tcard" aria-labelledby="dt-h">
+          <div class="tcard-head"><h3 id="dt-h">오늘 진료 의료진</h3></div>
+          <ul class="doc-chips" id="docToday"></ul>
+        </article>
+        <article class="tcard" aria-labelledby="hd-h">
+          <div class="tcard-head"><h3 id="hd-h">다가오는 휴진</h3></div>
+          <ul class="hol-list" id="holidayList"></ul>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- 예약 -->
+  <section class="band" id="reserve" aria-labelledby="rs-h">
+    <div class="wrap reserve">
+      <div class="side">
+        <p class="eyebrow">Reservation</p>
+        <h2 id="rs-h">실시간 예약</h2>
+        <p>표시된 시간은 지금 병원 예약 장부에 남아 있는 자리입니다. 다른 분이 먼저 예약하면 이 화면에서도 바로 마감으로 바뀝니다.</p>
+
+      </div>
+
+      <div class="reserve-main">
+        <section class="tracker" id="tracker" hidden tabindex="-1" aria-live="polite" aria-labelledby="tr-h">
+          <header class="tracker-head">
+            <div><span class="live-tag sm"><i aria-hidden="true"></i>실시간 진행 상황</span><h3 id="tr-h">내 예약</h3></div>
+            <span class="tracker-code mono" id="trCode"></span>
+          </header>
+          <ol class="track-steps" id="trSteps"></ol>
+          <p class="track-msg" id="trMsg"></p>
+          <dl class="track-info" id="trInfo"></dl>
+          <div class="track-acts" id="trActs"></div>
+        </section>
+
+        <form class="form" id="reserveForm" novalidate>
+          <h3><span class="n">1</span>어디가 불편하세요?</h3>
+          <div class="chips" id="symChips" role="group" aria-label="증상으로 진료 고르기"></div>
+          <div class="field"><label for="rClinic">진료 항목</label><select id="rClinic" name="treatment"></select></div>
+          <p class="sym-hint" id="symHint" hidden></p>
+
+          <h3><span class="n">2</span>날짜와 시간 <span class="live-tag sm" id="slotTag"><i aria-hidden="true"></i>실시간</span></h3>
+          <div class="days" id="dayStrip" role="group" aria-label="예약 날짜"></div>
+          <div id="slotBox" aria-live="polite"><div class="slot-empty">날짜를 먼저 선택해 주세요.</div></div>
+          <p class="picked" id="picked">선택한 시간: <b>없음</b></p>
+
+          <h3><span class="n">3</span>예약자 정보</h3>
+          <div class="row">
+            <div class="field" id="fName"><label for="rName">성함</label><input id="rName" name="name" autocomplete="name" maxlength="30" required></div>
+            <div class="field" id="fPhone"><label for="rTel">연락처</label><input id="rTel" name="tel" type="tel" inputmode="tel" autocomplete="tel" required placeholder="010-0000-0000"></div>
+          </div>
+          <div class="field"><label for="rMemo">불편한 점 (선택)</label><textarea id="rMemo" name="memo" maxlength="500" placeholder="예: 왼쪽 아래 어금니가 찬물에 시려요"></textarea></div>
+          <div class="vh" aria-hidden="true"><label for="rWebsite">웹사이트</label><input id="rWebsite" name="website" tabindex="-1" autocomplete="off"></div>
+          <label class="consent" for="rAgree"><input type="checkbox" id="rAgree" required><span>예약 연락을 위한 개인정보(성함·연락처) 수집·이용에 동의합니다. 예약일로부터 <span id="retention">180</span>일 뒤 파기합니다.</span></label>
+          <label class="consent" for="rRemember"><input type="checkbox" id="rRemember" checked><span>이 기기에서 예약 진행 상황 보기 (예약번호와 연락처를 이 브라우저에만 저장)</span></label>
+          <p class="form-error" id="formError" role="alert" hidden></p>
+          <button class="btn btn-primary btn-lg" type="submit" id="submitBtn">예약 신청하기</button>
+        </form>
+      </div>
+      <div class="side-extra">
+        <div class="lookup" id="lookup">
+          <h3>내 예약 확인 · 취소</h3>
+          <form id="lookupForm" novalidate>
+            <div class="field"><label for="lCode">예약번호</label><input id="lCode" name="code" maxlength="6" autocomplete="off" placeholder="6자리"></div>
+            <div class="field"><label for="lTel">연락처</label><input id="lTel" name="tel" type="tel" inputmode="tel" autocomplete="tel" placeholder="010-0000-0000"></div>
+            <button class="btn btn-ghost" type="submit">조회</button>
+          </form>
+          <p class="form-error" id="lookupErr" role="alert" hidden></p>
+        </div>
+
+        <div class="channels">
+          <a class="channel" data-href="naverBookingUrl" href="https://booking.naver.com/" target="_blank" rel="noopener"><span><b>네이버 예약</b><br><small>네이버 예약으로도 받습니다</small></span><span aria-hidden="true">→</span></a>
+          <a class="channel" data-href="kakaoUrl" href="https://pf.kakao.com/" target="_blank" rel="noopener"><span><b>카카오톡 상담</b><br><small>사진을 보내고 미리 상담</small></span><span aria-hidden="true">→</span></a>
+          <div class="channel"><span><b>전화</b><br><small class="mono" data-bind="phone"></small></span><button class="icon-btn" type="button" id="copyTel">번호 복사</button></div>
+        </div>
       </div>
     </div>
   </section>
@@ -96,7 +201,7 @@
       <div class="principles">
         <article><p class="eyebrow">Plan</p><h3>설명 먼저, 치료는 다음</h3><p>CT·구강 사진을 함께 보면서 진단하고, 치료계획서에 서명하신 뒤에 치료를 시작합니다.</p></article>
         <article><p class="eyebrow">Price</p><h3>비용은 숨기지 않습니다</h3><p>비급여 진료비는 홈페이지와 대기실에 똑같이 공개합니다. 상담 후 추가 비용이 생기면 먼저 알려드립니다.</p></article>
-        <article><p class="eyebrow">Keep</p><h3>치료 후가 더 중요합니다</h3><p>임플란트·크라운 치료 후 3·6·12개월 정기검진 일정을 문자로 안내해 드립니다.</p></article>
+        <article><p class="eyebrow">Live</p><h3>보이는 그대로 운영합니다</h3><p>예약 시간, 휴진, 대기 상황은 병원 시스템에서 바로 가져옵니다. 홈페이지와 접수 데스크의 정보가 다르지 않습니다.</p></article>
       </div>
     </div>
   </section>
@@ -113,36 +218,12 @@
           <p>CT로 뼈의 높이와 신경 위치를 확인한 뒤, 디지털 가이드로 식립 위치를 미리 정합니다. 뼈이식이 필요한지는 첫 상담에서 알려드립니다.</p>
           <ul class="tags"><li>3D CT</li><li>디지털 가이드</li><li>뼈이식</li><li>65세 이상 보험</li></ul>
         </article>
-        <article class="clinic">
-          <span class="k">ORTHO</span><h3>교정</h3>
-          <p>투명교정과 고정식 교정을 비교해 보여드립니다.</p>
-          <ul class="tags"><li>투명교정</li><li>부분교정</li><li>소아교정</li></ul>
-        </article>
-        <article class="clinic">
-          <span class="k">ENDO · RESTO</span><h3>충치 · 신경치료</h3>
-          <p>현미경으로 신경관을 확인하며 치료합니다.</p>
-          <ul class="tags"><li>레진</li><li>인레이</li><li>크라운</li></ul>
-        </article>
-        <article class="clinic">
-          <span class="k">ESTHETIC</span><h3>심미 · 미백</h3>
-          <p>셰이드 가이드로 지금 치아 색을 기록하고 목표 색을 함께 정합니다.</p>
-          <div class="shades" aria-label="VITA 셰이드 가이드 예시"><span class="a1">A1</span><span class="a2">A2</span><span class="a3">A3</span><span class="b1">B1</span></div>
-        </article>
-        <article class="clinic">
-          <span class="k">PERIO</span><h3>잇몸 치료</h3>
-          <p>잇몸 출혈·시림은 치석과 잇몸 염증부터 확인합니다.</p>
-          <ul class="tags"><li>스케일링</li><li>잇몸 치료</li></ul>
-        </article>
-        <article class="clinic">
-          <span class="k">PEDIATRIC</span><h3>소아치과</h3>
-          <p>첫 검진은 의자에 앉아보는 것부터 천천히 시작합니다.</p>
-          <ul class="tags"><li>불소도포</li><li>실란트</li></ul>
-        </article>
-        <article class="clinic">
-          <span class="k">TMJ</span><h3>턱관절</h3>
-          <p>입을 벌릴 때 소리·통증이 있다면 교합과 근육을 함께 봅니다.</p>
-          <ul class="tags"><li>스플린트</li><li>교합 분석</li></ul>
-        </article>
+        <article class="clinic"><span class="k">ORTHO</span><h3>교정</h3><p>투명교정과 고정식 교정을 비교해 보여드립니다.</p><ul class="tags"><li>투명교정</li><li>부분교정</li><li>소아교정</li></ul></article>
+        <article class="clinic"><span class="k">ENDO · RESTO</span><h3>충치 · 신경치료</h3><p>현미경으로 신경관을 확인하며 치료합니다.</p><ul class="tags"><li>레진</li><li>인레이</li><li>크라운</li></ul></article>
+        <article class="clinic"><span class="k">ESTHETIC</span><h3>심미 · 미백</h3><p>셰이드 가이드로 지금 치아 색을 기록하고 목표 색을 함께 정합니다.</p><div class="shades" aria-label="VITA 셰이드 가이드 예시"><span class="a1">A1</span><span class="a2">A2</span><span class="a3">A3</span><span class="b1">B1</span></div></article>
+        <article class="clinic"><span class="k">PERIO</span><h3>잇몸 치료</h3><p>잇몸 출혈·시림은 치석과 잇몸 염증부터 확인합니다.</p><ul class="tags"><li>스케일링</li><li>잇몸 치료</li></ul></article>
+        <article class="clinic"><span class="k">PEDIATRIC</span><h3>소아치과</h3><p>첫 검진은 의자에 앉아보는 것부터 천천히 시작합니다.</p><ul class="tags"><li>불소도포</li><li>실란트</li></ul></article>
+        <article class="clinic"><span class="k">TMJ</span><h3>턱관절</h3><p>입을 벌릴 때 소리·통증이 있다면 교합과 근육을 함께 봅니다.</p><ul class="tags"><li>스플린트</li><li>교합 분석</li></ul></article>
       </div>
     </div>
   </section>
@@ -153,13 +234,31 @@
         <div><p class="eyebrow">First visit</p><h2 id="fv-h">첫 방문은 이렇게 진행됩니다</h2></div>
         <p>처음 오시는 날은 검사와 상담이 중심입니다. 당일 치료가 필요한 통증은 먼저 해결해 드립니다.</p>
       </div>
-      <ol class="steps">
-        <li><h3>예약</h3><p>홈페이지·네이버 예약·카카오톡·전화 중 편한 방법으로 예약합니다.</p><span class="dur">1분</span></li>
-        <li><h3>문진표</h3><p>복용 중인 약과 불편한 곳을 모바일 문진표로 미리 작성합니다.</p><span class="dur">5분</span></li>
-        <li><h3>검사</h3><p>파노라마·CT 촬영과 구강 사진으로 현재 상태를 기록합니다.</p><span class="dur">15분</span></li>
-        <li><h3>계획서 상담</h3><p>원장이 사진을 보며 설명하고, 비용이 적힌 치료계획서를 드립니다.</p><span class="dur">20분</span></li>
-        <li><h3>치료 · 정기검진</h3><p>동의하신 계획대로 치료하고, 끝난 뒤 검진 일정을 알려드립니다.</p><span class="dur">계획서 기준</span></li>
-      </ol>
+      <div class="visit-flow">
+        <ol class="steps vertical">
+          <li><h3>예약</h3><p>홈페이지에서 남은 시간을 보고 예약합니다. 병원이 확인하면 화면과 문자로 확정 안내가 갑니다.</p><span class="dur">1분</span></li>
+          <li><h3>문진표</h3><p>복용 중인 약과 불편한 곳을 모바일 문진표로 미리 작성합니다.</p><span class="dur">5분</span></li>
+          <li><h3>검사</h3><p>파노라마·CT 촬영과 구강 사진으로 현재 상태를 기록합니다.</p><span class="dur">15분</span></li>
+          <li><h3>계획서 상담</h3><p>원장이 사진을 보며 설명하고, 비용이 적힌 치료계획서를 드립니다.</p><span class="dur">20분</span></li>
+          <li><h3>치료 · 정기검진</h3><p>동의하신 계획대로 치료하고, 끝난 뒤 검진 일정을 알려드립니다.</p><span class="dur">계획서 기준</span></li>
+        </ol>
+        <div>
+          <article class="plan" aria-label="치료계획서 예시">
+            <header><h2>치료계획서</h2><span class="meta">예시 · 초진</span></header>
+            <table>
+              <thead><tr><th scope="col">치아</th><th scope="col">진단 · 치료</th><th scope="col">방문</th></tr></thead>
+              <tbody>
+                <tr><td class="tooth">#36</td><td>깊은 충치 → 신경치료 후 지르코니아 크라운</td><td class="mono">4회</td></tr>
+                <tr><td class="tooth">#47</td><td>인접면 충치 → 레진 충전</td><td class="mono">1회</td></tr>
+                <tr><td class="tooth">전체</td><td>치석 제거 (건강보험 연 1회)</td><td class="mono">1회</td></tr>
+              </tbody>
+            </table>
+            <div class="sum"><span>예상 본인부담</span><span class="mono">약 62만 원</span></div>
+            <div class="foot"><p class="note">치식 번호는 국제 표기(FDI) 기준입니다. #36 = 아래 왼쪽 첫째 큰어금니.</p><span class="stamp">설명 완료</span></div>
+          </article>
+          <p class="plan-cap">상담이 끝나면 이 계획서를 그대로 카카오톡으로 보내드립니다. 집에서 다시 읽어보고 결정하셔도 됩니다.</p>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -167,7 +266,7 @@
     <div class="wrap">
       <div class="sec-head">
         <div><p class="eyebrow">Doctors</p><h2 id="dr-h">의료진</h2></div>
-        <p>확인할 수 있는 이력만 적습니다. 진료 분야를 보고 원하는 원장님을 예약 메모에 남겨주세요.</p>
+        <p>오늘 진료하는 원장님은 <b class="today-mark">오늘 진료</b> 표시가 붙습니다. 진료 요일은 병원 일정과 연결되어 있습니다.</p>
       </div>
       <div class="doctors" id="doctorList"><p class="loading">의료진 정보를 불러오는 중입니다.</p></div>
     </div>
@@ -206,7 +305,6 @@
         <div>
           <table class="hours"><tbody id="hoursRows"></tbody></table>
           <p class="hours-note" id="hoursNote"></p>
-          <div class="holidays" id="holidayBox" hidden><h3>다가오는 휴진일</h3><ul id="holidayList"></ul></div>
         </div>
         <div class="map">
           <div class="map-art" role="img" aria-label="역 출구에서 W치과까지 약도"><span class="pin"><span data-bind="shortName">W치과</span></span><span class="exit">● 지하철 출구</span></div>
@@ -227,62 +325,7 @@
     </div>
   </section>
 
-  <section class="band band-alt" id="reserve" aria-labelledby="rs-h">
-    <div class="wrap reserve">
-      <div class="side">
-        <p class="eyebrow">Reservation</p>
-        <h2 id="rs-h">예약 · 상담 신청</h2>
-        <p>남은 자리가 실시간으로 표시됩니다. 신청하시면 병원에서 확인한 뒤 문자로 확정 안내를 드립니다. 급한 통증은 전화로 바로 연락 주세요.</p>
-        <div class="channels">
-          <a class="channel" data-href="naverBookingUrl" href="https://booking.naver.com/" target="_blank" rel="noopener"><span><b>네이버 예약</b><br><small>네이버 예약으로도 받습니다</small></span><span aria-hidden="true">→</span></a>
-          <a class="channel" data-href="kakaoUrl" href="https://pf.kakao.com/" target="_blank" rel="noopener"><span><b>카카오톡 상담</b><br><small>사진을 보내고 미리 상담</small></span><span aria-hidden="true">→</span></a>
-          <div class="channel"><span><b>전화</b><br><small class="mono" data-bind="phone"></small></span><button class="icon-btn" type="button" id="copyTel">번호 복사</button></div>
-        </div>
-
-        <div class="lookup" id="lookup">
-          <h3>예약 확인 · 취소</h3>
-          <form id="lookupForm" novalidate>
-            <div class="field"><label for="lCode">예약번호</label><input id="lCode" name="code" maxlength="6" autocomplete="off" placeholder="6자리"></div>
-            <div class="field"><label for="lTel">연락처</label><input id="lTel" name="tel" type="tel" inputmode="tel" autocomplete="tel" placeholder="010-0000-0000"></div>
-            <button class="btn btn-ghost" type="submit">조회</button>
-          </form>
-          <div id="lookupResult" aria-live="polite"></div>
-        </div>
-      </div>
-
-      <div>
-        <form class="form" id="reserveForm" novalidate>
-          <h3><span class="n">1</span>진료 선택</h3>
-          <div class="field"><label class="vh" for="rClinic">희망 진료</label><select id="rClinic" name="treatment"></select></div>
-
-          <h3><span class="n">2</span>날짜와 시간</h3>
-          <div class="days" id="dayStrip" role="group" aria-label="예약 날짜"></div>
-          <div id="slotBox" aria-live="polite"><div class="slot-empty">날짜를 먼저 선택해 주세요.</div></div>
-          <p class="picked" id="picked">선택한 시간: <b>없음</b></p>
-
-          <h3><span class="n">3</span>예약자 정보</h3>
-          <div class="row">
-            <div class="field" id="fName"><label for="rName">성함</label><input id="rName" name="name" autocomplete="name" maxlength="30" required></div>
-            <div class="field" id="fPhone"><label for="rTel">연락처</label><input id="rTel" name="tel" type="tel" inputmode="tel" autocomplete="tel" required placeholder="010-0000-0000"></div>
-          </div>
-          <div class="field"><label for="rMemo">불편한 점 (선택)</label><textarea id="rMemo" name="memo" maxlength="500" placeholder="예: 왼쪽 아래 어금니가 찬물에 시려요"></textarea></div>
-          <div class="vh" aria-hidden="true"><label for="rWebsite">웹사이트</label><input id="rWebsite" name="website" tabindex="-1" autocomplete="off"></div>
-          <label class="consent" for="rAgree"><input type="checkbox" id="rAgree" required><span>예약 연락을 위한 개인정보(성함·연락처) 수집·이용에 동의합니다. 예약일로부터 <span id="retention">180</span>일 뒤 파기합니다.</span></label>
-          <p class="form-error" id="formError" role="alert" hidden></p>
-          <button class="btn btn-primary" type="submit" id="submitBtn">예약 신청하기</button>
-        </form>
-        <div class="done" id="bookDone" hidden tabindex="-1">
-          <h3>예약 신청이 접수되었습니다</h3>
-          <p>병원에서 확인 후 문자로 확정 안내를 드립니다. 예약번호를 메모해 두세요.</p>
-          <span class="code" id="doneCode"></span>
-          <dl id="doneInfo"></dl>
-          <button class="btn btn-ghost" type="button" id="newBooking">다른 예약 하기</button>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="band" id="notices" aria-labelledby="nt-h" hidden>
+  <section class="band band-alt" id="notices" aria-labelledby="nt-h" hidden>
     <div class="wrap">
       <div class="sec-head"><div><p class="eyebrow">Notice</p><h2 id="nt-h">공지사항</h2></div><p>휴진, 진료시간 변경, 새 진료 안내를 알려드립니다.</p></div>
       <ul class="notices" id="noticeList"></ul>
@@ -295,7 +338,7 @@
     <div class="foot-top">
       <a class="brand" href="#top"><svg aria-hidden="true"><use href="#w-mark"/></svg><span data-bind="shortName">W치과</span></a>
       <nav class="foot-links" aria-label="정책 안내">
-        <a href="privacy.html">개인정보처리방침</a><a href="#price">비급여 진료비 고지</a><a href="#reserve">예약 확인 · 취소</a><a href="admin/">직원 로그인</a>
+        <a href="privacy.html">개인정보처리방침</a><a href="#price">비급여 진료비 고지</a><a href="#lookup">예약 확인 · 취소</a><a href="admin/">직원 로그인</a>
       </nav>
     </div>
     <div class="legal">
@@ -305,10 +348,12 @@
   </div>
 </footer>
 
+<div class="live-toast" id="liveToast" role="status" aria-live="polite" hidden></div>
+
 <nav class="dock" aria-label="빠른 연락">
   <a id="dockTel" href="#visit">전화</a>
   <a data-href="kakaoUrl" href="https://pf.kakao.com/" target="_blank" rel="noopener">카카오 상담</a>
-  <a class="main" href="#reserve">예약하기</a>
+  <a class="main" href="#reserve" id="dockReserve">예약하기</a>
 </nav>
 
 <script src="js/core.js"></script>

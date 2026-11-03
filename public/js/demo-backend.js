@@ -5,7 +5,7 @@
 (function () {
   "use strict";
   var C = window.WCore;
-  var KEY = "w-demo-v1";
+  var KEY = "w-demo-v2";
   var realFetch = window.fetch ? window.fetch.bind(window) : null;
   var now = function () { return C.seoulNow(); };
   var iso = function () { return new Date().toISOString(); };
@@ -31,11 +31,12 @@
         ["레진 충전 (13세 이상)", "1치아", 100000], ["투명교정 (전체)", "1회 과정", 5500000], ["전문가 미백", "1회", 200000]
       ].map(function (f, i) { return { id: i + 1, name: f[0], unit: f[1], price: f[2], note: "", sort: i + 1 }; }),
       doctors: [
-        { id: 1, name: "원장 성함", role: "대표원장 · 통합치의학과 전문의", career: "치의학 석사\n임플란트 · 보철 진료", quote: "뽑지 않고 살릴 수 있는 치아부터 찾습니다.", sort: 1 },
-        { id: 2, name: "원장 성함", role: "원장 · 치과교정과 전문의", career: "교정 · 턱관절 진료\n투명교정 인증의", quote: "교정 기간과 비용은 첫 상담에서 정해 드립니다.", sort: 2 },
-        { id: 3, name: "원장 성함", role: "원장 · 소아치과 전문의", career: "소아 · 보존 진료\n장애인 치과 진료", quote: "아이가 다음에도 오고 싶어 하는 치과를 만듭니다.", sort: 3 }
+        { id: 1, name: "원장 성함", role: "대표원장 · 통합치의학과 전문의", career: "치의학 석사\n임플란트 · 보철 진료", quote: "뽑지 않고 살릴 수 있는 치아부터 찾습니다.", days: "월화수목금토", sort: 1 },
+        { id: 2, name: "원장 성함", role: "원장 · 치과교정과 전문의", career: "교정 · 턱관절 진료\n투명교정 인증의", quote: "교정 기간과 비용은 첫 상담에서 정해 드립니다.", days: "화목토", sort: 2 },
+        { id: 3, name: "원장 성함", role: "원장 · 소아치과 전문의", career: "소아 · 보존 진료\n장애인 치과 진료", quote: "아이가 다음에도 오고 싶어 하는 치과를 만듭니다.", days: "월수금토", sort: 3 }
       ],
       notices: [{ id: 1, title: "체험판입니다 · 예약은 이 브라우저에만 저장됩니다", body: "홈페이지에서 예약한 뒤 하단 '직원 로그인'(아이디 admin / 비밀번호 demo1234)으로 들어가 확정해 보세요.", pinned: 1, published: 1, created_at: iso() }],
+      live: { wait: 10, message: "체험판 안내: 관리 화면(대시보드)에서 대기 시간과 이 문구를 바꾸면 홈페이지에 바로 표시됩니다.", updatedAt: iso(), updatedBy: "관리자" },
       users: [{ id: 1, username: "admin", name: "관리자", role: "admin", pw: "demo1234", created_at: iso() }],
       reservations: [], audit: [], outbox: []
     };
@@ -58,7 +59,21 @@
   try { S = JSON.parse(localStorage.getItem(KEY)); } catch (e) { S = null; }
   if (!S || !S.clinic) S = seed();
   function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+  function reload() { try { var x = JSON.parse(localStorage.getItem(KEY)); if (x && x.clinic) S = x; } catch (e) {} }
   save();
+  // 서버의 실시간 신호(SSE)를 흉내: 같은 탭이나 다른 탭(관리 화면 ↔ 홈페이지)에서 데이터가 바뀌면 'update' 신호
+  var sources = [];
+  function signal(kind) {
+    sources.forEach(function (es) { (es._l.update || []).forEach(function (fn) { fn({ data: JSON.stringify({ kind: kind, v: S.seq }) }); }); });
+  }
+  function FakeEventSource() {
+    var self = this; this._l = {}; sources.push(this);
+    setTimeout(function () { (self._l.hello || []).forEach(function (fn) { fn({ data: "{}" }); }); }, 50);
+  }
+  FakeEventSource.prototype.addEventListener = function (type, fn) { (this._l[type] = this._l[type] || []).push(fn); };
+  FakeEventSource.prototype.close = function () { sources = sources.filter(function (x) { return x !== this; }, this); };
+  window.EventSource = FakeEventSource;
+  window.addEventListener("storage", function (e) { if (e.key === KEY) { reload(); signal("admin"); } });
   function sessionUser() { var id; try { id = Number(sessionStorage.getItem("w-demo-user")); } catch (e) { id = window.__wDemoUser; } return S.users.filter(function (u) { return u.id === id; })[0] || null; }
   function setSession(id) { try { if (id) sessionStorage.setItem("w-demo-user", id); else sessionStorage.removeItem("w-demo-user"); } catch (e) { window.__wDemoUser = id; } }
 
@@ -105,6 +120,24 @@
   on("GET", /^site$/, function () {
     var n = now(), hol = S.holidays.filter(function (h) { return h.date >= n.date; }).sort(function (a, b) { return a.date < b.date ? -1 : 1; });
     return { clinic: S.clinic, booking: S.booking, hours: S.hours, holidays: hol, status: C.openStatus(S.hours, hmap(), n), today: n.date, fees: list("fees"), feesUpdatedAt: null, doctors: list("doctors"), notices: list("notices").filter(function (x) { return x.published; }), treatments: C.TREATMENTS };
+  });
+  on("GET", /^live$/, function () {
+    var n = now(), m = hmap(), counts2 = {};
+    for (var i = 0; i <= S.booking.windowDays; i++) { var ds = C.addDays(n.date, i); counts2[ds] = counts(ds); }
+    var status = C.openStatus(S.hours, m, n), ov = C.overview(S.hours, m, S.booking, counts2, n, 7);
+    return {
+      v: S.seq, serverTime: iso(), now: n, status: status, notice: C.liveNotice(S.live || {}, status, Date.now()),
+      today: { date: n.date, plan: C.dayPlan(n.date, S.hours, m), remaining: ov.today.remaining, openSlots: ov.today.openSlots, slots: ov.today.slots },
+      next: ov.next, week: ov.week,
+      doctorsToday: m[n.date] ? [] : list("doctors").filter(function (d) { return C.worksOn(d.days, n.weekday); }).map(function (d) { return { name: d.name, role: d.role }; })
+    };
+  });
+  on("GET", /^admin\/live$/, function () { need(); return S.live || {}; });
+  on("PUT", /^admin\/live$/, function (q, b) {
+    var u = need();
+    var w = b.wait === null || b.wait === undefined || b.wait === "" ? null : Number(b.wait);
+    S.live = { wait: w, message: String(b.message || "").slice(0, 120), updatedAt: iso(), updatedBy: u.name };
+    audit(u.username, "live.update", "live"); return S.live;
   });
   on("GET", /^days$/, function () {
     var n = now(), days = [];
@@ -235,6 +268,7 @@
     var url = typeof input === "string" ? input : input.url;
     var i = url.indexOf("api/");
     if (i < 0) return realFetch ? realFetch(input, init) : Promise.reject(new Error("fetch unavailable"));
+    reload();
     var u = new URL(url.slice(i + 4), "https://demo.local/");
     var path = u.pathname.slice(1), method = ((init && init.method) || "GET").toUpperCase();
     var body = {};
@@ -245,7 +279,9 @@
       if (!route) throw new Err(404, "API를 찾을 수 없습니다.");
       var res = route[2](u.searchParams, body, path.match(route[1]));
       if (Array.isArray(res)) { status = res[0]; payload = res[1]; } else payload = res;
+      if (method !== "GET") S.seq++;
       save();
+      if (method !== "GET" && !/(login|logout|lookup|password|users)/.test(path)) setTimeout(function () { signal(path.indexOf("admin/") === 0 ? "admin" : "booking"); }, 0);
     } catch (e) {
       if (e instanceof Err) { status = e.status; payload = e.body; } else { status = 500; payload = { error: String(e && e.message || e) }; }
     }

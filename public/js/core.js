@@ -127,6 +127,48 @@
     return { open: false, text: "오늘 진료 종료" };
   }
 
+  /* ---------- 실시간 예약 현황 ---------- */
+  var PARTS = [
+    { key: "am", label: "오전", from: 0, to: 12 * 60 },
+    { key: "pm", label: "오후", from: 12 * 60, to: 18 * 60 },
+    { key: "eve", label: "저녁", from: 18 * 60, to: 24 * 60 }
+  ];
+  // countsByDate: {"YYYY-MM-DD": {"HH:MM": n}}
+  function overview(hours, holidays, rules, countsByDate, now, weekDays) {
+    var week = [], next = null, today = { remaining: 0, openSlots: 0, slots: [] };
+    for (var i = 0; i <= rules.windowDays; i++) {
+      var ds = addDays(now.date, i);
+      var r = computeSlots(ds, dayPlan(ds, hours, holidays), rules, countsByDate[ds] || {}, now);
+      if (!next) for (var k = 0; k < r.slots.length; k++) if (r.slots[k].remaining > 0) { next = { date: ds, time: r.slots[k].time }; break; }
+      if (i === 0) {
+        today.slots = r.slots;
+        r.slots.forEach(function (s) { today.remaining += s.remaining; if (s.remaining > 0) today.openSlots++; });
+      }
+      if (i < (weekDays || 7)) {
+        week.push({
+          date: ds, weekday: weekdayOf(ds), closed: r.closed, reason: r.reason,
+          parts: PARTS.map(function (p) {
+            var inPart = r.slots.filter(function (s) { var m = toMin(s.time); return m >= p.from && m < p.to; });
+            return { key: p.key, label: p.label, total: inPart.length, available: inPart.filter(function (s) { return s.remaining > 0; }).length };
+          })
+        });
+      }
+      if (next && i >= (weekDays || 7)) break;
+    }
+    return { week: week, next: next, today: today };
+  }
+  // 직원이 올린 대기 안내는 진료 중이고 3시간 이내에 갱신된 경우에만 보여줍니다.
+  function liveNotice(live, status, nowMs) {
+    var fresh = live && live.updatedAt && (nowMs - Date.parse(live.updatedAt)) < 3 * 3600 * 1000;
+    return {
+      wait: fresh && status.open && live.wait !== null && live.wait !== undefined ? live.wait : null,
+      message: fresh && live.message ? live.message : "",
+      updatedAt: fresh ? live.updatedAt : null
+    };
+  }
+  function waitLabel(w) { return w === null || w === undefined ? "" : w === 0 ? "바로 진료 가능" : "대기 약 " + w + "분"; }
+  function worksOn(days, weekday) { return String(days || "").indexOf(WEEKDAYS[weekday]) >= 0; }
+
   /* ---------- 입력 검증 ---------- */
   function validateReservation(input) {
     var errors = {};
@@ -152,6 +194,7 @@
     labelOf: labelOf, seoulNow: seoulNow, toMin: toMin, toHHMM: toHHMM, isDate: isDate, isTime: isTime,
     weekdayOf: weekdayOf, addDays: addDays, diffDays: diffDays, formatDate: formatDate,
     normalizePhone: normalizePhone, isPhone: isPhone, formatPhone: formatPhone, maskName: maskName,
-    dayPlan: dayPlan, computeSlots: computeSlots, openStatus: openStatus, validateReservation: validateReservation
+    dayPlan: dayPlan, computeSlots: computeSlots, openStatus: openStatus, validateReservation: validateReservation,
+    PARTS: PARTS, overview: overview, liveNotice: liveNotice, waitLabel: waitLabel, worksOn: worksOn
   };
 });
