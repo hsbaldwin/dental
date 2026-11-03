@@ -41,7 +41,7 @@
       chipBox.textContent = "";
       list.forEach(function (c) {
         var b;
-        if (c.href) b = el("a", { href: c.href, target: c.ext ? "_blank" : null, rel: c.ext ? "noopener" : null, text: c.label });
+        if (c.href) b = el("a", { href: c.href, target: c.ext && !/^tel:/.test(c.href) ? "_blank" : null, rel: c.ext ? "noopener" : null, text: c.label });
         else b = el("button", { type: "button", class: c.primary ? "primary" : null, text: c.label });
         b.addEventListener("click", function (e) {
           if (c.href && !c.ext) { e.preventDefault(); }
@@ -82,14 +82,14 @@
     if (started) return; started = true;
     var lv = live();
     var parts = ["안녕하세요, W치과 안내 챗봇입니다."];
-    if (lv) parts.push(liveLine([lv.status.text, lv.notice.wait !== null ? "현재 " + C.waitLabel(lv.notice.wait) : null, lv.next ? "가장 빠른 예약 " + A.relDay(lv.next.date) + " " + lv.next.time : "예약 가능한 시간 확인 중"]));
+    if (lv) parts.push(liveLine([lv.status.text, lv.notice.wait !== null ? "현재 " + C.waitLabel(lv.notice.wait) : null, lv.next ? "가장 빠른 예약 " + A.relDay(lv.next.date) + " " + C.koTime(lv.next.time) : "예약 가능한 시간 확인 중"]));
     if (lv && lv.notice.message) parts.push("병원 안내: " + lv.notice.message);
     parts.push("증상이나 궁금한 것을 편하게 적어 주시거나, 아래에서 골라 주세요.");
     parts.push(el("p", { class: "muted", text: "저는 자동 안내 챗봇이라 진단은 하지 않아요. 사람과 이야기하시려면 '상담원과 통화'를 눌러 주세요." }));
     bot(parts);
     if (A.myBooking()) {
       A.api("reservations/lookup", A.myBooking()).then(function (r) {
-        bot(["이 기기로 예약하신 내역이 있어요.", liveLine([C.formatDate(r.date) + " " + r.time, r.treatmentLabel, r.statusLabel])]);
+        bot(["이 기기로 예약하신 내역이 있어요.", liveLine([C.formatDate(r.date) + " " + C.koTime(r.time), r.treatmentLabel, r.statusLabel])]);
         menu(null, true);
       }).catch(function () { menu(null, true); });
     } else menu(null, true);
@@ -103,8 +103,16 @@
       { label: "비용이 궁금해요", go: function () { flowCost(); } },
       { label: "내 예약 확인", go: flowMine },
       { label: "오시는 길", go: flowWay },
-      { label: "상담원과 통화", go: function () { flowCall(); } }
+      { label: "상담원과 통화", go: function () { flowCall(); } },
+      { label: "전화번호 알려줘요", go: flowPhone }
     ]);
+  }
+
+  function flowPhone() {
+    var c = site() && site().clinic, lv = live();
+    if (!c) return menu("병원 정보를 불러오는 중이에요.");
+    bot([el("p", { class: "code", text: c.phone }), lv ? liveLine([lv.status.open ? "지금 전화 받을 수 있어요" : lv.status.text]) : null, "전화 주시면 직원이 예약까지 도와드립니다."]);
+    chips([{ label: "전화 걸기", href: "tel:" + C.normalizePhone(c.phone), ext: true }, HOME]);
   }
 
   /* ---------- 증상 → 센터 안내 ---------- */
@@ -150,7 +158,7 @@
       }
       bot(["가장 빠른 시간이에요. 고르시면 바로 잡아 드릴게요.", el("p", { class: "muted", text: "다른 분이 먼저 예약하면 마감될 수 있어요." })]);
       chips(picks.map(function (p) {
-        return { label: A.relDay(p.date) + " " + p.time, go: function () { booking = { treatment: t, date: p.date, time: p.time, memo: memo || "" }; askName(); } };
+        return { label: A.relDay(p.date) + " " + C.koTime(p.time), go: function () { booking = { treatment: t, date: p.date, time: p.time, memo: memo || "" }; askName(); } };
       }).concat([
         { label: "다른 날짜 보기", go: function () { bot("아래 예약 화면에서 날짜와 시간을 골라 주세요."); closeSheetOnMobile(); A.goBook(null, null, t); } },
         HOME
@@ -178,7 +186,7 @@
     bot([
       "이렇게 예약을 신청할까요?",
       el("ul", null, [
-        el("li", { text: "진료: " + C.labelOf(C.TREATMENTS, b.treatment) }), el("li", { text: "일시: " + C.formatDate(b.date) + " " + b.time }),
+        el("li", { text: "진료: " + C.labelOf(C.TREATMENTS, b.treatment) }), el("li", { text: "일시: " + C.formatDate(b.date) + " " + C.koTime(b.time) }),
         el("li", { text: "성함: " + b.name }), el("li", { text: "연락처: " + C.maskPhone(b.phone) })
       ]),
       el("p", { class: "muted", text: "예약 연락을 위해 성함·연락처를 수집·이용하고, 예약일로부터 " + days + "일 뒤 파기합니다." })
@@ -194,7 +202,7 @@
     A.api("reservations", { name: b.name, phone: b.phone, treatment: b.treatment, date: b.date, time: b.time, memo: b.memo, consent: true }).then(function (r) {
       A.trackBooking(r, b.phone);
       bot(["예약 신청이 접수됐어요. 예약번호를 메모해 두세요.", el("p", { class: "code", text: r.code }),
-        liveLine([C.formatDate(r.date) + " " + r.time, r.treatmentLabel, r.statusLabel]),
+        liveLine([C.formatDate(r.date) + " " + C.koTime(r.time), r.treatmentLabel, r.statusLabel]),
         "병원에서 확인하면 이 대화창과 문자로 바로 알려드릴게요."]);
       chips([{ label: "내 예약 화면 보기", go: function () { closeSheetOnMobile(); var t = $("tracker"); if (t) t.scrollIntoView({ behavior: "smooth", block: "start" }); } }, HOME]);
       booking = null;
@@ -211,10 +219,10 @@
     var open = (lv.centers || []).filter(function (c) { return c.today.open; });
     var off = (lv.centers || []).filter(function (c) { return !c.today.open; });
     bot([
-      liveLine([lv.status.text, lv.notice.wait !== null ? "현재 " + C.waitLabel(lv.notice.wait) : null, "오늘 예약 가능 " + lv.today.openSlots + "타임"]),
+      liveLine([lv.status.text, lv.notice.wait !== null ? "현재 " + C.waitLabel(lv.notice.wait) : null, "오늘 남은 예약 " + lv.today.openSlots + "자리"]),
       open.length ? "오늘 진료하는 센터: " + open.map(function (c) { return c.name; }).join(", ") : "오늘은 진료하는 센터가 없어요.",
       off.length ? el("p", { class: "muted", text: "오늘 진료 없음: " + off.map(function (c) { return c.name + "(" + (c.days ? c.days.split("").join("·") : "") + ")"; }).join(", ") }) : null,
-      lv.next ? "가장 빠른 예약은 " + A.relDay(lv.next.date) + " " + lv.next.time + "이에요." : null
+      lv.next ? "가장 빠른 예약은 " + A.relDay(lv.next.date) + " " + C.koTime(lv.next.time) + "이에요." : null
     ]);
     chips([{ label: "예약하기", primary: true, go: function () { flowBook(); } }, { label: "요일별 진료시간 보기", href: "#visit" }, HOME]);
   }
@@ -241,7 +249,7 @@
     var mb = A.myBooking(), mq = A.myInquiry();
     if (mb || mq) {
       var jobs = [];
-      if (mb) jobs.push(A.api("reservations/lookup", mb).then(function (r) { return liveLine(["예약 " + r.code, C.formatDate(r.date) + " " + r.time, r.treatmentLabel, r.statusLabel]); }).catch(function () { return null; }));
+      if (mb) jobs.push(A.api("reservations/lookup", mb).then(function (r) { return liveLine(["예약 " + r.code, C.formatDate(r.date) + " " + C.koTime(r.time), r.treatmentLabel, r.statusLabel]); }).catch(function () { return null; }));
       if (mq) jobs.push(A.api("inquiries/lookup", mq).then(function (q) { return liveLine(["상담 요청 " + q.code, q.centerName, q.statusLabel + (q.ahead ? " · 앞에 " + q.ahead + "건" : "")]); }).catch(function () { return null; }));
       return Promise.all(jobs).then(function (lines) {
         bot(["이 기기에 저장된 내역이에요. 지금 병원 장부 기준입니다."].concat(lines));
@@ -257,7 +265,7 @@
         var body = { code: code.trim(), phone: ph };
         A.api("reservations/lookup", body).then(function (r) {
           A.trackBooking(r, ph);
-          bot(["예약을 찾았어요.", liveLine([C.formatDate(r.date) + " " + r.time, r.treatmentLabel, r.statusLabel])]);
+          bot(["예약을 찾았어요.", liveLine([C.formatDate(r.date) + " " + C.koTime(r.time), r.treatmentLabel, r.statusLabel])]);
           menu(null, true);
         }).catch(function () {
           return A.api("inquiries/lookup", body).then(function (q) {
@@ -362,8 +370,8 @@
   window.addEventListener("w-status", function (e) {
     var d = e.detail, x = d.item;
     if (d.kind === "booking") {
-      bot(x.status === "confirmed" ? ["병원에서 예약을 확정했어요.", liveLine([C.formatDate(x.date) + " " + x.time, x.treatmentLabel, "예약 확정"]), "전날 안내 문자를 보내드릴게요."]
-        : ["예약 상태가 바뀌었어요.", liveLine([C.formatDate(x.date) + " " + x.time, x.statusLabel])]);
+      bot(x.status === "confirmed" ? ["병원에서 예약을 확정했어요.", liveLine([C.formatDate(x.date) + " " + C.koTime(x.time), x.treatmentLabel, "예약 확정"]), "전날 안내 문자를 보내드릴게요."]
+        : ["예약 상태가 바뀌었어요.", liveLine([C.formatDate(x.date) + " " + C.koTime(x.time), x.statusLabel])]);
     } else if (d.kind === "inquiry") {
       bot(x.status === "seen" ? [x.centerName + " 데스크에서 상담 요청을 확인했어요.", (x.handledBy ? x.handledBy + "님이 " : "") + x.preferLabel + "에 전화드릴게요."]
         : x.status === "done" ? [x.centerName + " 상담 연락을 마쳤어요. 더 궁금한 점이 있으면 언제든 물어봐 주세요."]

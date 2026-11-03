@@ -86,3 +86,12 @@ test("chatbot understands common patient messages", () => {
   });
   assert.equal(core.maskPhone("01012345678"), "010-****-5678");
 });
+
+test("times are shown in Korean 12-hour form for older patients", () => {
+  assert.equal(core.koTime("09:30"), "오전 9:30");
+  assert.equal(core.koTime("12:00"), "오후 12:00");
+  assert.equal(core.koTime("14:05"), "오후 2:05");
+  assert.equal(core.koTime("18:00", true), "오후 6시");
+  assert.equal(core.koTime("13:30", true), "오후 1시 30분");
+  assert.match(core.openStatus(HOURS, {}, NOW).text, /오후 6:30까지/);
+});

@@ -3,7 +3,7 @@
   --bg: #F4F7F6;        /* 법랑질 화이트 (청록 기운) */
   --surface: #FFFFFF;
   --ink: #10211F;
-  --muted: #566764;
+  --muted: #43524E;
   --line: #D6E0DC;
   --accent: #0E6A5D;    /* 수술복 틸 */
   --accent-ink: #FFFFFF;
@@ -32,14 +32,14 @@
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0C1514; --surface: #121F1D; --ink: #E4EDEA; --muted: #93A6A1; --line: #233430;
+    --bg: #0C1514; --surface: #121F1D; --ink: #E4EDEA; --muted: #B1C2BD; --line: #233430;
     --accent: #52C2AC; --accent-ink: #062019; --soft: #15302A; --paper: #2A2619; --paper-ink: #EFE6CF;
     --ok: #5DCB91; --warn: #E3A15F; --shadow: 0 18px 40px -24px rgba(0,0,0,.7); --live: #4FD58C; --h-ok: #1D4A3F; --h-few: #4A3519; --h-full: #1A2725;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #0C1514; --surface: #121F1D; --ink: #E4EDEA; --muted: #93A6A1; --line: #233430;
+  --bg: #0C1514; --surface: #121F1D; --ink: #E4EDEA; --muted: #B1C2BD; --line: #233430;
   --accent: #52C2AC; --accent-ink: #062019; --soft: #15302A; --paper: #2A2619; --paper-ink: #EFE6CF;
   --ok: #5DCB91; --warn: #E3A15F; --shadow: 0 18px 40px -24px rgba(0,0,0,.7); --live: #4FD58C; --h-ok: #1D4A3F; --h-few: #4A3519; --h-full: #1A2725;
   color-scheme: dark;
@@ -726,3 +726,88 @@ a { color: inherit; }
 .chat-log, .chat-chips, .chat-form { min-width: 0; }
 .msg { min-width: 0; }
 .msg-b { overflow-wrap: anywhere; }
+
+/* ===================== 어르신도 쉽게: 기본 가독성 ===================== */
+body { font-size: 1.0625rem; line-height: 1.75; }
+.eyebrow { font-family: var(--f-body); font-size: .875rem; letter-spacing: .02em; text-transform: none; font-weight: 600; }
+.small, .muted.small, .legend { font-size: .875rem; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.btn { min-height: 2.75rem; }
+.btn-sm { min-height: 2.25rem; }
+.icon-btn { min-height: 2.5rem; }
+.slot { padding: .65rem 0; font-family: var(--f-body); font-size: .9375rem; font-weight: 600; }
+.slots { grid-template-columns: repeat(auto-fill, minmax(6rem, 1fr)); }
+.day { width: 4rem; padding: .55rem 0; }
+.day .da { font-size: .6875rem; }
+.chat-chips button, .chat-chips a { min-height: 2.75rem; font-size: .9375rem; }
+.msg-b { font-size: 1rem; }
+.live-toast { font-size: 1rem; padding: .9rem 1.25rem; }
+.ccard .cc-en { font-family: var(--f-body); letter-spacing: 0; text-transform: none; font-weight: 600; font-size: .8125rem; }
+.desk-word { font-size: .875rem; }
+
+/* 헤더: 전화번호와 '크게 보기' 버튼을 글자로 */
+.head-tel { display: inline-flex; align-items: center; gap: .35rem; padding: .45rem .8rem; border-radius: 999px; border: 1px solid var(--line); text-decoration: none; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.head-tel::before { content: "전화"; font-size: .75rem; font-weight: 600; color: var(--accent); }
+.easy-btn { display: inline-flex; align-items: center; gap: .45rem; min-height: 2.5rem; padding: .3rem .9rem .3rem .35rem; border-radius: 999px; border: 2px solid var(--ink); background: var(--surface); color: var(--ink); font: inherit; font-weight: 700; font-size: .9375rem; cursor: pointer; white-space: nowrap; }
+.easy-ico { width: 1.9rem; height: 1.9rem; border-radius: 50%; background: var(--ink); color: var(--bg); display: grid; place-items: center; font-family: var(--f-display); font-size: 1.05rem; }
+.easy-btn[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.easy-btn[aria-pressed="true"] .easy-ico { background: var(--bg); color: var(--ink); }
+@media (max-width: 1280px) { .head-tel { display: none; } }
+@media (max-width: 560px) { .easy-btn { padding-right: .7rem; font-size: .875rem; } }
+
+/* 첫 방문 안내: 글씨 크게 볼지 묻기 */
+.easy-ask { background: var(--paper); color: var(--paper-ink); border-bottom: 1px solid var(--line); }
+.easy-ask-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem 1.5rem; padding-block: 1rem; }
+.easy-ask p { font-size: 1.125rem; }
+.easy-ask-acts { display: flex; flex-wrap: wrap; gap: .5rem; }
+.easy-ask .btn-ghost { color: var(--paper-ink); border-color: color-mix(in oklab, var(--paper-ink) 35%, transparent); }
+
+/* 자주 찾는 큰 버튼 */
+.quick-band { padding-block: 1.5rem .5rem; }
+.quick-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; }
+@media (max-width: 860px) { .quick-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.qt { display: grid; gap: .15rem; align-content: start; min-height: 6.5rem; padding: 1rem 1.15rem; border-radius: 1rem; border: 2px solid var(--line); background: var(--surface); text-decoration: none; color: var(--ink); min-width: 0; }
+.qt:hover { border-color: var(--ink); }
+.qt-label { font-weight: 700; font-size: 1.0625rem; }
+.qt-big { font-family: var(--f-display); font-size: 1.5rem; font-weight: 700; line-height: 1.25; overflow-wrap: anywhere; }
+.qt-addr { font-size: 1.0625rem; font-family: var(--f-body); }
+.qt small { color: var(--muted); font-size: .875rem; }
+.qt-tel { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.qt-tel small { color: color-mix(in oklab, var(--bg) 80%, transparent); }
+.qt-book { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.qt-book small { color: color-mix(in oklab, var(--accent-ink) 85%, transparent); }
+.senior-note { display: block; margin-top: .75rem; padding: .8rem 1.1rem; border-radius: .8rem; background: var(--soft); text-decoration: none; font-size: 1rem; }
+.senior-note b { margin-right: .4rem; }
+.senior-note::after { content: " →"; }
+
+/* ===================== '크게 보기' 쉬운 화면 ===================== */
+html.easy { font-size: 125%; }
+html.easy *, html.easy *::before, html.easy *::after { animation: none !important; transition: none !important; }
+html.easy .center-nav, html.easy .more, html.easy .head-tel, html.easy #themeBtn { display: none; }
+html.easy .menu-btn { display: inline-flex; align-items: center; }
+html.easy .menu-panel:not([hidden]) { display: block !important; }
+html.easy .lv-conn, html.easy #lvToday, html.easy .lv-time { display: none; }
+html.easy .chat-intro .lede, html.easy .chat-intro .promise { display: none; }
+html.easy .heat-box, html.easy .board-foot, html.easy .tcard.wide, html.easy .proof { display: none; }
+html.easy .principles, html.easy .cv-others { display: none; }
+html.easy .quick-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+html.easy .qt { min-height: 7.5rem; }
+html.easy .days { flex-wrap: wrap; overflow: visible; }
+html.easy .day { width: 4.6rem; }
+html.easy .slots { grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr)); }
+html.easy .desk-menu { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+html.easy .center-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr)); }
+html.easy .chat { height: min(40rem, 80vh); }
+html.easy .chat-chips { max-height: 14rem; }
+html.easy .dock a { font-size: 1rem; padding-block: .8rem; }
+html.easy .site-header .head-row { gap: .6rem; }
+@media (max-width: 560px) { html.easy { font-size: 112.5%; } html.easy .quick-tiles { grid-template-columns: minmax(0, 1fr); } html.easy .qt { min-height: 0; } }
+html.easy .tools { margin-left: auto; }
+.msg-b .live::before { content: "실시간"; font-family: var(--f-body); font-weight: 600; }
+.qt-tel .qt-big { white-space: nowrap; font-size: clamp(1.15rem, 4.6vw, 1.5rem); font-variant-numeric: tabular-nums; }
+@media (max-width: 520px) {
+  .cv-facts.four { grid-template-columns: minmax(0, 1fr); }
+  .cv-facts.four div { border-left: 0 !important; }
+  .cv-facts.four div + div { border-top: 1px solid var(--line); }
+}
+.live-tag { font-family: var(--f-body); font-weight: 600; }

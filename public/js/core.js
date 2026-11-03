@@ -55,6 +55,14 @@
     var h = Math.floor(min / 60), m = min % 60;
     return (h < 10 ? "0" : "") + h + ":" + (m < 10 ? "0" : "") + m;
   }
+  // 어르신도 읽기 쉬운 시각: "14:30" → "오후 2:30" (long: "오후 2시 30분")
+  function koTime(hhmm, long) {
+    var m = typeof hhmm === "number" ? hhmm : toMin(hhmm);
+    if (m === null || m === undefined) return String(hhmm || "");
+    var h = Math.floor(m / 60) % 24, mi = m % 60, ap = h < 12 ? "오전" : "오후", h12 = h % 12 === 0 ? 12 : h % 12;
+    if (long) return ap + " " + h12 + "시" + (mi ? " " + mi + "분" : "");
+    return ap + " " + h12 + ":" + (mi < 10 ? "0" : "") + mi;
+  }
   function isDate(s) { return typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s) && !isNaN(Date.parse(s + "T00:00:00Z")); }
   function isTime(s) { return typeof s === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(s); }
   function weekdayOf(ds) { return new Date(ds + "T00:00:00Z").getUTCDay(); }
@@ -121,9 +129,9 @@
     if (plan.closed) return { open: false, text: plan.reason === "정기 휴진" ? "오늘 휴진" : "휴진 · " + plan.reason };
     var m = now.minutes;
     if (plan.lunchStart !== null && plan.lunchEnd !== null && m >= plan.lunchStart && m < plan.lunchEnd)
-      return { open: false, text: "점심시간 · " + toHHMM(plan.lunchEnd) + " 재개" };
-    if (m >= plan.open && m < plan.close) return { open: true, text: "진료 중 · " + toHHMM(plan.close) + "까지" };
-    if (m < plan.open) return { open: false, text: toHHMM(plan.open) + " 진료 시작" };
+      return { open: false, text: "점심시간 · " + koTime(plan.lunchEnd) + "부터 다시 진료" };
+    if (m >= plan.open && m < plan.close) return { open: true, text: "진료 중 · " + koTime(plan.close) + "까지" };
+    if (m < plan.open) return { open: false, text: "진료 시작 전 · " + koTime(plan.open) + "부터" };
     return { open: false, text: "오늘 진료 종료" };
   }
 
@@ -205,7 +213,7 @@
     else if (!cs.today.open) { key = "off"; label = /진료일이 아닙니다/.test(cs.today.reason) ? "오늘은 진료가 없는 날" : "오늘 " + (cs.today.reason || "휴진"); }
     else if (/점심/.test(clinic.text)) { key = "lunch"; label = clinic.text; }
     else if (clinic.open) { key = "open"; label = clinic.text.replace("진료 중", "접수 중"); }
-    else { key = "closed"; label = clinic.text.replace("진료 시작", "접수 시작"); }
+    else { key = "closed"; label = clinic.text.replace("진료 시작 전", "접수 시작 전"); }
     return {
       status: key, label: label, accepting: key !== "paused",
       wait: fresh && key === "open" && desk.desk_wait !== null && desk.desk_wait !== undefined ? desk.desk_wait : null,
@@ -304,7 +312,7 @@
 
   return {
     TREATMENTS: TREATMENTS, STATUSES: STATUSES, ACTIVE: ACTIVE, WEEKDAYS: WEEKDAYS,
-    labelOf: labelOf, seoulNow: seoulNow, toMin: toMin, toHHMM: toHHMM, isDate: isDate, isTime: isTime,
+    labelOf: labelOf, koTime: koTime, seoulNow: seoulNow, toMin: toMin, toHHMM: toHHMM, isDate: isDate, isTime: isTime,
     weekdayOf: weekdayOf, addDays: addDays, diffDays: diffDays, formatDate: formatDate,
     normalizePhone: normalizePhone, isPhone: isPhone, formatPhone: formatPhone, maskName: maskName,
     dayPlan: dayPlan, computeSlots: computeSlots, openStatus: openStatus, validateReservation: validateReservation,

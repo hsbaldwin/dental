@@ -208,7 +208,7 @@ function createApp(opts) {
   }
   function resMessage(kind, r) {
     const c = getSetting(db, "clinic");
-    const when = core.formatDate(r.date) + " " + r.time;
+    const when = core.formatDate(r.date) + " " + core.koTime(r.time, true);
     const head = "[" + c.shortName + "] ";
     if (kind === "requested") return head + "예약 신청이 접수되었습니다. " + when + " " + core.labelOf(core.TREATMENTS, r.treatment) + ". 확인 후 확정 문자를 드립니다. 예약번호 " + r.code;
     if (kind === "confirmed") return head + when + " 예약이 확정되었습니다. 문의 " + c.phone;

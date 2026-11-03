@@ -114,7 +114,7 @@
     return { code: r.code, name: C.maskName(r.name), treatment: r.treatment, treatmentLabel: C.labelOf(C.TREATMENTS, r.treatment), date: r.date, time: r.time, status: r.status, statusLabel: C.labelOf(C.STATUSES, r.status), canCancel: C.ACTIVE.indexOf(r.status) >= 0 && future };
   }
   function msg(kind, r) {
-    var h = "[" + S.clinic.shortName + "] ", w = C.formatDate(r.date) + " " + r.time;
+    var h = "[" + S.clinic.shortName + "] ", w = C.formatDate(r.date) + " " + C.koTime(r.time, true);
     return h + ({ requested: "예약 신청이 접수되었습니다. " + w + ". 예약번호 " + r.code, confirmed: w + " 예약이 확정되었습니다.", changed: "예약이 " + w + "(으)로 변경되었습니다.", cancelled: w + " 예약이 취소되었습니다." })[kind];
   }
   function newCode() { var a = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", s = ""; for (var i = 0; i < 6; i++) s += a[Math.floor(Math.random() * a.length)]; return s; }

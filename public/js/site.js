@@ -57,15 +57,26 @@
   var toastTimer;
   function toast(msg) {
     var t = $("liveToast"); t.textContent = msg; t.hidden = false;
-    clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.hidden = true; }, 4500);
+    clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.hidden = true; }, 8000);
   }
   function flash(node) { if (!node) return; node.classList.remove("flash"); void node.offsetWidth; node.classList.add("flash"); }
 
   /* ---------- 글자 크게 / 테마 ---------- */
+  /* '크게 보기' 쉬운 화면: 글씨·버튼을 키우고 복잡한 표를 숨김 */
   var root = document.documentElement, textBtn = $("textBtn");
-  function setLarge(on) { root.classList.toggle("large-text", on); textBtn.setAttribute("aria-pressed", on ? "true" : "false"); }
-  setLarge(store.get("w-large") === "1");
-  textBtn.addEventListener("click", function () { var on = !root.classList.contains("large-text"); setLarge(on); store.set("w-large", on ? "1" : "0"); });
+  function setEasy(on, save) {
+    root.classList.toggle("easy", on);
+    textBtn.setAttribute("aria-pressed", on ? "true" : "false");
+    $("textBtnLabel").textContent = on ? "보통 크기로" : "크게 보기";
+    if (save) { store.set("w-easy", on ? "1" : "0"); store.set("w-easy-asked", "1"); $("easyAsk").hidden = true; }
+    setTimeout(function () { if (typeof setHeadHeight === "function") setHeadHeight(); }, 0);
+  }
+  setEasy(store.get("w-easy") === "1" || store.get("w-large") === "1", false);
+  textBtn.addEventListener("click", function () { setEasy(!root.classList.contains("easy"), true); });
+  // 처음 오신 분께 한 번만 물어보기
+  if (!store.get("w-easy-asked") && store.get("w-easy") === null) $("easyAsk").hidden = false;
+  $("easyYes").addEventListener("click", function () { setEasy(true, true); window.scrollTo(0, 0); });
+  $("easyNo").addEventListener("click", function () { setEasy(false, true); });
   var savedTheme = store.get("w-theme"); if (savedTheme) root.setAttribute("data-theme", savedTheme);
   $("themeBtn").addEventListener("click", function () {
     var cur = root.getAttribute("data-theme") || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
@@ -86,17 +97,25 @@
     var w = $("lvWait");
     w.hidden = live.notice.wait === null;
     if (!w.hidden) w.textContent = "현재 " + C.waitLabel(live.notice.wait);
-    $("lvToday").textContent = live.today.openSlots ? "오늘 예약 가능 " + live.today.openSlots + "타임" : "오늘 예약 마감";
+    renderQuick();
+    $("lvToday").textContent = live.today.openSlots ? "오늘 남은 예약 " + live.today.openSlots + "자리" : "오늘 예약 마감";
     var n = $("lvNext");
     n.hidden = !live.next;
-    if (live.next) n.textContent = "가장 빠른 예약 " + relDay(live.next.date) + " " + live.next.time + " →";
+    if (live.next) n.textContent = "가장 빠른 예약 " + relDay(live.next.date) + " " + C.koTime(live.next.time) + " →";
     tickClock();
+  }
+  function renderQuick() {
+    if (!live) return;
+    $("qtTelState").textContent = live.status.open ? "지금 통화 가능 · " + live.status.text.replace("진료 중 · ", "") : live.status.text;
+    $("qtNext").textContent = live.next ? "가장 빠른 시간 " + relDay(live.next.date) + " " + C.koTime(live.next.time) : "전화로 문의해 주세요";
+    $("qtToday").textContent = live.today.plan.closed ? "오늘은 쉽니다" : live.status.open ? "네, 진료 중" : live.status.text.split(" · ")[0];
+    $("qtHours").textContent = live.today.plan.closed ? (live.next ? "다음 진료 " + relDay(live.next.date) : "진료시간 보기") : C.koTime(live.today.plan.open) + " ~ " + C.koTime(live.today.plan.close);
   }
   function tickClock() {
     if (!liveAt) return;
     var d = new Date(liveAt);
     $("lvTime").textContent = hhmmss(d) + " 기준 · " + ago(liveAt);
-    $("boardTime").textContent = "LIVE · " + ago(liveAt) + " 갱신";
+    $("boardTime").textContent = "실시간 · " + ago(liveAt) + " 확인";
     if (live && live.notice.updatedAt) $("liveMsgAt").textContent = "병원에서 " + ago(Date.parse(live.notice.updatedAt)) + " 업데이트";
   }
 
@@ -120,8 +139,8 @@
       var tr = el("tr", null, [el("th", { scope: "row", text: part.label })]);
       week.forEach(function (d) {
         var cell = d.parts[pi], lv = d.closed ? "off" : level(cell);
-        var label = d.closed ? (pi === 1 ? (/진료일이 아닙니다/.test(d.reason) ? "진료X" : "휴진") : "") : lv === "off" ? "–" : lv === "full" ? "마감" : cell.available + "";
-        var title = C.formatDate(d.date) + " " + part.label + ": " + (d.closed ? (d.reason || "휴진") : lv === "off" ? "진료 없음" : lv === "full" ? "마감" : "예약 가능 " + cell.available + "타임");
+        var label = d.closed ? (pi === 1 ? (/진료일이 아닙니다/.test(d.reason) ? "진료 없음" : "휴진") : "") : lv === "off" ? "–" : lv === "full" ? "마감" : cell.available + "";
+        var title = C.formatDate(d.date) + " " + part.label + ": " + (d.closed ? (d.reason || "휴진") : lv === "off" ? "진료 없음" : lv === "full" ? "마감" : "예약 가능 " + cell.available + "자리");
         var btn = el("button", { type: "button", class: lv, title: title, "aria-label": title, text: label, disabled: lv === "off" || lv === "full" });
         btn.addEventListener("click", function () { onPick(d.date); });
         tr.appendChild(el("td", null, [btn]));
@@ -142,11 +161,11 @@
     if (d.wait !== null) t += " · " + C.waitLabel(d.wait);
     return t;
   }
-  function nextText(cl) { return cl && cl.next ? relDay(cl.next.date) + " " + cl.next.time : "예약 가능한 시간 없음"; }
+  function nextText(cl) { return cl && cl.next ? relDay(cl.next.date) + " " + C.koTime(cl.next.time) : "예약 가능한 시간 없음"; }
   function centerCard(c, compact) {
     var cl = centerLive(c.key), d = deskOf(cl);
     return el("a", { class: "ccard", href: "#center-" + c.key, "data-center": c.key }, [
-      el("span", { class: "cc-en", text: (c.en || "") + " · Reception" }),
+      el("span", { class: "cc-en", text: "접수 데스크" }),
       el("h3", { text: c.name }),
       compact ? null : el("p", { text: c.summary || "" }),
       el("div", { class: "cc-live" }, [
@@ -162,9 +181,9 @@
     var grid = $("centerGrid"); grid.textContent = "";
     centers.forEach(function (c) { grid.appendChild(centerCard(c)); });
     grid.appendChild(el("a", { class: "ccard general", href: "#reserve", "data-general": "1" }, [
-      el("span", { class: "cc-en", text: "Main desk" }), el("h3", { text: "어느 센터인지 모르겠어요" }),
+      el("span", { class: "cc-en", text: "안내 데스크" }), el("h3", { text: "어느 센터인지 모르겠어요" }),
       el("p", { text: "증상을 고르면 맞는 센터를 알려드립니다. 검진 · 상담으로 예약해도 됩니다." }),
-      el("div", { class: "cc-live" }, [el("span", { class: "cc-next" }, ["가장 빠른 상담 ", el("b", { text: live && live.next ? relDay(live.next.date) + " " + live.next.time : "–" })])])
+      el("div", { class: "cc-live" }, [el("span", { class: "cc-next" }, ["가장 빠른 상담 ", el("b", { text: live && live.next ? relDay(live.next.date) + " " + C.koTime(live.next.time) : "–" })])])
     ]));
     if (changed) flash(grid);
     var nav = $("centerNav"); nav.textContent = "";
@@ -190,7 +209,7 @@
   function currentCenter() { return site && site.centers.filter(function (c) { return c.key === view; })[0]; }
   function renderCenterPage(c) {
     $("cvCrumb").textContent = c.name;
-    $("cvEn").textContent = (c.en || "") + " · Front desk";
+    $("cvEn").textContent = "W치과 " + c.name + " 접수 데스크";
     $("cvName").textContent = c.name;
     $("cvSummary").textContent = c.summary || "";
     var tags = $("cvTags"); tags.textContent = "";
@@ -244,7 +263,7 @@
     if (myInquiry && myInquiry.center === c.key && !dot) callBtn.appendChild(el("span", { class: "badge-dot", title: "내 상담 요청 진행 중" }));
     if (!(myInquiry && myInquiry.center === c.key) && dot) dot.remove();
     renderHeat($("cvHeat"), cl.week, function (date) { goBook(date, null, c.key); });
-    $("cvTime").textContent = "LIVE · " + ago(liveAt) + " 갱신";
+    $("cvTime").textContent = "실시간 · " + ago(liveAt) + " 확인";
     markDoctors();
   }
 
@@ -487,16 +506,16 @@
     box.textContent = "";
     if (plan.closed) {
       $("tlHours").textContent = plan.reason;
-      box.appendChild(el("div", { class: "tl-closed", text: "오늘은 " + plan.reason + "입니다." + (live.next ? " 가장 빠른 예약은 " + relDay(live.next.date) + " " + live.next.time + "입니다." : "") }));
+      box.appendChild(el("div", { class: "tl-closed", text: "오늘은 " + plan.reason + "입니다." + (live.next ? " 가장 빠른 예약은 " + relDay(live.next.date) + " " + C.koTime(live.next.time) + "입니다." : "") }));
     } else {
-      $("tlHours").textContent = C.toHHMM(plan.open) + " – " + C.toHHMM(plan.close) + (plan.lunchStart !== null ? " · 점심 " + C.toHHMM(plan.lunchStart) + "–" + C.toHHMM(plan.lunchEnd) : "");
+      $("tlHours").textContent = C.koTime(plan.open) + " ~ " + C.koTime(plan.close) + (plan.lunchStart !== null ? " · 점심시간 " + C.koTime(plan.lunchStart) + " ~ " + C.koTime(plan.lunchEnd) : "");
       var track = el("div", { class: "tl-track" });
       var nowM = live.now.minutes;
       if (nowM > plan.open) { var past = el("div", { class: "tl-past" }); past.style.width = Math.min(100, pct(nowM, plan)) + "%"; track.appendChild(past); }
       if (plan.lunchStart !== null) { var l = el("div", { class: "tl-lunch", title: "점심시간" }); l.style.left = pct(plan.lunchStart, plan) + "%"; l.style.width = (pct(plan.lunchEnd, plan) - pct(plan.lunchStart, plan)) + "%"; track.appendChild(l); }
       var step = (site && site.booking.slotMinutes) || 30;
       live.today.slots.forEach(function (s) {
-        var m = C.toMin(s.time), seg = el("div", { class: "tl-slot" + (s.remaining > 0 ? "" : " full"), title: s.time + (s.remaining > 0 ? " 예약 가능" : " 마감") });
+        var m = C.toMin(s.time), seg = el("div", { class: "tl-slot" + (s.remaining > 0 ? "" : " full"), title: C.koTime(s.time) + (s.remaining > 0 ? " 예약 가능" : " 마감") });
         seg.style.left = "calc(" + pct(m, plan) + "% + 1px)"; seg.style.width = "calc(" + (pct(m + step, plan) - pct(m, plan)) + "% - 2px)";
         track.appendChild(seg);
       });
@@ -505,7 +524,7 @@
         var t = el("span", { class: "tl-tick", text: String(h / 60) }); t.style.left = pct(h, plan) + "%"; box.appendChild(t);
       }
       if (nowM >= plan.open && nowM <= plan.close) {
-        var nw = el("div", { class: "tl-now" }, [el("span", { text: "지금 " + C.toHHMM(nowM) })]); nw.style.left = pct(nowM, plan) + "%"; box.appendChild(nw);
+        var nw = el("div", { class: "tl-now" }, [el("span", { text: "지금 " + C.koTime(nowM) })]); nw.style.left = pct(nowM, plan) + "%"; box.appendChild(nw);
       }
     }
     var wb = $("waitBig");
@@ -573,6 +592,8 @@
     document.querySelectorAll("[data-bind]").forEach(function (n) { var v = c[n.getAttribute("data-bind")]; if (v) n.textContent = v; });
     document.querySelectorAll("[data-href]").forEach(function (n) { var v = c[n.getAttribute("data-href")]; if (v) n.setAttribute("href", v); else n.hidden = true; });
     $("dockTel").setAttribute("href", "tel:" + C.normalizePhone(c.phone));
+    $("qtTel").setAttribute("href", "tel:" + C.normalizePhone(c.phone));
+    $("headTel").setAttribute("href", "tel:" + C.normalizePhone(c.phone));
     document.title = c.shortName + " | 실시간 예약";
   }
   function renderHours(hours, holidays) {
@@ -695,12 +716,12 @@
         var p = day.date.split("-"), disabled = day.closed || day.available === 0;
         var btn = el("button", {
           type: "button", class: "day" + (day.weekday === 0 ? " sun" : ""), "data-date": day.date, disabled: disabled, "aria-pressed": "false",
-          "aria-label": C.formatDate(day.date) + (disabled ? " 예약 불가" + (day.reason ? " (" + day.reason + ")" : "") : " 예약 가능 " + day.available + "타임"),
+          "aria-label": C.formatDate(day.date) + (disabled ? " 예약 불가" + (day.reason ? " (" + day.reason + ")" : "") : " 예약 가능 " + day.available + "자리"),
           title: day.reason || null
         }, [
           el("span", { class: "dw", text: C.diffDays(d.days[0].date, day.date) === 0 ? "오늘" : C.WEEKDAYS[day.weekday] }),
           el("span", { class: "dd", text: String(parseInt(p[2], 10)) }),
-          el("span", { class: "da", text: day.closed ? (/진료일이 아닙니다/.test(day.reason) ? "진료X" : day.reason.length <= 4 ? day.reason.replace("정기 휴진", "휴진") : "휴진") : day.available ? day.available + "타임" : "마감" })
+          el("span", { class: "da", text: day.closed ? (/진료일이 아닙니다/.test(day.reason) ? "진료 없음" : day.reason.length <= 4 ? day.reason.replace("정기 휴진", "휴진") : "휴진") : day.available ? day.available + "자리" : "마감" })
         ]);
         btn.addEventListener("click", function () { pick.time = null; chooseDate(day.date); });
         strip.appendChild(btn);
@@ -734,11 +755,11 @@
         if (s.time === pick.time && !full) stillOk = true;
         grid.appendChild(el("button", {
           type: "button", class: "slot", disabled: full, "aria-pressed": s.time === pick.time && !full ? "true" : "false",
-          "aria-label": s.time + (full ? " 마감" : " 예약 가능"), "data-time": s.time, text: s.time, onclick: function () { setTime(s.time); }
+          "aria-label": C.koTime(s.time, true) + (full ? " 마감" : " 예약 가능"), "data-time": s.time, text: C.koTime(s.time), onclick: function () { setTime(s.time); }
         }));
       });
       box.appendChild(grid);
-      if (pick.time && !stillOk) { toast("선택하신 " + C.formatDate(ds) + " " + pick.time + "이 방금 마감되었습니다. 다른 시간을 골라주세요."); setTime(null); }
+      if (pick.time && !stillOk) { toast("선택하신 " + C.formatDate(ds) + " " + C.koTime(pick.time) + "이 방금 마감되었습니다. 다른 시간을 골라주세요."); setTime(null); }
       else setTime(pick.time);
       if (focus) { var f = grid.querySelector(".slot:not(:disabled)"); if (f) f.focus({ preventScroll: true }); }
     }).catch(function (e) { box.textContent = ""; box.appendChild(el("div", { class: "slot-empty", text: e.message })); });
@@ -750,7 +771,7 @@
         var b = document.querySelector('#dayStrip [data-date="' + day.date + '"]'); if (!b) return;
         var disabled = day.closed || day.available === 0;
         b.disabled = disabled;
-        b.querySelector(".da").textContent = day.closed ? (/진료일이 아닙니다/.test(day.reason) ? "진료X" : day.reason.length <= 4 ? day.reason.replace("정기 휴진", "휴진") : "휴진") : day.available ? day.available + "타임" : "마감";
+        b.querySelector(".da").textContent = day.closed ? (/진료일이 아닙니다/.test(day.reason) ? "진료 없음" : day.reason.length <= 4 ? day.reason.replace("정기 휴진", "휴진") : "휴진") : day.available ? day.available + "자리" : "마감";
       });
     }).catch(function () {});
     renderSlots(pick.date, false, true);
@@ -760,7 +781,7 @@
     pick.time = t;
     document.querySelectorAll("#slotBox .slot").forEach(function (b) { b.setAttribute("aria-pressed", b.getAttribute("data-time") === t ? "true" : "false"); });
     var p = $("picked"); p.textContent = "선택한 시간: ";
-    p.appendChild(el("b", { text: t && pick.date ? C.formatDate(pick.date) + " " + t : "없음" }));
+    p.appendChild(el("b", { text: t && pick.date ? C.formatDate(pick.date) + " " + C.koTime(t) : "없음" }));
   }
   function showError(msg, fieldId) {
     var fe = $("formError"); fe.textContent = msg; fe.hidden = !msg;
@@ -821,7 +842,7 @@
       if (r.status === "confirmed" && i === 3) cls = "";
       steps.appendChild(el("li", { class: cls || null, text: label }));
     });
-    var when = C.formatDate(r.date) + " " + r.time;
+    var when = C.formatDate(r.date) + " " + C.koTime(r.time);
     var msg = {
       requested: "병원에서 예약을 확인하고 있습니다. 직원이 확정하면 이 화면이 바로 바뀌고 문자로도 알려드립니다.",
       confirmed: "예약이 확정되었습니다. " + when + "에 뵙겠습니다. 전날 안내 문자를 보내드립니다.",
