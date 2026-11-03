@@ -104,18 +104,26 @@ function httpsUrl(v, label) {
   return s;
 }
 
+function centerKey(v) {
+  if (v == null || v === "") return null;
+  if (!core.TREATMENTS.some((t) => t.key === v && t.key !== "checkup")) throw new HttpError(400, "진료센터 값이 올바르지 않습니다.");
+  return v;
+}
+
 /* 관리자 화면에서 편집하는 목록형 콘텐츠 */
 const RESOURCES = {
   fees: {
     order: "sort, id",
-    clean: (b) => ({ name: str(b.name, 100, true, "항목명"), unit: str(b.unit, 30), price: b.price === "" || b.price == null ? null : int(b.price, 0, 100000000, "금액"), note: str(b.note, 200), sort: int(b.sort || 0, 0, 9999, "순서") })
+    clean: (b) => ({ name: str(b.name, 100, true, "항목명"), unit: str(b.unit, 30), price: b.price === "" || b.price == null ? null : int(b.price, 0, 100000000, "금액"), note: str(b.note, 200), center: centerKey(b.center), sort: int(b.sort || 0, 0, 9999, "순서") })
   },
   doctors: {
     order: "sort, id",
     clean: (b) => {
       const days = str(b.days, 7, false, "진료 요일");
       if (/[^일월화수목금토]/.test(days)) throw new HttpError(400, "진료 요일은 '월화수목금' 처럼 요일 글자로 입력해 주세요.");
-      return { name: str(b.name, 40, true, "성함"), role: str(b.role, 80), career: str(b.career, 500), quote: str(b.quote, 200), days, sort: int(b.sort || 0, 0, 9999, "순서") };
+      const centers = String(b.centers || "").split(",").map((x) => x.trim()).filter(Boolean);
+      centers.forEach((k) => centerKey(k));
+      return { name: str(b.name, 40, true, "성함"), role: str(b.role, 80), career: str(b.career, 500), quote: str(b.quote, 200), days, centers: centers.join(","), sort: int(b.sort || 0, 0, 9999, "순서") };
     }
   },
   notices: {
@@ -178,9 +186,14 @@ function createApp(opts) {
     rows.forEach((r) => { (m[r.date] = m[r.date] || {})[r.time] = r.n; });
     return m;
   }
-  function slotsFor(ds, now) {
+  const centersAll = (all) => db.prepare("SELECT * FROM centers " + (all ? "" : "WHERE published = 1 ") + "ORDER BY sort, key").all();
+  const doctorsAll = () => db.prepare("SELECT id, name, role, career, quote, days, centers FROM doctors ORDER BY sort, id").all();
+  // 진료센터 예약은 담당 원장 진료 요일에만 받습니다
+  const restrictionFor = (treatment) => core.restriction(treatment, centersAll(true), doctorsAll());
+  function slotsFor(ds, now, treatment) {
     const rules = getSetting(db, "booking");
-    const plan = core.dayPlan(ds, hoursAll(), holidayMap(ds, ds));
+    const rs = restrictionFor(treatment);
+    const plan = core.planFor(ds, hoursAll(), holidayMap(ds, ds), rs.days, rs.label);
     return core.computeSlots(ds, plan, rules, slotCounts(ds, ds)[ds] || {}, now);
   }
   function publicReservation(r) {
@@ -220,9 +233,10 @@ function createApp(opts) {
       hours, holidays,
       status: core.openStatus(hours, hmap, now),
       today: now.date,
-      fees: db.prepare("SELECT id, name, unit, price, note FROM fees ORDER BY sort, id").all(),
+      fees: db.prepare("SELECT id, name, unit, price, note, center FROM fees ORDER BY sort, id").all(),
       feesUpdatedAt: (db.prepare("SELECT MAX(at) AS at FROM audit WHERE target LIKE 'fees%'").get() || {}).at || null,
-      doctors: db.prepare("SELECT id, name, role, career, quote, days FROM doctors ORDER BY sort, id").all(),
+      doctors: doctorsAll(),
+      centers: centersAll(false).map((c) => Object.assign({}, c, { days: core.centerDays(doctorsAll(), c.key) })),
       notices: db.prepare("SELECT id, title, body, pinned, created_at FROM notices WHERE published = 1 ORDER BY pinned DESC, id DESC LIMIT 10").all(),
       treatments: core.TREATMENTS
     };
@@ -234,25 +248,29 @@ function createApp(opts) {
     const hol = holidayMap(now.date, to);
     const status = core.openStatus(hours, hol, now);
     const ov = core.overview(hours, hol, rules, slotCounts(now.date, to), now, 7);
-    const doctors = db.prepare("SELECT name, role, days FROM doctors ORDER BY sort, id").all();
+
+    const doctors = doctorsAll();
+    const counts = slotCounts(now.date, to);
     return {
       v: liveVersion, serverTime: nowIso(), now, status,
       notice: core.liveNotice(getSetting(db, "live"), status, Date.now()),
       today: { date: now.date, plan: core.dayPlan(now.date, hours, hol), remaining: ov.today.remaining, openSlots: ov.today.openSlots, slots: ov.today.slots },
       next: ov.next, week: ov.week,
-      doctorsToday: hol[now.date] ? [] : doctors.filter((d) => core.worksOn(d.days, now.weekday)).map((d) => ({ name: d.name, role: d.role }))
+      doctorsToday: hol[now.date] ? [] : doctors.filter((d) => core.worksOn(d.days, now.weekday)).map((d) => ({ name: d.name, role: d.role })),
+      centers: core.centerSummaries(centersAll(false), doctors, hours, hol, rules, counts, now)
     };
   }
   on("GET", /^\/api\/live$/, () => liveData());
 
-  on("GET", /^\/api\/days$/, () => {
+  on("GET", /^\/api\/days$/, (req, url) => {
     const now = clock();
     const rules = getSetting(db, "booking");
     const to = core.addDays(now.date, rules.windowDays);
     const hours = hoursAll(), hol = holidayMap(now.date, to), counts = slotCounts(now.date, to);
+    const rs = restrictionFor(url.searchParams.get("treatment"));
     const days = [];
     for (let ds = now.date; ds <= to; ds = core.addDays(ds, 1)) {
-      const r = core.computeSlots(ds, core.dayPlan(ds, hours, hol), rules, counts[ds] || {}, now);
+      const r = core.computeSlots(ds, core.planFor(ds, hours, hol, rs.days, rs.label), rules, counts[ds] || {}, now);
       days.push({ date: ds, weekday: core.weekdayOf(ds), closed: r.closed, reason: r.reason, available: r.slots.filter((s) => s.remaining > 0).length });
     }
     return { days };
@@ -261,7 +279,7 @@ function createApp(opts) {
   on("GET", /^\/api\/slots$/, (req, url) => {
     const ds = url.searchParams.get("date");
     if (!core.isDate(ds)) throw new HttpError(400, "날짜 형식이 올바르지 않습니다.");
-    return slotsFor(ds, clock());
+    return slotsFor(ds, clock(), url.searchParams.get("treatment"));
   });
 
   on("POST", /^\/api\/reservations$/, async (req) => {
@@ -272,7 +290,7 @@ function createApp(opts) {
     if (!v.ok) throw new HttpError(400, Object.values(v.errors)[0], { fields: v.errors });
     const r = v.value, now = clock(), rules = getSetting(db, "booking");
 
-    const slots = slotsFor(r.date, now);
+    const slots = slotsFor(r.date, now, r.treatment);
     const slot = slots.slots.find((s) => s.time === r.time);
     if (slots.closed || !slot) throw new HttpError(409, slots.reason || "선택한 시간에는 예약할 수 없습니다.", { fields: { time: "다른 시간을 선택해 주세요." } });
     if (slot.remaining <= 0) throw new HttpError(409, "방금 다른 분이 예약해 자리가 없습니다. 다른 시간을 선택해 주세요.", { fields: { time: "마감된 시간입니다." } });
@@ -563,6 +581,21 @@ function createApp(opts) {
       return { ok: true };
     }, role);
   });
+
+  /* 진료센터 (센터 종류는 고정, 내용만 편집) */
+  on("GET", /^\/api\/admin\/centers$/, () => ({ items: centersAll(true).map((c) => Object.assign({ id: c.key }, c)) }), "staff");
+  on("PUT", /^\/api\/admin\/centers\/([a-z]+)$/, async (req, url, user, m) => {
+    if (!db.prepare("SELECT 1 FROM centers WHERE key = ?").get(m[1])) throw new HttpError(404, "진료센터를 찾을 수 없습니다.");
+    const b = await readJson(req);
+    const v = {
+      name: str(b.name, 30, true, "센터 이름"), en: str(b.en, 40), summary: str(b.summary, 120), description: str(b.description, 2000),
+      tags: str(b.tags, 200), process: str(b.process, 2000), faq: str(b.faq, 4000), sort: int(b.sort || 0, 0, 999, "순서"), published: b.published === false || b.published === 0 ? 0 : 1
+    };
+    const cols = Object.keys(v);
+    db.prepare("UPDATE centers SET " + cols.map((c) => c + " = ?").join(", ") + " WHERE key = ?").run(...cols.map((c) => v[c]), m[1]);
+    audit(db, user.username, "centers.update", "centers:" + m[1], null);
+    return Object.assign({ id: m[1], key: m[1] }, v);
+  }, "admin");
 
   /* 계정 */
   on("GET", /^\/api\/admin\/users$/, () => ({ items: db.prepare("SELECT id, username, name, role, created_at FROM users ORDER BY id").all() }), "admin");

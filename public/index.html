@@ -25,16 +25,15 @@
 <header class="site-header">
   <div class="wrap head-row">
     <a class="brand" href="#top"><svg aria-hidden="true"><use href="#w-mark"/></svg><span data-bind="shortName">W치과</span></a>
-    <nav class="nav" aria-label="주요 메뉴">
-      <a href="#today">오늘의 병원</a>
-      <a href="#reserve">예약</a>
-      <a href="#clinics">진료 안내</a>
-      <a href="#doctors">의료진</a>
-      <a href="#price">진료비</a>
-      <a href="#visit">오시는 길</a>
-    </nav>
+    <nav class="nav center-nav" id="centerNav" aria-label="진료센터"></nav>
+    <details class="more" id="moreMenu">
+      <summary>병원 안내</summary>
+      <div class="more-panel">
+        <a href="#today">오늘의 병원</a><a href="#doctors">의료진</a><a href="#price">진료비</a><a href="#visit">진료시간 · 오시는 길</a><a href="#notices">공지사항</a>
+      </div>
+    </details>
     <div class="tools">
-      <a class="mine" id="minePill" href="#reserve" hidden><span class="mine-dot" aria-hidden="true"></span><span id="mineText">내 예약</span></a>
+      <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-expanded="false" aria-controls="menuPanel">메뉴</button>
       <button class="icon-btn" id="textBtn" type="button" aria-pressed="false" title="글자 크게 보기">가<span aria-hidden="true">+</span></button>
       <button class="icon-btn" id="themeBtn" type="button" aria-label="화면 밝기 전환">◐</button>
       <a class="btn btn-primary header-cta" href="#reserve">예약하기</a>
@@ -47,51 +46,37 @@
       <span class="lv" id="lvWait" hidden></span>
       <span class="lv" id="lvToday"></span>
       <a class="lv lv-next" id="lvNext" href="#reserve" hidden></a>
+      <a class="lv mine" id="minePill" href="#reserve" hidden><span class="mine-dot" aria-hidden="true"></span><span id="mineText">내 예약</span></a>
       <span class="lv lv-time" id="lvTime"></span>
+    </div>
+  </div>
+  <div class="menu-panel" id="menuPanel" hidden>
+    <div class="wrap">
+      <p class="eyebrow">진료센터</p>
+      <ul class="menu-centers" id="menuCenters"></ul>
+      <p class="eyebrow">병원 안내</p>
+      <div class="menu-links"><a href="#today">오늘의 병원</a><a href="#reserve">예약 · 내 예약</a><a href="#doctors">의료진</a><a href="#price">진료비</a><a href="#visit">오시는 길</a><a href="#notices">공지사항</a></div>
     </div>
   </div>
 </header>
 
 <main id="main">
-  <!-- 히어로: 브랜드 약속 + 실시간 예약 현황판 -->
-  <section class="hero" id="top">
-    <div class="wrap hero-grid">
-      <div class="hero-copy">
-        <p class="eyebrow">W Dental Clinic · 병원 예약 시스템과 실시간 연결</p>
-        <h1>치료하기 전에<br><em>계획서</em>부터 보여드립니다</h1>
-        <p class="lede">이 홈페이지의 예약 시간, 진료 상황, 휴진 안내는 병원 접수 데스크와 같은 화면을 보고 있습니다. 직원이 예약을 확정하면 지금 보시는 화면에서도 바로 바뀝니다.</p>
-        <div class="quick">
-          <a class="btn btn-primary btn-lg" id="quickNext" href="#reserve">가장 빠른 시간 예약</a>
-          <a class="btn btn-ghost btn-lg" href="#lookup">내 예약 확인</a>
+  <div id="homeView">
+  <!-- 첫 화면: 진료센터 선택 -->
+  <section class="hero centers-hero" id="top">
+    <div class="wrap">
+      <div class="centers-head">
+        <div>
+          <p class="eyebrow">W Dental Clinic · 7개 진료센터</p>
+          <h1>필요한 <em>진료센터</em>를<br>선택하세요</h1>
+          <p class="lede">센터마다 담당 원장님과 진료 요일, 남은 예약 시간이 다릅니다. 아래 카드의 정보는 병원 예약 장부와 실시간으로 연결되어 있습니다.</p>
         </div>
-        <ul class="proof">
-          <li><b>남은 자리</b> 병원 예약 장부에서 바로 계산</li>
-          <li><b>확정 알림</b> 직원 확인 즉시 화면 · 문자로</li>
-          <li><b>휴진 · 대기</b> 병원에서 바꾸면 바로 표시</li>
-        </ul>
+        <aside class="promise">
+          <span class="live-tag"><i aria-hidden="true"></i><span id="boardTime">불러오는 중</span></span>
+          <p><b>치료하기 전에 계획서부터 보여드립니다.</b> 어느 센터에서 진료받든 치료 전 비용과 횟수가 적힌 계획서로 설명하고 동의를 받습니다.</p>
+        </aside>
       </div>
-
-      <article class="board" aria-labelledby="bd-h">
-        <header class="board-head">
-          <h2 id="bd-h">실시간 예약 현황</h2>
-          <span class="live-tag" id="boardTag"><i aria-hidden="true"></i><span id="boardTime">불러오는 중</span></span>
-        </header>
-        <div class="board-next" id="boardNext">
-          <span class="muted">가장 빠른 예약 가능 시간</span>
-          <strong id="nextText" class="skeleton">&nbsp;</strong>
-          <button class="btn btn-primary" type="button" id="nextBtn" disabled>이 시간으로 예약</button>
-        </div>
-        <div class="heat-box">
-          <table class="heat" id="heat" aria-label="이번 주 시간대별 예약 가능 현황">
-            <thead><tr><th scope="col"><span class="vh">시간대</span></th></tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
-        <footer class="board-foot">
-          <span class="legend"><i class="lg ok"></i>여유 <i class="lg few"></i>얼마 안 남음 <i class="lg full"></i>마감</span>
-          <span class="muted" id="boardFoot">칸을 누르면 그 날짜로 예약합니다.</span>
-        </footer>
-      </article>
+      <div class="center-grid" id="centerGrid" aria-live="polite"></div>
     </div>
   </section>
 
@@ -126,7 +111,8 @@
     </div>
   </section>
 
-  <!-- 예약 -->
+  <!-- 예약 (센터 페이지에서는 센터 화면 안으로 옮겨짐) -->
+  <div id="homeReserveSlot">
   <section class="band" id="reserve" aria-labelledby="rs-h">
     <div class="wrap reserve">
       <div class="side">
@@ -147,9 +133,10 @@
           <dl class="track-info" id="trInfo"></dl>
           <div class="track-acts" id="trActs"></div>
         </section>
+  </div>
 
         <form class="form" id="reserveForm" novalidate>
-          <h3><span class="n">1</span>어디가 불편하세요?</h3>
+          <h3><span class="n">1</span><span id="step1Title">어디가 불편하세요?</span></h3>
           <div class="chips" id="symChips" role="group" aria-label="증상으로 진료 고르기"></div>
           <div class="field"><label for="rClinic">진료 항목</label><select id="rClinic" name="treatment"></select></div>
           <p class="sym-hint" id="symHint" hidden></p>
@@ -202,28 +189,6 @@
         <article><p class="eyebrow">Plan</p><h3>설명 먼저, 치료는 다음</h3><p>CT·구강 사진을 함께 보면서 진단하고, 치료계획서에 서명하신 뒤에 치료를 시작합니다.</p></article>
         <article><p class="eyebrow">Price</p><h3>비용은 숨기지 않습니다</h3><p>비급여 진료비는 홈페이지와 대기실에 똑같이 공개합니다. 상담 후 추가 비용이 생기면 먼저 알려드립니다.</p></article>
         <article><p class="eyebrow">Live</p><h3>보이는 그대로 운영합니다</h3><p>예약 시간, 휴진, 대기 상황은 병원 시스템에서 바로 가져옵니다. 홈페이지와 접수 데스크의 정보가 다르지 않습니다.</p></article>
-      </div>
-    </div>
-  </section>
-
-  <section class="band" id="clinics" aria-labelledby="cl-h">
-    <div class="wrap">
-      <div class="sec-head">
-        <div><p class="eyebrow">Clinics</p><h2 id="cl-h">진료 안내</h2></div>
-        <p>모든 진료는 같은 층에서 이어집니다. 임플란트를 하면서 교정·충치 치료가 필요하면 한 번에 계획을 세웁니다.</p>
-      </div>
-      <div class="clinics">
-        <article class="clinic feature">
-          <span class="k">IMPLANT</span><h3>임플란트 센터</h3>
-          <p>CT로 뼈의 높이와 신경 위치를 확인한 뒤, 디지털 가이드로 식립 위치를 미리 정합니다. 뼈이식이 필요한지는 첫 상담에서 알려드립니다.</p>
-          <ul class="tags"><li>3D CT</li><li>디지털 가이드</li><li>뼈이식</li><li>65세 이상 보험</li></ul>
-        </article>
-        <article class="clinic"><span class="k">ORTHO</span><h3>교정</h3><p>투명교정과 고정식 교정을 비교해 보여드립니다.</p><ul class="tags"><li>투명교정</li><li>부분교정</li><li>소아교정</li></ul></article>
-        <article class="clinic"><span class="k">ENDO · RESTO</span><h3>충치 · 신경치료</h3><p>현미경으로 신경관을 확인하며 치료합니다.</p><ul class="tags"><li>레진</li><li>인레이</li><li>크라운</li></ul></article>
-        <article class="clinic"><span class="k">ESTHETIC</span><h3>심미 · 미백</h3><p>셰이드 가이드로 지금 치아 색을 기록하고 목표 색을 함께 정합니다.</p><div class="shades" aria-label="VITA 셰이드 가이드 예시"><span class="a1">A1</span><span class="a2">A2</span><span class="a3">A3</span><span class="b1">B1</span></div></article>
-        <article class="clinic"><span class="k">PERIO</span><h3>잇몸 치료</h3><p>잇몸 출혈·시림은 치석과 잇몸 염증부터 확인합니다.</p><ul class="tags"><li>스케일링</li><li>잇몸 치료</li></ul></article>
-        <article class="clinic"><span class="k">PEDIATRIC</span><h3>소아치과</h3><p>첫 검진은 의자에 앉아보는 것부터 천천히 시작합니다.</p><ul class="tags"><li>불소도포</li><li>실란트</li></ul></article>
-        <article class="clinic"><span class="k">TMJ</span><h3>턱관절</h3><p>입을 벌릴 때 소리·통증이 있다면 교합과 근육을 함께 봅니다.</p><ul class="tags"><li>스플린트</li><li>교합 분석</li></ul></article>
       </div>
     </div>
   </section>
@@ -331,6 +296,59 @@
       <ul class="notices" id="noticeList"></ul>
     </div>
   </section>
+  </div>
+
+  <!-- 진료센터 페이지 (2 depth) -->
+  <div id="centerView" hidden>
+    <section class="center-page">
+      <div class="wrap">
+        <nav class="crumbs" aria-label="현재 위치"><a href="#top">홈</a><span aria-hidden="true">›</span><span>진료센터</span><span aria-hidden="true">›</span><b id="cvCrumb"></b></nav>
+        <div class="cv-hero">
+          <div class="cv-copy">
+            <p class="eyebrow" id="cvEn"></p>
+            <h1 id="cvName"></h1>
+            <p class="lede" id="cvSummary"></p>
+            <ul class="tags" id="cvTags"></ul>
+            <div class="quick"><button class="btn btn-primary btn-lg" type="button" id="cvBook">이 센터 예약하기</button><a class="btn btn-ghost btn-lg" href="#lookup">내 예약 확인</a></div>
+          </div>
+          <article class="board cv-board" aria-labelledby="cvb-h">
+            <header class="board-head"><h2 id="cvb-h">센터 실시간 현황</h2><span class="live-tag"><i aria-hidden="true"></i><span id="cvTime">LIVE</span></span></header>
+            <dl class="cv-facts">
+              <div><dt>오늘</dt><dd id="cvToday">–</dd></div>
+              <div><dt>진료 요일</dt><dd id="cvDays">–</dd></div>
+              <div><dt>오늘 진료 원장</dt><dd id="cvDocs">–</dd></div>
+            </dl>
+            <div class="board-next" id="cvNextBox">
+              <span class="muted">이 센터 가장 빠른 예약</span>
+              <strong id="cvNext" class="skeleton">&nbsp;</strong>
+              <button class="btn btn-primary" type="button" id="cvNextBtn" disabled>이 시간으로 예약</button>
+            </div>
+            <div class="heat-box"><table class="heat" id="cvHeat" aria-label="이 센터 이번 주 예약 가능 현황"><thead><tr><th scope="col"><span class="vh">시간대</span></th></tr></thead><tbody></tbody></table></div>
+            <footer class="board-foot"><span class="legend"><i class="lg ok"></i>여유 <i class="lg few"></i>얼마 안 남음 <i class="lg full"></i>마감</span><span class="muted">담당 원장님 진료일에만 예약을 받습니다.</span></footer>
+          </article>
+        </div>
+      </div>
+      <nav class="sub-nav" id="subNav" aria-label="센터 안 메뉴">
+        <div class="wrap sub-row">
+          <button type="button" data-go="c-about">센터 소개</button>
+          <button type="button" data-go="c-process">진료 과정</button>
+          <button type="button" data-go="c-doctors">의료진</button>
+          <button type="button" data-go="c-fees">비용</button>
+          <button type="button" data-go="c-faq">자주 묻는 질문</button>
+          <button type="button" data-go="reserve" class="go-book">예약</button>
+        </div>
+      </nav>
+      <div class="wrap cv-sections">
+        <section id="c-about" class="cv-sec"><h2>센터 소개</h2><div class="cv-desc" id="cvDesc"></div></section>
+        <section id="c-process" class="cv-sec"><h2>진료 과정</h2><ol class="steps vertical" id="cvProcess"></ol></section>
+        <section id="c-doctors" class="cv-sec"><h2>담당 의료진</h2><div class="doctors" id="cvDoctors"></div></section>
+        <section id="c-fees" class="cv-sec"><h2>비용</h2><div id="cvFees"></div></section>
+        <section id="c-faq" class="cv-sec"><h2>자주 묻는 질문</h2><ul class="notices" id="cvFaq"></ul></section>
+      </div>
+      <div id="centerReserveSlot"></div>
+      <div class="wrap cv-others"><h2>다른 진료센터</h2><div class="center-grid compact" id="cvOthers"></div></div>
+    </section>
+  </div>
 </main>
 
 <footer class="site-footer">

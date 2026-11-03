@@ -134,11 +134,11 @@
     { key: "eve", label: "저녁", from: 18 * 60, to: 24 * 60 }
   ];
   // countsByDate: {"YYYY-MM-DD": {"HH:MM": n}}
-  function overview(hours, holidays, rules, countsByDate, now, weekDays) {
+  function overview(hours, holidays, rules, countsByDate, now, weekDays, days, label) {
     var week = [], next = null, today = { remaining: 0, openSlots: 0, slots: [] };
     for (var i = 0; i <= rules.windowDays; i++) {
       var ds = addDays(now.date, i);
-      var r = computeSlots(ds, dayPlan(ds, hours, holidays), rules, countsByDate[ds] || {}, now);
+      var r = computeSlots(ds, planFor(ds, hours, holidays, days, label), rules, countsByDate[ds] || {}, now);
       if (!next) for (var k = 0; k < r.slots.length; k++) if (r.slots[k].remaining > 0) { next = { date: ds, time: r.slots[k].time }; break; }
       if (i === 0) {
         today.slots = r.slots;
@@ -166,6 +166,46 @@
       updatedAt: fresh ? live.updatedAt : null
     };
   }
+  /* ---------- 진료센터 ---------- */
+  var DAY_ORDER = "월화수목금토일";
+  function inCenter(doctor, key) { return ("," + String(doctor.centers || "").replace(/\s/g, "") + ",").indexOf("," + key + ",") >= 0; }
+  // 센터 담당 원장들의 진료 요일 합집합. 담당 원장이 없으면 null(요일 제한 없음)
+  function centerDays(doctors, key) {
+    var s = "";
+    (doctors || []).forEach(function (d) { if (inCenter(d, key)) s += d.days || ""; });
+    if (!s) return null;
+    return DAY_ORDER.split("").filter(function (w) { return s.indexOf(w) >= 0; }).join("");
+  }
+  function planFor(ds, hours, holidays, days, label) {
+    var p = dayPlan(ds, hours, holidays);
+    if (!p.closed && days !== null && days !== undefined && days.indexOf(WEEKDAYS[weekdayOf(ds)]) < 0)
+      return { closed: true, reason: (label || "센터") + " 진료일이 아닙니다", centerOff: true };
+    return p;
+  }
+  // 진료 항목(센터)에 맞는 진료일 제한 정보
+  function restriction(treatment, centers, doctors) {
+    var c = (centers || []).filter(function (x) { return x.key === treatment; })[0];
+    if (!c) return { days: null, label: null };
+    return { days: centerDays(doctors, c.key), label: c.name };
+  }
+  function centerSummaries(centers, doctors, hours, holidays, rules, countsByDate, now) {
+    return centers.map(function (c) {
+      var days = centerDays(doctors, c.key);
+      var ov = overview(hours, holidays, rules, countsByDate, now, 7, days, c.name);
+      var tp = planFor(now.date, hours, holidays, days, c.name);
+      return {
+        key: c.key, name: c.name, days: days, next: ov.next, week: ov.week,
+        today: { open: !tp.closed, reason: tp.reason || "", openSlots: ov.today.openSlots },
+        doctorsToday: tp.closed ? [] : doctors.filter(function (d) { return inCenter(d, c.key) && worksOn(d.days, now.weekday); }).map(function (d) { return d.name; })
+      };
+    });
+  }
+  function parseLines(text) {
+    return String(text || "").split("\n").map(function (l) { return l.trim(); }).filter(Boolean).map(function (l) {
+      var i = l.indexOf("|"); return i < 0 ? { title: l, body: "" } : { title: l.slice(0, i).trim(), body: l.slice(i + 1).trim() };
+    });
+  }
+
   function waitLabel(w) { return w === null || w === undefined ? "" : w === 0 ? "바로 진료 가능" : "대기 약 " + w + "분"; }
   function worksOn(days, weekday) { return String(days || "").indexOf(WEEKDAYS[weekday]) >= 0; }
 
@@ -195,6 +235,7 @@
     weekdayOf: weekdayOf, addDays: addDays, diffDays: diffDays, formatDate: formatDate,
     normalizePhone: normalizePhone, isPhone: isPhone, formatPhone: formatPhone, maskName: maskName,
     dayPlan: dayPlan, computeSlots: computeSlots, openStatus: openStatus, validateReservation: validateReservation,
-    PARTS: PARTS, overview: overview, liveNotice: liveNotice, waitLabel: waitLabel, worksOn: worksOn
+    PARTS: PARTS, overview: overview, liveNotice: liveNotice, waitLabel: waitLabel, worksOn: worksOn,
+    inCenter: inCenter, centerDays: centerDays, planFor: planFor, restriction: restriction, centerSummaries: centerSummaries, parseLines: parseLines
   };
 });

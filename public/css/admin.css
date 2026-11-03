@@ -119,3 +119,5 @@ body.admin { font-size: .9375rem; line-height: 1.55; }
 .toast.warn { background: var(--warn); color: #fff; }
 .wait-btns { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .35rem; }
 .live-panel { border-color: color-mix(in oklab, var(--live) 45%, var(--line)); }
+.multi { display: flex; flex-wrap: wrap; gap: .4rem 1rem; margin-top: .3rem; }
+.multi input, .chk input { width: auto !important; }

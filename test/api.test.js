@@ -237,3 +237,43 @@ test("live overview and server-sent update events", async () => {
   const doc = await call("POST", "/api/admin/doctors", { name: "테스트", days: "월X" }, { cookie });
   assert.equal(doc.status, 400);
 });
+
+test("treatment centers: content, doctor days and booking restriction", async () => {
+  const site = await call("GET", "/api/site");
+  assert.equal(site.json.centers.length, 7);
+  const ortho = site.json.centers.find((c) => c.key === "ortho");
+  assert.equal(ortho.name, "교정센터");
+  assert.equal(ortho.days, "화목토");
+
+  // 수요일(11-04)은 교정 원장 진료일이 아님
+  const days = await call("GET", "/api/days?treatment=ortho");
+  const wed = days.json.days.find((d) => d.date === "2026-11-04");
+  assert.equal(wed.closed, true);
+  assert.match(wed.reason, /교정센터 진료일이 아닙니다/);
+  assert.equal(days.json.days.find((d) => d.date === "2026-11-10").closed, false); // 화요일
+  const slots = await call("GET", "/api/slots?date=2026-11-04&treatment=ortho");
+  assert.equal(slots.json.closed, true);
+  const bad = await call("POST", "/api/reservations", booking({ treatment: "ortho", date: "2026-11-04", time: "15:30", phone: "010-8888-1111" }));
+  assert.equal(bad.status, 409);
+  const ok = await call("POST", "/api/reservations", booking({ treatment: "ortho", date: "2026-11-10", time: "15:30", phone: "010-8888-1111" }));
+  assert.equal(ok.status, 201, ok.text);
+
+  const live = await call("GET", "/api/live");
+  const lo = live.json.centers.find((c) => c.key === "ortho");
+  assert.equal(lo.today.open, false);
+  assert.equal(lo.next.date, "2026-11-05"); // 목요일
+  const li = live.json.centers.find((c) => c.key === "implant");
+  assert.equal(li.today.open, true);
+  assert.equal(li.doctorsToday.length, 1);
+
+  const cookie = await login();
+  const up = await call("PUT", "/api/admin/centers/ortho", { name: "교정센터", summary: "바뀐 소개", sort: 2 }, { cookie });
+  assert.equal(up.status, 200);
+  assert.equal((await call("GET", "/api/site")).json.centers.find((c) => c.key === "ortho").summary, "바뀐 소개");
+  assert.equal((await call("PUT", "/api/admin/centers/nope", { name: "x" }, { cookie })).status, 404);
+  assert.equal((await call("POST", "/api/admin/doctors", { name: "새 원장", days: "월", centers: "implant,xx" }, { cookie })).status, 400);
+  const nd = await call("POST", "/api/admin/doctors", { name: "새 원장", days: "수", centers: "ortho" }, { cookie });
+  assert.equal(nd.status, 201);
+  // 수요일 교정 원장이 생기면 교정센터 수요일 예약이 열림
+  assert.equal((await call("GET", "/api/slots?date=2026-11-04&treatment=ortho")).json.closed, false);
+});

@@ -5,7 +5,8 @@
 (function () {
   "use strict";
   var C = window.WCore;
-  var KEY = "w-demo-v2";
+  var KEY = "w-demo-v3";
+  var SEED = window.WSeed;
   var realFetch = window.fetch ? window.fetch.bind(window) : null;
   var now = function () { return C.seoulNow(); };
   var iso = function () { return new Date().toISOString(); };
@@ -29,7 +30,8 @@
       fees: [
         ["임플란트 (국산 픽스처 + 지르코니아)", "1개", 1100000], ["뼈이식 (부분)", "1부위", 300000], ["지르코니아 크라운", "1개", 500000],
         ["레진 충전 (13세 이상)", "1치아", 100000], ["투명교정 (전체)", "1회 과정", 5500000], ["전문가 미백", "1회", 200000]
-      ].map(function (f, i) { return { id: i + 1, name: f[0], unit: f[1], price: f[2], note: "", sort: i + 1 }; }),
+      ].map(function (f, i) { return { id: i + 1, name: f[0], unit: f[1], price: f[2], note: "", sort: i + 1, center: SEED.FEE_CENTERS[i + 1] || null }; }),
+      centers: SEED.CENTERS.map(function (c) { return Object.assign({ id: c.key, published: 1 }, c); }),
       doctors: [
         { id: 1, name: "원장 성함", role: "대표원장 · 통합치의학과 전문의", career: "치의학 석사\n임플란트 · 보철 진료", quote: "뽑지 않고 살릴 수 있는 치아부터 찾습니다.", days: "월화수목금토", sort: 1 },
         { id: 2, name: "원장 성함", role: "원장 · 치과교정과 전문의", career: "교정 · 턱관절 진료\n투명교정 인증의", quote: "교정 기간과 비용은 첫 상담에서 정해 드립니다.", days: "화목토", sort: 2 },
@@ -40,6 +42,7 @@
       users: [{ id: 1, username: "admin", name: "관리자", role: "admin", pw: "demo1234", created_at: iso() }],
       reservations: [], audit: [], outbox: []
     };
+    s.doctors.forEach(function (d) { d.centers = SEED.DOCTOR_CENTERS[d.sort] || ""; });
     // 예시 예약 (가상 인물)
     var samples = [
       [t, "10:00", "김예시", "01011110001", "implant", "confirmed", "staff", ""],
@@ -86,7 +89,9 @@
     S.reservations.forEach(function (r) { if (r.date === ds && r.id !== excludeId && C.ACTIVE.indexOf(r.status) >= 0) m[r.time] = (m[r.time] || 0) + 1; });
     return m;
   }
-  function slotsFor(ds, n) { return C.computeSlots(ds, C.dayPlan(ds, S.hours, hmap()), S.booking, counts(ds), n || now()); }
+  function rs(treatment) { return C.restriction(treatment, S.centers, S.doctors); }
+  function slotsFor(ds, n, treatment) { var r = rs(treatment); return C.computeSlots(ds, C.planFor(ds, S.hours, hmap(), r.days, r.label), S.booking, counts(ds), n || now()); }
+  function pubCenters() { return list("centers").filter(function (c) { return c.published; }); }
   function pub(r) {
     var n = now(), future = r.date > n.date || (r.date === n.date && C.toMin(r.time) > n.minutes);
     return { code: r.code, name: C.maskName(r.name), treatment: r.treatment, treatmentLabel: C.labelOf(C.TREATMENTS, r.treatment), date: r.date, time: r.time, status: r.status, statusLabel: C.labelOf(C.STATUSES, r.status), canCancel: C.ACTIVE.indexOf(r.status) >= 0 && future };
@@ -119,7 +124,8 @@
 
   on("GET", /^site$/, function () {
     var n = now(), hol = S.holidays.filter(function (h) { return h.date >= n.date; }).sort(function (a, b) { return a.date < b.date ? -1 : 1; });
-    return { clinic: S.clinic, booking: S.booking, hours: S.hours, holidays: hol, status: C.openStatus(S.hours, hmap(), n), today: n.date, fees: list("fees"), feesUpdatedAt: null, doctors: list("doctors"), notices: list("notices").filter(function (x) { return x.published; }), treatments: C.TREATMENTS };
+    return { clinic: S.clinic, booking: S.booking, hours: S.hours, holidays: hol, status: C.openStatus(S.hours, hmap(), n), today: n.date, fees: list("fees"), feesUpdatedAt: null, doctors: list("doctors"),
+      centers: pubCenters().map(function (c) { return Object.assign({}, c, { days: C.centerDays(S.doctors, c.key) }); }), notices: list("notices").filter(function (x) { return x.published; }), treatments: C.TREATMENTS };
   });
   on("GET", /^live$/, function () {
     var n = now(), m = hmap(), counts2 = {};
@@ -129,7 +135,8 @@
       v: S.seq, serverTime: iso(), now: n, status: status, notice: C.liveNotice(S.live || {}, status, Date.now()),
       today: { date: n.date, plan: C.dayPlan(n.date, S.hours, m), remaining: ov.today.remaining, openSlots: ov.today.openSlots, slots: ov.today.slots },
       next: ov.next, week: ov.week,
-      doctorsToday: m[n.date] ? [] : list("doctors").filter(function (d) { return C.worksOn(d.days, n.weekday); }).map(function (d) { return { name: d.name, role: d.role }; })
+      doctorsToday: m[n.date] ? [] : list("doctors").filter(function (d) { return C.worksOn(d.days, n.weekday); }).map(function (d) { return { name: d.name, role: d.role }; }),
+      centers: C.centerSummaries(pubCenters(), list("doctors"), S.hours, m, S.booking, counts2, n)
     };
   });
   on("GET", /^admin\/live$/, function () { need(); return S.live || {}; });
@@ -139,19 +146,19 @@
     S.live = { wait: w, message: String(b.message || "").slice(0, 120), updatedAt: iso(), updatedBy: u.name };
     audit(u.username, "live.update", "live"); return S.live;
   });
-  on("GET", /^days$/, function () {
-    var n = now(), days = [];
+  on("GET", /^days$/, function (q) {
+    var n = now(), days = [], t = q.get("treatment");
     for (var i = 0; i <= S.booking.windowDays; i++) {
-      var ds = C.addDays(n.date, i), r = slotsFor(ds, n);
+      var ds = C.addDays(n.date, i), r = slotsFor(ds, n, t);
       days.push({ date: ds, weekday: C.weekdayOf(ds), closed: r.closed, reason: r.reason, available: r.slots.filter(function (s) { return s.remaining > 0; }).length });
     }
     return { days: days };
   });
-  on("GET", /^slots$/, function (q) { return slotsFor(q.get("date")); });
+  on("GET", /^slots$/, function (q) { return slotsFor(q.get("date"), null, q.get("treatment")); });
   on("POST", /^reservations$/, function (q, b) {
     var v = C.validateReservation(b);
     if (!v.ok) throw new Err(400, Object.values(v.errors)[0], { fields: v.errors });
-    var r = v.value, sl = slotsFor(r.date), slot = sl.slots.filter(function (s) { return s.time === r.time; })[0];
+    var r = v.value, sl = slotsFor(r.date, null, r.treatment), slot = sl.slots.filter(function (s) { return s.time === r.time; })[0];
     if (sl.closed || !slot || slot.remaining <= 0) throw new Err(409, "선택한 시간에는 예약할 수 없습니다. 다른 시간을 선택해 주세요.");
     if (S.reservations.some(function (x) { return x.phone === r.phone && x.date === r.date && x.time === r.time && C.ACTIVE.indexOf(x.status) >= 0; })) throw new Err(409, "같은 시간에 이미 예약이 있습니다.");
     var rec = Object.assign({ id: ++S.seq, code: newCode(), status: "requested", source: "web", staff_memo: "", consent_at: iso(), reminded: 0, purged: 0, created_at: iso(), updated_at: iso() }, r);
@@ -236,6 +243,14 @@
     return [201, { date: b.date, label: b.label, affected: S.reservations.filter(function (r) { return r.date === b.date && C.ACTIVE.indexOf(r.status) >= 0; }).length }];
   });
   on("DELETE", /^admin\/holidays\/(.+)$/, function (q, b, m) { var u = need("admin"); S.holidays = S.holidays.filter(function (h) { return h.date !== m[1]; }); audit(u.username, "holiday.delete", "holidays:" + m[1]); return { ok: true }; });
+  on("GET", /^admin\/centers$/, function () { need(); return { items: list("centers") }; });
+  on("PUT", /^admin\/centers\/([a-z]+)$/, function (q, b, m) {
+    var u = need("admin"), c = S.centers.filter(function (x) { return x.key === m[1]; })[0];
+    if (!c) throw new Err(404, "진료센터를 찾을 수 없습니다.");
+    if (!String(b.name || "").trim()) throw new Err(400, "센터 이름을 입력해 주세요.");
+    Object.assign(c, b, { key: c.key, id: c.key, sort: Number(b.sort) || 0, published: b.published === false ? 0 : 1 });
+    audit(u.username, "centers.update", "centers:" + c.key); return c;
+  });
   ["fees", "doctors", "notices"].forEach(function (name) {
     var role = name === "notices" ? "staff" : "admin";
     var clean = function (b) {

@@ -2,12 +2,17 @@
 const { DatabaseSync } = require("node:sqlite");
 const fs = require("node:fs");
 const path = require("node:path");
+const SEED = require("../public/js/seed.js");
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS hours (
   weekday INTEGER PRIMARY KEY, closed INTEGER NOT NULL DEFAULT 0,
   open TEXT, close TEXT, lunch_start TEXT, lunch_end TEXT, note TEXT
+);
+CREATE TABLE IF NOT EXISTS centers (
+  key TEXT PRIMARY KEY, name TEXT NOT NULL, en TEXT, summary TEXT, description TEXT, tags TEXT,
+  process TEXT, faq TEXT, sort INTEGER NOT NULL DEFAULT 0, published INTEGER NOT NULL DEFAULT 1
 );
 CREATE TABLE IF NOT EXISTS holidays (date TEXT PRIMARY KEY, label TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS fees (
@@ -86,6 +91,21 @@ function openDb(file) {
 function migrate(db) {
   const cols = db.prepare("PRAGMA table_info(doctors)").all().map((c) => c.name);
   if (!cols.includes("days")) db.exec("ALTER TABLE doctors ADD COLUMN days TEXT NOT NULL DEFAULT '월화수목금토'");
+  if (!cols.includes("centers")) {
+    db.exec("ALTER TABLE doctors ADD COLUMN centers TEXT NOT NULL DEFAULT ''");
+    const set = db.prepare("UPDATE doctors SET centers = ? WHERE sort = ?");
+    Object.keys(SEED.DOCTOR_CENTERS).forEach((sort) => set.run(SEED.DOCTOR_CENTERS[sort], Number(sort)));
+  }
+  const feeCols = db.prepare("PRAGMA table_info(fees)").all().map((c) => c.name);
+  if (!feeCols.includes("center")) {
+    db.exec("ALTER TABLE fees ADD COLUMN center TEXT");
+    const set = db.prepare("UPDATE fees SET center = ? WHERE sort = ?");
+    Object.keys(SEED.FEE_CENTERS).forEach((sort) => set.run(SEED.FEE_CENTERS[sort], Number(sort)));
+  }
+  if (!db.prepare("SELECT COUNT(*) AS n FROM centers").get().n) {
+    const ins = db.prepare("INSERT INTO centers (key, name, en, summary, description, tags, process, faq, sort, published) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)");
+    SEED.CENTERS.forEach((c) => ins.run(c.key, c.name, c.en, c.summary, c.description, c.tags, c.process, c.faq, c.sort));
+  }
 }
 
 function seed(db) {
@@ -123,6 +143,8 @@ function seed(db) {
   d.run("원장 성함", "원장 · 치과교정과 전문의", "교정 · 턱관절 진료\n투명교정 인증의", "교정 기간과 비용은 첫 상담에서 정해 드립니다.", 2);
   d.run("원장 성함", "원장 · 소아치과 전문의", "소아 · 보존 진료\n장애인 치과 진료", "아이가 다음에도 오고 싶어 하는 치과를 만듭니다.", 3);
   db.prepare("UPDATE doctors SET days = ? WHERE sort = ?").run("화목토", 2);
+  Object.keys(SEED.DOCTOR_CENTERS).forEach((sort) => db.prepare("UPDATE doctors SET centers = ? WHERE sort = ?").run(SEED.DOCTOR_CENTERS[sort], Number(sort)));
+  Object.keys(SEED.FEE_CENTERS).forEach((sort) => db.prepare("UPDATE fees SET center = ? WHERE sort = ?").run(SEED.FEE_CENTERS[sort], Number(sort)));
   db.prepare("UPDATE doctors SET days = ? WHERE sort = ?").run("월수금토", 3);
 
   db.prepare("INSERT INTO notices (title, body, pinned, published, created_at) VALUES (?, ?, ?, ?, ?)")

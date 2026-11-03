@@ -427,13 +427,14 @@
   };
 
   /* ---------- 진료비 · 의료진 · 공지 (목록 편집) ---------- */
-  function listEditor(resource, title, desc, cols, blank) {
+  function listEditor(resource, title, desc, cols, blank, opts) {
+    opts = opts || {};
     return function (v) {
       return api("GET", resource).then(function (r) {
         v.textContent = "";
         v.appendChild(head(title, desc));
         var box = el("div", { class: "items" });
-        r.items.concat([Object.assign({ _new: true }, blank)]).forEach(function (item) {
+        (opts.fixed ? r.items : r.items.concat([Object.assign({ _new: true }, blank)])).forEach(function (item) {
           var get = {};
           var fields = el("div", { class: "item-fields" });
           cols.forEach(function (c) {
@@ -444,6 +445,23 @@
               fields.appendChild(el("label", { class: "chk" + (c.wide ? " wide" : "") }, [i, c.label]));
               return;
             }
+            if (c.type === "multi") {
+              var chosen = String(item[c.key] || "").split(",").filter(Boolean), boxes = [];
+              var grp = el("div", { class: "multi" });
+              c.options.forEach(function (o) {
+                var cb = input({ type: "checkbox", checked: chosen.indexOf(o.key) >= 0, value: o.key });
+                boxes.push(cb); grp.appendChild(el("label", { class: "chk" }, [cb, o.label]));
+              });
+              get[c.key] = function () { return boxes.filter(function (b) { return b.checked; }).map(function (b) { return b.value; }).join(","); };
+              fields.appendChild(el("div", { class: "field" + (c.wide ? " wide" : "") }, [el("span", { class: "small", text: c.label }), grp]));
+              return;
+            }
+            if (c.type === "select") {
+              i = select(c.options, item[c.key] || "");
+              get[c.key] = function () { return i.value || null; };
+              fields.appendChild(field(c.label, i));
+              return;
+            }
             i = c.type === "textarea" ? el("textarea", { value: item[c.key] == null ? "" : item[c.key], rows: c.rows || 3, placeholder: c.ph || "" })
               : input({ type: c.type || "text", value: item[c.key] == null ? "" : item[c.key], placeholder: c.ph || "" });
             get[c.key] = function () { return c.type === "number" ? (i.value === "" ? null : Number(i.value)) : i.value; };
@@ -451,7 +469,11 @@
           });
           var collect = function () { var o = {}; Object.keys(get).forEach(function (k) { o[k] = get[k](); }); return o; };
           var acts = el("div", { class: "item-acts" });
-          if (item._new) {
+          if (opts.fixed) {
+            acts.appendChild(el("button", { class: "btn btn-primary btn-sm", type: "button", text: "저장", onclick: function () {
+              api("PUT", resource + "/" + item.id, collect()).then(function () { toast("저장했습니다. 홈페이지에 바로 반영됩니다."); }).catch(fail);
+            } }));
+          } else if (item._new) {
             acts.appendChild(el("button", { class: "btn btn-primary btn-sm", type: "button", text: "추가", onclick: function () {
               api("POST", resource, collect()).then(function () { toast("추가했습니다."); route(); }).catch(fail);
             } }));
@@ -461,18 +483,28 @@
               api("PUT", resource + "/" + item.id, collect()).then(function () { toast("저장했습니다."); }).catch(fail);
             } }));
           }
-          box.appendChild(el("div", { class: "item" + (item._new ? " new" : "") }, [item._new ? el("b", { class: "small", text: "새 항목" }) : null, fields, acts]));
+          box.appendChild(el("div", { class: "item" + (item._new ? " new" : "") }, [item._new ? el("b", { class: "small", text: "새 항목" }) : opts.titleKey ? el("b", { text: item[opts.titleKey] }) : null, fields, acts]));
         });
         v.appendChild(box);
       });
     };
   }
+  var CENTER_OPTS = C.TREATMENTS.filter(function (t) { return t.key !== "checkup"; }).map(function (t) { return { key: t.key, label: t.label }; });
+  VIEWS.centers = listEditor("centers", "진료센터", "홈페이지 첫 메뉴(1 depth)와 센터 페이지 내용입니다. 진료 과정·자주 묻는 질문은 한 줄에 하나씩 '제목|설명' 형식으로 적습니다. 센터 진료 요일은 '의료진'의 담당 센터와 진료 요일로 자동 계산됩니다.", [
+    { key: "name", label: "센터 이름" }, { key: "en", label: "영문 표기" }, { key: "sort", label: "표시 순서", type: "number" },
+    { key: "summary", label: "한 줄 소개 (카드에 표시)", wide: true }, { key: "tags", label: "태그 (쉼표로 구분)", wide: true },
+    { key: "description", label: "센터 소개 (문단은 줄바꿈)", type: "textarea", wide: true, rows: 4 },
+    { key: "process", label: "진료 과정 (제목|설명)", type: "textarea", wide: true, rows: 5 },
+    { key: "faq", label: "자주 묻는 질문 (질문|답변)", type: "textarea", wide: true, rows: 4 },
+    { key: "published", label: "홈페이지에 공개", type: "checkbox", def: true }
+  ], {}, { fixed: true, titleKey: "key" });
   VIEWS.fees = listEditor("fees", "비급여 진료비", "의료법에 따라 비급여 진료비는 환자가 볼 수 있게 고지해야 합니다. 저장하면 홈페이지 진료비 표가 바뀝니다.", [
     { key: "name", label: "항목" }, { key: "unit", label: "단위", ph: "1개 / 1치아" }, { key: "price", label: "금액 (원)", type: "number", ph: "비우면 '상담 후 안내'" },
-    { key: "sort", label: "표시 순서", type: "number" }, { key: "note", label: "비고", wide: true }
+    { key: "sort", label: "표시 순서", type: "number" }, { key: "center", label: "진료센터", type: "select", options: [{ key: "", label: "공통" }].concat(CENTER_OPTS) }, { key: "note", label: "비고", wide: true }
   ], { sort: 99 });
   VIEWS.doctors = listEditor("doctors", "의료진", "확인 가능한 학력·자격만 적으세요. 진료 요일은 홈페이지 '오늘 진료 의료진'에 쓰입니다.", [
     { key: "name", label: "성함" }, { key: "role", label: "직함 · 전문의" }, { key: "days", label: "진료 요일", ph: "월화수목금토" }, { key: "sort", label: "표시 순서", type: "number" },
+    { key: "centers", label: "담당 진료센터 (이 센터 예약은 담당 원장 진료 요일에만 열림)", type: "multi", options: CENTER_OPTS, wide: true },
     { key: "career", label: "이력 (한 줄에 하나)", type: "textarea", wide: true }, { key: "quote", label: "한마디", wide: true }
   ], { sort: 99 });
   VIEWS.notices = listEditor("notices", "공지사항", "'상단 고정'을 켠 공지는 홈페이지 맨 위 띠에 표시됩니다.", [
@@ -519,7 +551,7 @@
     "settings.clinic": "병원 정보 변경", "settings.booking": "예약 규칙 변경", "settings.hours": "진료시간 변경", "holiday.set": "휴진일 등록", "holiday.delete": "휴진일 삭제",
     "fees.create": "진료비 추가", "fees.update": "진료비 수정", "fees.delete": "진료비 삭제", "doctors.create": "의료진 추가", "doctors.update": "의료진 수정", "doctors.delete": "의료진 삭제",
     "notices.create": "공지 추가", "notices.update": "공지 수정", "notices.delete": "공지 삭제", "user.create": "계정 추가", "user.delete": "계정 삭제", "user.password": "비밀번호 변경",
-    "privacy.purge": "개인정보 자동 파기", "live.update": "홈페이지 실시간 안내 변경"
+    "privacy.purge": "개인정보 자동 파기", "live.update": "홈페이지 실시간 안내 변경", "centers.update": "진료센터 수정"
   };
   var OUT = { sent: "발송", failed: "실패", skipped: "미발송 (연동 전)", sending: "발송 중" };
   function when(iso) { var d = new Date(iso); return isNaN(d) ? iso : d.toLocaleString("ko-KR", { timeZone: "Asia/Seoul", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }); }

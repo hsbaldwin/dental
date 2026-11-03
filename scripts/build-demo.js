@@ -23,13 +23,13 @@ const must = (s, find, repl) => {
 };
 
 patch("index.html", (s) => {
-  s = must(s, '<script src="js/core.js"></script>', '<script src="js/core.js"></script>\n<script src="js/demo-backend.js"></script>');
+  s = must(s, '<script src="js/core.js"></script>', '<script src="js/core.js"></script>\n<script src="js/seed.js"></script>\n<script src="js/demo-backend.js"></script>');
   s = must(s, '<a href="admin/">직원 로그인</a>', '<a href="admin/index.html">직원 로그인 (체험)</a>');
   return s;
 });
-patch("privacy.html", (s) => must(s, '<script src="js/privacy.js"></script>', '<script src="js/core.js"></script>\n<script src="js/demo-backend.js"></script>\n<script src="js/privacy.js"></script>'));
+patch("privacy.html", (s) => must(s, '<script src="js/privacy.js"></script>', '<script src="js/core.js"></script>\n<script src="js/seed.js"></script>\n<script src="js/demo-backend.js"></script>\n<script src="js/privacy.js"></script>'));
 patch("admin/index.html", (s) => {
-  s = must(s, '<script src="../js/core.js"></script>', '<script src="../js/core.js"></script>\n<script src="../js/demo-backend.js"></script>');
+  s = must(s, '<script src="../js/core.js"></script>', '<script src="../js/core.js"></script>\n<script src="../js/seed.js"></script>\n<script src="../js/demo-backend.js"></script>');
   s = must(s, '<p class="muted">직원 계정으로 로그인하세요.</p>', '<p class="muted">체험판 계정: 아이디 <b>admin</b> / 비밀번호 <b>demo1234</b></p>');
   s = must(s, "</head>", '<style>a[href*="reservations.csv"]{display:none}</style>\n</head>');
   return s;
