@@ -129,3 +129,16 @@ body { margin: 0; font-family: var(--font-sans); font-size: 17px; line-height: 1
 .wd-mic { min-height: 44px; padding: 0 var(--space-4); border-radius: var(--radius-pill); border: 2px solid var(--teal); background: var(--enamel-raised); color: var(--teal); font: 700 15px/22px var(--font-sans); cursor: pointer; }
 .wd-mic-on { background: var(--gum-soft); border-color: var(--gum); color: var(--gum-ink); }
 .wd-voice:focus-visible, .wd-replay:focus-visible, .wd-mic:focus-visible { outline: 3px solid var(--teal); outline-offset: 3px; }
+
+/* ===== 단락 흐름 ===== */
+.wd-stage-no { display: inline-grid; place-items: center; width: 26px; height: 26px; margin-right: 8px; border-radius: 50%; background: var(--teal); color: var(--on-teal); font: 700 13px/1 var(--font-sans); }
+.wd-next { display: grid; grid-template-columns: auto 1fr auto; gap: 4px 20px; align-items: center; padding: 18px 22px; border-radius: var(--radius-crown) var(--radius-crown) var(--radius-root) var(--radius-root); border: 2px solid var(--teal); background: var(--enamel-raised); color: var(--ink); text-decoration: none; max-width: 640px; }
+.wd-next .lbl { font: 700 14px/20px var(--font-sans); color: var(--teal); }
+.wd-next b { font: 600 22px/30px var(--font-display); }
+.wd-next small { display: block; color: var(--ink-muted); font-size: 15px; }
+.wd-next .arr { font-size: 24px; color: var(--teal); }
+.wd-rail { list-style: none; margin: 0; padding: 8px; display: grid; gap: 4px; width: max-content; background: var(--enamel-raised); border: 1px solid var(--line); border-radius: var(--radius-crown) var(--radius-crown) var(--radius-root) var(--radius-root); }
+.wd-rail li { display: flex; align-items: center; padding: 6px 10px 6px 8px; border-radius: 10px; font: 600 14px/20px var(--font-sans); color: var(--ink-muted); }
+.wd-rail li .wd-stage-no { background: var(--line); color: var(--ink); }
+.wd-rail li.now { background: var(--teal-soft); color: var(--ink); }
+.wd-rail li.now .wd-stage-no { background: var(--teal); color: var(--on-teal); }

@@ -908,3 +908,61 @@ html.eb-open { overflow: hidden; }
 .chat-mic.on { background: var(--gum-soft); border-color: var(--gum); color: var(--gum-ink); }
 @media (max-width: 1280px) { .voice-btn #voiceBtnLabel { display: none; } .voice-btn { padding-right: .35rem; } }
 html.easy .voice-btn #voiceBtnLabel { display: inline; }
+
+/* ===================== 고객 여정: 단계별 섹션 흐름 ===================== */
+/* 한 단계 = 한 배경 덩어리. 단계 안의 단락은 배경을 바꾸지 않고 가는 선과 간격으로만 나눈다. */
+.stage { position: relative; }
+.stage[data-alt] { background: var(--surface); border-block: 1px solid var(--line); }
+.stage .band, .stage .band-alt { background: transparent; border-block: 0; }
+.stage > .band + .band, .stage > .band + .band-alt, .stage > .band-alt + .band, .stage > .band-alt + .band-alt { border-top: 1px solid var(--line); }
+.stage > .band { padding-block: 3.5rem; }
+.stage > .band:first-child { padding-top: 4.5rem; }
+.stage > .band:last-child { padding-bottom: 4.5rem; }
+#now > .quick-band { padding-top: 1.5rem; }
+#now > .hero { padding-bottom: 3rem; border-top: 0; }
+.stage[data-stage="3"] > .band { padding-block: 3rem; }
+/* 단계 번호 표식: 실제 순서(1~5)를 뜻하므로 숫자를 쓴다 */
+.stage-no { display: inline-grid; place-items: center; width: 1.6rem; height: 1.6rem; margin-right: .45rem; border-radius: 50%; background: var(--accent); color: var(--accent-ink); font-family: var(--f-body); font-size: .8125rem; font-weight: 700; vertical-align: .05em; }
+.eyebrow .stage-no { width: 1.5rem; height: 1.5rem; }
+.sec-head { margin-bottom: 2rem; }
+.sec-head h2 { font-size: clamp(1.75rem, 1.4rem + 1.4vw, 2.25rem); }
+/* 다음 단계로 이어주는 연결 */
+.next-step { margin-top: 2.5rem; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: .25rem 1.25rem; align-items: center; padding: 1.1rem 1.4rem; border-radius: var(--radius-crown) var(--radius-crown) var(--radius-root) var(--radius-root); border: 2px solid var(--accent); background: var(--surface); color: var(--ink); text-decoration: none; }
+.stage[data-alt] .next-step { background: var(--bg); }
+.next-step:hover { background: var(--soft); }
+.ns-label { font-size: .875rem; font-weight: 700; color: var(--accent); }
+.ns-main { display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: .25rem; min-width: 0; }
+.ns-main b { font-family: var(--f-display); font-size: 1.375rem; }
+.ns-main small { grid-column: 2; color: var(--muted); font-size: .9375rem; }
+.ns-arrow { font-size: 1.5rem; color: var(--accent); }
+@media (max-width: 560px) { .next-step { grid-template-columns: minmax(0, 1fr) auto; } .ns-label { grid-column: 1 / -1; } }
+.reserve-next { grid-column: 1 / -1; }
+.reserve { grid-template-areas: "head main" "extra main" "next next"; }
+.reserve-next { grid-area: next; }
+@media (max-width: 900px) { .reserve { grid-template-areas: "head" "main" "extra" "next"; } }
+.reserve-next .next-step { margin-top: 1rem; }
+.journey-end { margin-top: 2.5rem; padding: 1.5rem; border-radius: var(--radius-crown) var(--radius-crown) var(--radius-root) var(--radius-root); background: var(--soft); display: grid; gap: 1rem; justify-items: start; }
+.journey-end p { font-size: 1.125rem; }
+.je-acts { display: flex; flex-wrap: wrap; gap: .6rem; }
+/* 왼쪽 여정 표시 (넓은 화면) */
+.journey { position: fixed; z-index: 30; left: max(1rem, env(safe-area-inset-left, 0px)); top: 50%; transform: translateY(-50%); display: none; }
+.journey ol { list-style: none; margin: 0; padding: .5rem; display: grid; gap: .25rem; background: color-mix(in oklab, var(--surface) 92%, transparent); border: 1px solid var(--line); border-radius: var(--radius-crown) var(--radius-crown) var(--radius-root) var(--radius-root); box-shadow: var(--shadow); }
+.journey li { position: relative; }
+.journey li + li::before { content: ""; position: absolute; left: 1.35rem; top: -.3rem; width: 2px; height: .35rem; background: var(--line); }
+.journey a { display: flex; align-items: center; gap: .1rem; padding: .35rem .6rem .35rem .5rem; border-radius: .6rem; text-decoration: none; font-size: .875rem; font-weight: 600; color: var(--muted); white-space: nowrap; }
+.journey a .stage-no { background: var(--line); color: var(--ink); }
+.journey a.done .stage-no { background: var(--soft); color: var(--accent); }
+.journey a[aria-current="step"] { color: var(--ink); background: var(--soft); }
+.journey a[aria-current="step"] .stage-no { background: var(--accent); color: var(--accent-ink); }
+@media (min-width: 1440px) { .journey.on { display: block; } }
+html.easy .journey { display: none !important; }
+.reserve { grid-template-rows: auto 1fr auto; } @media (max-width: 900px) { .reserve { grid-template-rows: none; } }
+@media (max-width: 1600px) { .head-tel { display: none; } }
+@media (max-width: 1440px) { .voice-btn #voiceBtnLabel { display: none; } .voice-btn { padding-right: .35rem; } }
+.site-header .head-row, .livebar-row { max-width: 92rem; }
+.center-nav { margin-left: 1rem; gap: .1rem; }
+.center-nav a { padding: .45rem .5rem; }
+.tools { gap: .4rem; flex: none; }
+@media (max-width: 1360px) { .center-nav { display: none; } .menu-btn { display: inline-flex; align-items: center; } .more { display: none; } .tools { margin-left: auto; } }
+@media (min-width: 1361px) { .menu-btn { display: none; } }
+@media (max-width: 1360px) and (min-width: 1181px) { .menu-panel:not([hidden]) { display: block !important; } }

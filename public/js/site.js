@@ -946,4 +946,23 @@
     setInquiry: function (q, phone) { myInquiry = { code: q.code, phone: C.normalizePhone(phone), center: q.center }; store.set(INQ_KEY, JSON.stringify(myInquiry)); lastInqStatus = q.status; },
     myInquiry: function () { return myInquiry; }
   };
+  /* ---------- 고객 여정 표시: 지금 보고 있는 단계 ---------- */
+  (function () {
+    var rail = $("journey"); if (!rail || !window.IntersectionObserver) return;
+    var links = [].slice.call(rail.querySelectorAll("a"));
+    function mark(no) {
+      links.forEach(function (a) {
+        var n = +a.getAttribute("data-stage");
+        a.setAttribute("aria-current", n === no ? "step" : "false");
+        a.classList.toggle("done", n < no);
+      });
+    }
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (e) { if (e.isIntersecting) mark(+e.target.getAttribute("data-stage")); });
+    }, { rootMargin: "-45% 0px -50% 0px" });
+    document.querySelectorAll("#homeView .stage").forEach(function (st) { io.observe(st); });
+    function vis() { rail.classList.toggle("on", view === "home"); }
+    window.addEventListener("hashchange", function () { setTimeout(vis, 0); });
+    vis(); mark(1);
+  })();
 })();
