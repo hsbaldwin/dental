@@ -246,6 +246,39 @@
     });
   }
 
+  /* ---------- 안내 챗봇 (규칙 기반) ---------- */
+  var SYMPTOMS = [
+    { id: "cold", label: "이가 시려요", t: "endo", time: "약 40분", ins: "검사와 기본 치료는 건강보험 적용", kw: ["시려", "시림", "시린", "찬물", "충치", "썩"] },
+    { id: "bite", label: "씹을 때 아파요", t: "endo", time: "약 50분", ins: "신경치료는 건강보험 적용", kw: ["씹을", "욱신", "치통", "이가 아", "이빨이 아", "신경"] },
+    { id: "gum", label: "잇몸에서 피가 나요", t: "perio", time: "약 60분", ins: "만 19세 이상 스케일링 연 1회 보험", kw: ["잇몸", "피가", "출혈", "스케일링", "치석", "붓"] },
+    { id: "lost", label: "이가 빠졌어요", t: "implant", time: "60 – 90분 (CT 포함)", ins: "만 65세 이상 평생 2개 보험", kw: ["빠졌", "빠진", "없어", "임플란트", "틀니", "발치"] },
+    { id: "crooked", label: "치아가 삐뚤어요", t: "ortho", time: "약 60분 (정밀 진단)", ins: "비급여 (진료비 안내 참고)", kw: ["삐뚤", "교정", "덧니", "돌출", "투명교정"] },
+    { id: "jaw", label: "턱에서 소리가 나요", t: "tmj", time: "약 60분", ins: "검사 일부 건강보험 적용", kw: ["턱", "딱딱", "이갈", "입이 안"] },
+    { id: "kid", label: "아이 첫 검진", t: "kids", time: "약 30분", ins: "만 18세 이하 실란트 보험", kw: ["아이", "아기", "어린이", "유치", "소아", "실란트", "불소"] },
+    { id: "color", label: "치아 색이 누래요", t: "esthetic", time: "약 40분", ins: "비급여 (진료비 안내 참고)", kw: ["누래", "누런", "미백", "하얗", "라미네이트", "색"] }
+  ];
+  var INTENTS = [
+    { key: "mine", kw: ["내 예약", "예약 확인", "예약확인", "예약 취소", "취소", "변경", "접수번호", "예약번호"] },
+    { key: "call", kw: ["상담원", "통화", "전화", "연락", "사람", "직원"] },
+    { key: "cost", kw: ["비용", "가격", "얼마", "금액", "보험", "비싸"] },
+    { key: "today", kw: ["오늘", "지금", "진료 중", "진료하", "몇 시", "몇시", "영업", "야간", "토요일", "주말", "점심"] },
+    { key: "way", kw: ["위치", "주소", "오시는", "주차", "지하철", "어디", "찾아"] },
+    { key: "book", kw: ["예약", "방문", "가고 싶", "진료 받"] },
+    { key: "hello", kw: ["안녕", "처음", "도와"] }
+  ];
+  // 자유 입력 문장 → { intent, symptom } (증상 단어가 있으면 증상 안내가 우선)
+  function chatIntent(text) {
+    var t = String(text || "").replace(/\s+/g, " ").trim();
+    var sym = null;
+    SYMPTOMS.forEach(function (s) { if (!sym && s.kw.some(function (k) { return t.indexOf(k) >= 0; })) sym = s; });
+    var intent = null;
+    INTENTS.forEach(function (it) { if (!intent && it.kw.some(function (k) { return t.indexOf(k) >= 0; })) intent = it.key; });
+    if (sym && (intent === null || intent === "book" || intent === "hello")) intent = "symptom";
+    if (!intent && /아파|아프|통증|불편/.test(t)) intent = "pain";
+    return { intent: intent || "unknown", symptom: sym };
+  }
+  function maskPhone(p) { var d = formatPhone(p); return d.replace(/-(\d{3,4})-/, "-****-"); }
+
   function waitLabel(w) { return w === null || w === undefined ? "" : w === 0 ? "바로 진료 가능" : "대기 약 " + w + "분"; }
   function worksOn(days, weekday) { return String(days || "").indexOf(WEEKDAYS[weekday]) >= 0; }
 
@@ -276,6 +309,7 @@
     normalizePhone: normalizePhone, isPhone: isPhone, formatPhone: formatPhone, maskName: maskName,
     dayPlan: dayPlan, computeSlots: computeSlots, openStatus: openStatus, validateReservation: validateReservation,
     PARTS: PARTS, overview: overview, liveNotice: liveNotice, waitLabel: waitLabel, worksOn: worksOn,
+    SYMPTOMS: SYMPTOMS, chatIntent: chatIntent, maskPhone: maskPhone,
     INQ_STATUSES: INQ_STATUSES, TOPICS: TOPICS, PREFERS: PREFERS, deskState: deskState, validateInquiry: validateInquiry,
     inCenter: inCenter, centerDays: centerDays, planFor: planFor, restriction: restriction, centerSummaries: centerSummaries, parseLines: parseLines
   };

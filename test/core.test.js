@@ -71,3 +71,18 @@ test("reservation validation", () => {
   const bad = core.validateReservation({ name: "", phone: "12", treatment: "x", date: "bad", time: "25:00", consent: false });
   assert.deepEqual(Object.keys(bad.errors).sort(), ["consent", "date", "name", "phone", "time", "treatment"]);
 });
+
+test("chatbot understands common patient messages", () => {
+  const cases = {
+    "이가 시려요": ["symptom", "endo"], "잇몸에서 피가 나요": ["symptom", "perio"], "아이 첫 검진 받고 싶어요": ["symptom", "kids"],
+    "임플란트 비용 얼마예요": ["cost", "implant"], "오늘 진료해요?": ["today", null], "주차 되나요": ["way", null],
+    "예약하고 싶어요": ["book", null], "내 예약 확인할래요": ["mine", null], "상담원 연결해 주세요": ["call", null],
+    "이가 너무 아파요": ["pain", null], "ㅁㄴㅇㄹ": ["unknown", null]
+  };
+  Object.keys(cases).forEach((t) => {
+    const r = core.chatIntent(t);
+    assert.equal(r.intent, cases[t][0], t);
+    assert.equal(r.symptom ? r.symptom.t : null, cases[t][1], t);
+  });
+  assert.equal(core.maskPhone("01012345678"), "010-****-5678");
+});

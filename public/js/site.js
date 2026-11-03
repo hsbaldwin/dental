@@ -393,6 +393,7 @@
   function refreshInquiry(announce) {
     if (!myInquiry) return;
     api("inquiries/lookup", myInquiry).then(function (q) {
+      if (announce && lastInqStatus && lastInqStatus !== q.status) window.dispatchEvent(new CustomEvent("w-status", { detail: { kind: "inquiry", item: q } }));
       if (announce && lastInqStatus && lastInqStatus !== q.status) {
         toast(q.status === "seen" ? q.centerName + " 데스크에서 상담 요청을 확인했습니다" : q.status === "done" ? q.centerName + " 상담 연락이 완료되었습니다" : "상담 요청이 '" + q.statusLabel + "'(으)로 바뀌었습니다");
         var tk = $("inqTicket"); if (tk) flash(tk);
@@ -526,6 +527,7 @@
     refreshing = api("live").then(function (d) {
       var changed = live && (live.v !== d.v || (d.next ? d.next.date + d.next.time : null) !== prevNext);
       live = d; liveAt = Date.now();
+      window.dispatchEvent(new CustomEvent("w-live", { detail: d }));
       renderLivebar(); renderCenters(changed); renderToday();
       if (reason === "event") {
         refreshSlots();
@@ -660,16 +662,7 @@
   /* =========================================================
    * 3. 예약
    * ========================================================= */
-  var SYMPTOMS = [
-    { id: "cold", label: "이가 시려요", t: "endo", time: "약 40분", ins: "검사와 기본 치료는 건강보험 적용" },
-    { id: "bite", label: "씹을 때 아파요", t: "endo", time: "약 50분", ins: "신경치료는 건강보험 적용" },
-    { id: "gum", label: "잇몸에서 피가 나요", t: "perio", time: "약 60분", ins: "만 19세 이상 스케일링 연 1회 보험" },
-    { id: "lost", label: "이가 빠졌어요", t: "implant", time: "60 – 90분 (CT 포함)", ins: "만 65세 이상 평생 2개 보험" },
-    { id: "crooked", label: "치아가 삐뚤어요", t: "ortho", time: "약 60분 (정밀 진단)", ins: "비급여 (진료비 안내 참고)" },
-    { id: "jaw", label: "턱에서 소리가 나요", t: "tmj", time: "약 60분", ins: "검사 일부 건강보험 적용" },
-    { id: "kid", label: "아이 첫 검진", t: "kids", time: "약 30분", ins: "만 18세 이하 실란트 보험" },
-    { id: "color", label: "치아 색이 누래요", t: "esthetic", time: "약 40분", ins: "비급여 (진료비 안내 참고)" }
-  ];
+  var SYMPTOMS = C.SYMPTOMS;
   var chips = $("symChips");
   SYMPTOMS.forEach(function (s) {
     chips.appendChild(el("label", { class: "chip", for: "sym-" + s.id }, [el("input", { type: "radio", name: "sym", id: "sym-" + s.id, value: s.id }), el("span", { text: s.label })]));
@@ -854,6 +847,7 @@
     var pill = $("minePill"); pill.hidden = false;
     $("mineText").textContent = "내 예약 · " + r.statusLabel;
     pill.setAttribute("href", "#tracker");
+    if (announce && lastStatus && lastStatus !== r.status) window.dispatchEvent(new CustomEvent("w-status", { detail: { kind: "booking", item: r } }));
     if (announce && lastStatus && lastStatus !== r.status) {
       toast(r.status === "confirmed" ? "병원에서 예약을 확정했습니다 · " + when : "내 예약이 '" + r.statusLabel + "'(으)로 바뀌었습니다");
       flash(t);
@@ -894,4 +888,15 @@
     setMode("off");
     $("slotBox").textContent = (e && e.message ? e.message + " " : "") + "전화로 예약해 주세요.";
   });
+  /* ---------- 챗봇(chat.js)에 화면 기능을 빌려주는 연결부 ---------- */
+  window.WApp = {
+    api: api, el: el, toast: toast,
+    site: function () { return site; }, live: function () { return live; }, view: function () { return view; },
+    relDay: relDay, nextText: nextText, centerLive: centerLive, deskOf: deskOf, deskLine: deskLine,
+    goBook: goBook,
+    trackBooking: function (r, phone) { track(r.code, phone, true); lastStatus = r.status; renderTracker(r, false); },
+    myBooking: function () { return mine; },
+    setInquiry: function (q, phone) { myInquiry = { code: q.code, phone: C.normalizePhone(phone), center: q.center }; store.set(INQ_KEY, JSON.stringify(myInquiry)); lastInqStatus = q.status; },
+    myInquiry: function () { return myInquiry; }
+  };
 })();
