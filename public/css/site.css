@@ -33,6 +33,9 @@
   --c-perio-ink: #2C7431; --c-perio-soft: #E4F2E2; --c-perio-solid: #3D9443;
   --c-kids-ink: #A84A12; --c-kids-soft: #FDEADB; --c-kids-solid: #D0682A;
   --c-tmj-ink: #64459A; --c-tmj-soft: #EEE8F7; --c-tmj-solid: #7E5DBA;
+  /* 세라믹(지르코니아) 면: 브랜딩 포인트에만 */
+  --ceramic-top: #FFFFFF; --ceramic-bottom: #F2F6F4; --ceramic-sheen: rgba(255,255,255,.95);
+  --ceramic-glaze: inset 0 1px 0 #ffffff, inset 0 -2px 0 rgba(16,33,31,.05), 0 1px 2px rgba(16,33,31,.06), 0 12px 28px -20px rgba(11,116,104,.45);
   --radius-crown: 22px; /* 치관 쪽(위) 모서리 */
   --radius-root: 12px;  /* 치근 쪽(아래) 모서리 */
   --shadow: 0 1px 0 #10211f0a, 0 18px 40px -24px #10211f59;
@@ -56,7 +59,7 @@
     --bg: #0E1716; --surface: #152220; --ink: #E6EFEC; --muted: #B1C2BD; --line: #2A3B37; --line-strong: #5E726D;
     --accent: #52C2AC; --accent-ink: #062019; --soft: #15302A; --paper: #2A2619; --paper-ink: #EFE6CF;
     --mint: #3FCB9E; --mint-soft: #143329; --gum: #EE8FA0; --gum-ink: #F4A9B6; --gum-soft: #3A1E25;
-    --ok: #4FD58C; --warn: #E3A15F; --shadow: 0 18px 40px -24px #000000b3; --live: #4FD58C; --h-ok: #1D4A3F; --h-few: #4A3519; --h-full: #1A2725; --fresh: #102824; --aqua: #4FD1CB; --foam: rgba(255,255,255,.04); --deep: #123F38; --on-deep: #F2F8F6; --on-deep-muted: #BFD6D0; --mint-on-deep: #7FE0C2; --mint-tile: #8EE3C8;
+    --ok: #4FD58C; --warn: #E3A15F; --shadow: 0 18px 40px -24px #000000b3; --live: #4FD58C; --h-ok: #1D4A3F; --h-few: #4A3519; --h-full: #1A2725; --ceramic-top: #1A2A28; --ceramic-bottom: #152220; --ceramic-sheen: rgba(255,255,255,.05); --ceramic-glaze: inset 0 1px 0 rgba(255,255,255,.06), 0 12px 28px -20px rgba(0,0,0,.7); --fresh: #102824; --aqua: #4FD1CB; --foam: rgba(255,255,255,.04); --deep: #123F38; --on-deep: #F2F8F6; --on-deep-muted: #BFD6D0; --mint-on-deep: #7FE0C2; --mint-tile: #8EE3C8;
     --c-implant-ink: #5FD0B8; --c-implant-soft: #123A33; --c-implant-solid: #5FD0B8;
     --c-ortho-ink: #9DB8F2; --c-ortho-soft: #1B2A4A; --c-ortho-solid: #9DB8F2;
     --c-endo-ink: #F0C46B; --c-endo-soft: #3A2C0E; --c-endo-solid: #F0C46B;
@@ -71,7 +74,7 @@
   --bg: #0E1716; --surface: #152220; --ink: #E6EFEC; --muted: #B1C2BD; --line: #2A3B37; --line-strong: #5E726D;
   --accent: #52C2AC; --accent-ink: #062019; --soft: #15302A; --paper: #2A2619; --paper-ink: #EFE6CF;
   --mint: #3FCB9E; --mint-soft: #143329; --gum: #EE8FA0; --gum-ink: #F4A9B6; --gum-soft: #3A1E25;
-  --ok: #4FD58C; --warn: #E3A15F; --shadow: 0 18px 40px -24px #000000b3; --live: #4FD58C; --h-ok: #1D4A3F; --h-few: #4A3519; --h-full: #1A2725; --fresh: #102824; --aqua: #4FD1CB; --foam: rgba(255,255,255,.04); --deep: #123F38; --on-deep: #F2F8F6; --on-deep-muted: #BFD6D0; --mint-on-deep: #7FE0C2; --mint-tile: #8EE3C8;
+  --ok: #4FD58C; --warn: #E3A15F; --shadow: 0 18px 40px -24px #000000b3; --live: #4FD58C; --h-ok: #1D4A3F; --h-few: #4A3519; --h-full: #1A2725; --ceramic-top: #1A2A28; --ceramic-bottom: #152220; --ceramic-sheen: rgba(255,255,255,.05); --ceramic-glaze: inset 0 1px 0 rgba(255,255,255,.06), 0 12px 28px -20px rgba(0,0,0,.7); --fresh: #102824; --aqua: #4FD1CB; --foam: rgba(255,255,255,.04); --deep: #123F38; --on-deep: #F2F8F6; --on-deep-muted: #BFD6D0; --mint-on-deep: #7FE0C2; --mint-tile: #8EE3C8;
     --c-implant-ink: #5FD0B8; --c-implant-soft: #123A33; --c-implant-solid: #5FD0B8;
     --c-ortho-ink: #9DB8F2; --c-ortho-soft: #1B2A4A; --c-ortho-solid: #9DB8F2;
     --c-endo-ink: #F0C46B; --c-endo-soft: #3A2C0E; --c-endo-solid: #F0C46B;
@@ -1103,3 +1106,20 @@ html.easy .journey { display: none !important; }
 .breeze { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
 #now::before { opacity: .7; }
 #now .qt:hover, #now .chat:focus-within { box-shadow: 0 0 0 3px color-mix(in oklab, var(--mint) 35%, transparent), 0 14px 32px -18px #0b746880; }
+
+
+/* ===================== 세라믹 면 (브랜딩 포인트) ===================== */
+/* 유약 한 겹: 위 1px 빛줄 + 위→아래 2~3% 결 + 왼쪽 위 은은한 광 + 아래 얇은 그늘. 글자 대비는 그대로. */
+.ceramic, .brand svg, #now .qt-tel, #now .qt:not(.qt-book), .ccard[data-center], .ccard.general, .chat, .shades span {
+  --_face: radial-gradient(120% 70% at 18% 0%, var(--ceramic-sheen), transparent 55%), linear-gradient(180deg, var(--ceramic-top), var(--ceramic-bottom));
+}
+#now .qt:not(.qt-book), .ccard[data-center], .chat { background: var(--_face); box-shadow: var(--ceramic-glaze); }
+.ccard.general { background-image: radial-gradient(120% 70% at 18% 0%, var(--ceramic-sheen), transparent 55%); box-shadow: var(--ceramic-glaze); }
+.ccard[data-center]:hover { background: radial-gradient(120% 70% at 18% 0%, var(--ceramic-sheen), transparent 55%), var(--cc-soft); }
+.chat-log { background: transparent; }
+.chat-chips, .chat-form { background: color-mix(in oklab, var(--ceramic-bottom) 80%, transparent); }
+.brand svg { box-sizing: content-box; padding: 5px 7px; border-radius: 12px 12px 9px 9px; background: var(--_face); box-shadow: var(--ceramic-glaze); }
+.shades span { background-image: radial-gradient(90% 55% at 35% 12%, rgba(255,255,255,.85), transparent 60%); box-shadow: inset 0 -3px 4px rgba(59,51,36,.08), 0 1px 2px rgba(59,51,36,.15); }
+/* 크게 보기에서는 평평하게 */
+html.easy #now .qt:not(.qt-book), html.easy .ccard[data-center], html.easy .chat { background: var(--surface); }
+html.easy .ccard[data-center]:hover { background: var(--cc-soft); }
