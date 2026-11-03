@@ -1123,3 +1123,21 @@ html.easy .journey { display: none !important; }
 /* 크게 보기에서는 평평하게 */
 html.easy #now .qt:not(.qt-book), html.easy .ccard[data-center], html.easy .chat { background: var(--surface); }
 html.easy .ccard[data-center]:hover { background: var(--cc-soft); }
+
+/* ===================== 센터 데스크 뒤 접수 카운터 ===================== */
+#centerView .desk { position: relative; overflow: hidden; padding-bottom: 8.5rem; isolation: isolate; }
+.desk-counter { position: absolute; left: 0; right: 0; bottom: 0; height: 7.25rem; z-index: -1; pointer-events: none; }
+.counter-top { position: absolute; left: -2%; right: -2%; top: 0; height: 1.1rem; border-radius: .6rem .6rem .25rem .25rem;
+  background: radial-gradient(120% 120% at 20% 0%, var(--ceramic-sheen), transparent 60%), linear-gradient(180deg, var(--ceramic-top), var(--ceramic-bottom));
+  box-shadow: var(--ceramic-glaze); }
+.counter-front { position: absolute; left: 1.5%; right: 1.5%; top: 1.1rem; bottom: 0; display: flex; align-items: center; justify-content: center; gap: .75rem;
+  background: repeating-linear-gradient(90deg, transparent 0 2.4rem, color-mix(in oklab, var(--cc-solid, var(--accent)) 22%, transparent) 2.4rem calc(2.4rem + 2px)), color-mix(in oklab, var(--cc-solid, var(--accent)) 14%, var(--surface));
+  border-left: 1px solid color-mix(in oklab, var(--cc-solid, var(--accent)) 25%, transparent); border-right: 1px solid color-mix(in oklab, var(--cc-solid, var(--accent)) 25%, transparent); }
+.counter-front::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 6px; background: linear-gradient(180deg, rgba(16,33,31,.12), transparent); }
+.counter-mark { width: 3.2rem; height: 2rem; color: var(--cc-ink, var(--accent)); opacity: .7; background: var(--surface); padding: .45rem .6rem; border-radius: .7rem .7rem .5rem .5rem; box-shadow: var(--ceramic-glaze); box-sizing: content-box; }
+.counter-name { font-family: var(--f-display); font-weight: 700; font-size: 1.25rem; color: var(--cc-ink, var(--accent)); opacity: .75; letter-spacing: .02em; }
+@media (max-width: 560px) { #centerView .desk { padding-bottom: 6.5rem; } .desk-counter { height: 5.5rem; } .counter-mark { width: 2.4rem; height: 1.5rem; } .counter-name { font-size: 1rem; } }
+html.easy .desk-counter { opacity: .6; }
+/* 카운터 이름은 왼쪽 데스크 쪽에(오른쪽 현황판이 모니터처럼 카운터 위에 놓임) */
+.counter-front { justify-content: flex-start; padding-left: clamp(1.25rem, 14%, 10rem); }
+@media (max-width: 960px) { .counter-front { justify-content: center; padding-left: 0; } }

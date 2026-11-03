@@ -237,6 +237,7 @@
     $("cvCrumb").textContent = c.name;
     $("cvEn").textContent = "W치과 " + c.name + " 접수 데스크";
     $("cvName").textContent = c.name;
+    $("counterName").textContent = c.name;
     $("cvSummary").textContent = c.summary || "";
     var tags = $("cvTags"); tags.textContent = "";
     String(c.tags || "").split(",").map(function (t) { return t.trim(); }).filter(Boolean).forEach(function (t) { tags.appendChild(el("li", { text: t })); });
@@ -965,5 +966,7 @@
     function vis() { rail.classList.toggle("on", view === "home"); }
     window.addEventListener("hashchange", function () { setTimeout(vis, 0); });
     vis(); mark(1);
+    // 주소로 센터 페이지에 바로 들어온 경우(첫 화면 전환 뒤)에도 숨김
+    var mo = new MutationObserver(vis); mo.observe($("homeView"), { attributes: true, attributeFilter: ["hidden"] });
   })();
 })();
