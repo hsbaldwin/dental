@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>W치과 관리</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hahmlet:wght@600;700&family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="../css/site.css">
+<link rel="stylesheet" href="../css/admin.css">
+</head>
+<body class="admin">
+<svg class="sprite" aria-hidden="true">
+  <symbol id="w-mark" viewBox="0 0 64 40"><path d="M3 6 C 8 6, 9 30, 17 33 C 24 35, 26 14, 32 14 C 38 14, 40 35, 47 33 C 55 30, 56 6, 61 6" fill="none" stroke="currentColor" stroke-width="5.5" stroke-linecap="round"/></symbol>
+</svg>
+
+<div class="login" id="loginView" hidden>
+  <form class="login-card" id="loginForm" novalidate>
+    <span class="brand"><svg aria-hidden="true"><use href="#w-mark"/></svg>W치과 관리</span>
+    <p class="muted">직원 계정으로 로그인하세요.</p>
+    <div class="field"><label for="lgUser">아이디</label><input id="lgUser" autocomplete="username" required></div>
+    <div class="field"><label for="lgPw">비밀번호</label><input id="lgPw" type="password" autocomplete="current-password" required></div>
+    <p class="form-error" id="lgErr" role="alert" hidden></p>
+    <button class="btn btn-primary" type="submit">로그인</button>
+    <a class="muted small" href="../">홈페이지로 돌아가기</a>
+  </form>
+</div>
+
+<div class="shell" id="app" hidden>
+  <aside class="side">
+    <a class="brand" href="#dashboard"><svg aria-hidden="true"><use href="#w-mark"/></svg>W치과 관리</a>
+    <nav class="side-nav" id="sideNav" aria-label="관리 메뉴">
+      <a href="#dashboard" data-view="dashboard">대시보드<span class="badge" id="pendingBadge" hidden></span></a>
+      <a href="#reservations" data-view="reservations">예약 관리</a>
+      <a href="#hours" data-view="hours" data-role="admin">진료시간 · 휴진일</a>
+      <a href="#clinic" data-view="clinic" data-role="admin">병원 정보 · 예약 규칙</a>
+      <a href="#fees" data-view="fees" data-role="admin">진료비</a>
+      <a href="#doctors" data-view="doctors" data-role="admin">의료진</a>
+      <a href="#notices" data-view="notices">공지사항</a>
+      <a href="#accounts" data-view="accounts">계정</a>
+      <a href="#logs" data-view="logs">기록</a>
+    </nav>
+    <div class="side-foot">
+      <span id="whoami"></span>
+      <div class="side-actions"><a href="../" target="_blank" rel="noopener">홈페이지 보기</a><button type="button" class="linkish" id="logoutBtn">로그아웃</button></div>
+    </div>
+  </aside>
+  <main class="view" id="view" tabindex="-1"></main>
+</div>
+
+<dialog class="sheet" id="resDialog" aria-labelledby="rdTitle">
+  <form id="resForm" method="dialog" novalidate>
+    <header class="sheet-head"><h2 id="rdTitle">예약</h2><span class="mono muted" id="rdCode"></span></header>
+    <div class="sheet-body">
+      <div class="row">
+        <div class="field"><label for="rdName">성함</label><input id="rdName" maxlength="30" required></div>
+        <div class="field"><label for="rdPhone">연락처</label><input id="rdPhone" type="tel" inputmode="tel" required></div>
+      </div>
+      <div class="row">
+        <div class="field"><label for="rdTreatment">진료</label><select id="rdTreatment"></select></div>
+        <div class="field"><label for="rdStatus">상태</label><select id="rdStatus"></select></div>
+      </div>
+      <div class="row">
+        <div class="field"><label for="rdDate">날짜</label><input id="rdDate" type="date" required></div>
+        <div class="field"><label for="rdTime">시간</label><select id="rdTime"></select></div>
+      </div>
+      <p class="muted small" id="rdSlotHint"></p>
+      <div class="field"><label for="rdMemo">환자 메모</label><textarea id="rdMemo" maxlength="500"></textarea></div>
+      <div class="field"><label for="rdStaffMemo">직원 메모 (환자에게 보이지 않음)</label><textarea id="rdStaffMemo" maxlength="1000"></textarea></div>
+      <label class="consent" for="rdNotify"><input type="checkbox" id="rdNotify" checked><span>확정·변경·취소 시 환자에게 문자 보내기</span></label>
+      <p class="muted small" id="rdMeta"></p>
+      <p class="form-error" id="rdErr" role="alert" hidden></p>
+    </div>
+    <footer class="sheet-foot">
+      <button class="btn btn-ghost" type="button" id="rdClose">닫기</button>
+      <button class="btn btn-primary" type="submit" id="rdSave">저장</button>
+    </footer>
+  </form>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="../js/core.js"></script>
+<script src="../js/admin.js"></script>
+</body>
+</html>

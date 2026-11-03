@@ -1,0 +1,17 @@
+{
+  "name": "w-dental",
+  "version": "1.0.0",
+  "private": true,
+  "description": "W치과 홈페이지 + 온라인 예약 + 직원용 관리 시스템",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning --env-file-if-exists=.env server/index.js",
+    "dev": "node --disable-warning=ExperimentalWarning --env-file-if-exists=.env --watch server/index.js",
+    "test": "node --disable-warning=ExperimentalWarning --test test/*.test.js",
+    "build:demo": "node scripts/build-demo.js",
+    "backup": "node --disable-warning=ExperimentalWarning scripts/backup.js"
+  }
+}
