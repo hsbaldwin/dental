@@ -20,6 +20,16 @@
   --warn: #975014;
   --live: #0B7A47;      /* 실시간·정상 */
   --h-ok: #CFE7DF; --h-few: #F3DDC2; --h-full: #E7ECEA;
+  --deep: #0B3D36;      /* brand-deep: 첫 단계와 바닥글의 짙은 틸 면 */
+  --on-deep: #F2F8F6; --on-deep-muted: #BFD6D0; --mint-on-deep: #7FE0C2; --mint-tile: #8EE3C8;
+  /* 진료센터 길 안내 색: ink(글자) · soft(면) · solid(띠·표시, 글자 금지) */
+  --c-implant-ink: #0E6A5D; --c-implant-soft: #DFF0EA; --c-implant-solid: #16856F;
+  --c-ortho-ink: #2F55A4; --c-ortho-soft: #E6ECF9; --c-ortho-solid: #3D66C2;
+  --c-endo-ink: #855700; --c-endo-soft: #FBEFD6; --c-endo-solid: #B07A12;
+  --c-esthetic-ink: #A3354C; --c-esthetic-soft: #FBE6EA; --c-esthetic-solid: #C9506A;
+  --c-perio-ink: #2C7431; --c-perio-soft: #E4F2E2; --c-perio-solid: #3D9443;
+  --c-kids-ink: #A84A12; --c-kids-soft: #FDEADB; --c-kids-solid: #D0682A;
+  --c-tmj-ink: #64459A; --c-tmj-soft: #EEE8F7; --c-tmj-solid: #7E5DBA;
   --radius-crown: 22px; /* 치관 쪽(위) 모서리 */
   --radius-root: 12px;  /* 치근 쪽(아래) 모서리 */
   --shadow: 0 1px 0 #10211f0a, 0 18px 40px -24px #10211f59;
@@ -43,7 +53,14 @@
     --bg: #0E1716; --surface: #152220; --ink: #E6EFEC; --muted: #B1C2BD; --line: #2A3B37; --line-strong: #5E726D;
     --accent: #52C2AC; --accent-ink: #062019; --soft: #15302A; --paper: #2A2619; --paper-ink: #EFE6CF;
     --mint: #3FCB9E; --mint-soft: #143329; --gum: #EE8FA0; --gum-ink: #F4A9B6; --gum-soft: #3A1E25;
-    --ok: #4FD58C; --warn: #E3A15F; --shadow: 0 18px 40px -24px #000000b3; --live: #4FD58C; --h-ok: #1D4A3F; --h-few: #4A3519; --h-full: #1A2725;
+    --ok: #4FD58C; --warn: #E3A15F; --shadow: 0 18px 40px -24px #000000b3; --live: #4FD58C; --h-ok: #1D4A3F; --h-few: #4A3519; --h-full: #1A2725; --deep: #123F38; --on-deep: #F2F8F6; --on-deep-muted: #BFD6D0; --mint-on-deep: #7FE0C2; --mint-tile: #8EE3C8;
+    --c-implant-ink: #5FD0B8; --c-implant-soft: #123A33; --c-implant-solid: #5FD0B8;
+    --c-ortho-ink: #9DB8F2; --c-ortho-soft: #1B2A4A; --c-ortho-solid: #9DB8F2;
+    --c-endo-ink: #F0C46B; --c-endo-soft: #3A2C0E; --c-endo-solid: #F0C46B;
+    --c-esthetic-ink: #F4A9B6; --c-esthetic-soft: #3A1E25; --c-esthetic-solid: #F4A9B6;
+    --c-perio-ink: #8FD694; --c-perio-soft: #173419; --c-perio-solid: #8FD694;
+    --c-kids-ink: #F6AC7C; --c-kids-soft: #3D2213; --c-kids-solid: #F6AC7C;
+    --c-tmj-ink: #C2A9EC; --c-tmj-soft: #2A2140; --c-tmj-solid: #C2A9EC;
     color-scheme: dark;
   }
 }
@@ -51,7 +68,14 @@
   --bg: #0E1716; --surface: #152220; --ink: #E6EFEC; --muted: #B1C2BD; --line: #2A3B37; --line-strong: #5E726D;
   --accent: #52C2AC; --accent-ink: #062019; --soft: #15302A; --paper: #2A2619; --paper-ink: #EFE6CF;
   --mint: #3FCB9E; --mint-soft: #143329; --gum: #EE8FA0; --gum-ink: #F4A9B6; --gum-soft: #3A1E25;
-  --ok: #4FD58C; --warn: #E3A15F; --shadow: 0 18px 40px -24px #000000b3; --live: #4FD58C; --h-ok: #1D4A3F; --h-few: #4A3519; --h-full: #1A2725;
+  --ok: #4FD58C; --warn: #E3A15F; --shadow: 0 18px 40px -24px #000000b3; --live: #4FD58C; --h-ok: #1D4A3F; --h-few: #4A3519; --h-full: #1A2725; --deep: #123F38; --on-deep: #F2F8F6; --on-deep-muted: #BFD6D0; --mint-on-deep: #7FE0C2; --mint-tile: #8EE3C8;
+    --c-implant-ink: #5FD0B8; --c-implant-soft: #123A33; --c-implant-solid: #5FD0B8;
+    --c-ortho-ink: #9DB8F2; --c-ortho-soft: #1B2A4A; --c-ortho-solid: #9DB8F2;
+    --c-endo-ink: #F0C46B; --c-endo-soft: #3A2C0E; --c-endo-solid: #F0C46B;
+    --c-esthetic-ink: #F4A9B6; --c-esthetic-soft: #3A1E25; --c-esthetic-solid: #F4A9B6;
+    --c-perio-ink: #8FD694; --c-perio-soft: #173419; --c-perio-solid: #8FD694;
+    --c-kids-ink: #F6AC7C; --c-kids-soft: #3D2213; --c-kids-solid: #F6AC7C;
+    --c-tmj-ink: #C2A9EC; --c-tmj-soft: #2A2140; --c-tmj-solid: #C2A9EC;
   color-scheme: dark;
 }
 [hidden] { display: none !important; }
@@ -966,3 +990,70 @@ html.easy .journey { display: none !important; }
 @media (max-width: 1360px) { .center-nav { display: none; } .menu-btn { display: inline-flex; align-items: center; } .more { display: none; } .tools { margin-left: auto; } }
 @media (min-width: 1361px) { .menu-btn { display: none; } }
 @media (max-width: 1360px) and (min-width: 1181px) { .menu-panel:not([hidden]) { display: block !important; } }
+
+
+/* ===================== 색상 설계 ===================== */
+/* 1) 진료센터 길 안내 색: data-center 가 있는 곳은 그 센터의 색 세 가지를 받는다 */
+[data-center] { --cc-ink: var(--accent); --cc-soft: var(--soft); --cc-solid: var(--accent); }
+[data-center="implant"] { --cc-ink: var(--c-implant-ink); --cc-soft: var(--c-implant-soft); --cc-solid: var(--c-implant-solid); }
+[data-center="ortho"] { --cc-ink: var(--c-ortho-ink); --cc-soft: var(--c-ortho-soft); --cc-solid: var(--c-ortho-solid); }
+[data-center="endo"] { --cc-ink: var(--c-endo-ink); --cc-soft: var(--c-endo-soft); --cc-solid: var(--c-endo-solid); }
+[data-center="esthetic"] { --cc-ink: var(--c-esthetic-ink); --cc-soft: var(--c-esthetic-soft); --cc-solid: var(--c-esthetic-solid); }
+[data-center="perio"] { --cc-ink: var(--c-perio-ink); --cc-soft: var(--c-perio-soft); --cc-solid: var(--c-perio-solid); }
+[data-center="kids"] { --cc-ink: var(--c-kids-ink); --cc-soft: var(--c-kids-soft); --cc-solid: var(--c-kids-solid); }
+[data-center="tmj"] { --cc-ink: var(--c-tmj-ink); --cc-soft: var(--c-tmj-soft); --cc-solid: var(--c-tmj-solid); }
+.cc-swatch { display: inline-block; width: .9rem; height: .9rem; border-radius: .3rem .3rem .45rem .45rem; background: var(--cc-solid); flex: none; }
+
+/* 센터 카드: 치관 머리에 센터 색 띠 */
+.ccard[data-center] { border-top: 8px solid var(--cc-solid); }
+.ccard[data-center] .cc-en { color: var(--cc-ink); }
+.ccard[data-center]:hover { background: var(--cc-soft); border-color: var(--cc-solid); }
+.ccard[data-center] h3 { color: var(--ink); }
+.center-grid.compact .ccard[data-center] { border-top-width: 6px; }
+/* 상단 메뉴·모바일 메뉴 */
+.center-nav a[data-center] { box-shadow: inset 0 -3px 0 transparent; }
+.center-nav a[data-center]:hover { background: var(--cc-soft); color: var(--cc-ink); }
+.center-nav a[data-center][aria-current="page"] { background: var(--cc-soft); color: var(--cc-ink); box-shadow: inset 0 -3px 0 var(--cc-solid); }
+.menu-centers a[data-center] { border-left: 6px solid var(--cc-solid); padding-left: .8rem; }
+/* 센터 데스크 페이지: 데스크 영역 전체가 센터 색 */
+#centerView[data-center] .center-page > .wrap:first-child { }
+#centerView[data-center] .desk { background: var(--cc-soft); border-radius: var(--radius-crown) var(--radius-crown) var(--radius-root) var(--radius-root); padding: 1.75rem; margin-top: 1rem; border-top: 10px solid var(--cc-solid); }
+#centerView[data-center] .desk-word { color: var(--cc-ink); }
+#centerView[data-center] .desk-avatar { background: var(--cc-solid); }
+#centerView[data-center] #cvEn { color: var(--cc-ink); }
+#centerView[data-center] .sub-row button[aria-current="true"] { box-shadow: inset 0 -3px 0 var(--cc-solid); }
+#centerView[data-center] .cv-sec > h2 { color: var(--cc-ink); }
+#centerView[data-center] .steps li::before { color: var(--cc-ink); }
+#centerView[data-center] .desk-menu button[data-desk="book"] { background: var(--accent); }
+@media (max-width: 560px) { #centerView[data-center] .desk { padding: 1rem; } }
+/* 쉬운 예약 선택지 */
+.eb-choice[data-center] { border-left: 8px solid var(--cc-solid); }
+
+/* 2) 단계별 색 리듬: 짙은 시작 → 흰 면 → 옅은 면 → 옅은 틸(예약) → 흰 면 → 짙은 끝 */
+#now { background: var(--deep); color: var(--on-deep); }
+#now .chat-intro h1, #now .chat-intro .lede, #now .chat-intro p { color: var(--on-deep); }
+#now .chat-intro .lede { color: var(--on-deep-muted); }
+#now .chat-intro h1 em { color: var(--mint-on-deep); }
+#now .eyebrow { color: var(--mint-on-deep); }
+#now .eyebrow .stage-no { background: var(--mint-tile); color: var(--ink); }
+#now .promise { border-left-color: var(--mint-on-deep); color: var(--on-deep-muted); }
+#now .promise b { color: var(--on-deep); }
+#now .live-tag { color: var(--mint-on-deep); }
+#now .live-tag i { background: var(--mint-on-deep); box-shadow: none; }
+#now .qt { border-color: transparent; }
+#now .qt-tel { background: var(--surface); color: var(--ink); }
+#now .qt-tel small { color: var(--muted); }
+#now .qt-book { background: var(--mint-tile); color: #10211F; }
+#now .qt-book small { color: #10211F; }
+#now .qt:hover { border-color: var(--mint-on-deep); }
+#now .senior-note { color: var(--ink); }
+#now .chat { border-color: transparent; }
+#stage-learn { background: var(--bg); }
+#stage-book { background: var(--soft); border-block: 0; }
+#stage-book .next-step { background: var(--surface); }
+.site-footer { background: var(--deep); color: var(--on-deep-muted); border-top: 0; }
+.site-footer a, .site-footer .brand { color: var(--on-deep); }
+.site-footer .brand svg { color: var(--mint-on-deep); }
+.site-footer .foot-links a:first-child { color: var(--on-deep); }
+.ccard h3 .cc-name { display: inline-flex; align-items: center; gap: .1rem; } .ccard .cc-swatch { margin-right: .35rem; }
+#now .chat, #now .quick-tiles, #now .senior-note, #now .easy-ask { color: var(--ink); }

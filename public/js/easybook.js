@@ -66,7 +66,7 @@
   function ask(q, hint) { title.textContent = q; if (hint) body.appendChild(el("p", { class: "eb-hint", text: hint })); }
   function choice(label, sub, onClick, opts) {
     opts = opts || {};
-    var b = el("button", { type: "button", class: "eb-choice" + (opts.primary ? " primary" : "") + (opts.off ? " off" : ""), disabled: !!opts.off }, [
+    var b = el("button", { type: "button", class: "eb-choice" + (opts.primary ? " primary" : "") + (opts.off ? " off" : ""), disabled: !!opts.off, "data-center": opts.center || null }, [
       el("b", { text: label }), sub ? el("small", { text: sub }) : null
     ]);
     b.addEventListener("click", onClick);
@@ -83,7 +83,7 @@
     var items = [choice("검진 · 상담", "어디가 아픈지 잘 모를 때", function () { st.treatment = "checkup"; go(1); }, { primary: true })];
     (s ? s.centers : []).forEach(function (c) {
       var cl = A.centerLive(c.key), d = A.deskOf(cl);
-      items.push(choice(c.name, (c.summary || "") + (cl && !cl.today.open ? " · 오늘은 진료 없음" : d.status === "open" ? " · 오늘 진료" : ""), function () { st.treatment = c.key; go(1); }));
+      items.push(choice(c.name, (c.summary || "") + (cl && !cl.today.open ? " · 오늘은 진료 없음" : d.status === "open" ? " · 오늘 진료" : ""), function () { st.treatment = c.key; go(1); }, { center: c.key }));
     });
     list(items);
   }

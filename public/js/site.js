@@ -192,7 +192,7 @@
     var cl = centerLive(c.key), d = deskOf(cl);
     return el("a", { class: "ccard", href: "#center-" + c.key, "data-center": c.key }, [
       el("span", { class: "cc-en", text: "접수 데스크" }),
-      el("h3", { text: c.name }),
+      el("h3", null, [el("span", { class: "cc-name" }, [el("span", { class: "cc-swatch", "aria-hidden": "true" }), " ", c.name])]),
       compact ? null : el("p", { text: c.summary || "" }),
       el("div", { class: "cc-live" }, [
         el("span", { class: "cc-desk", "data-s": d.status, text: deskLine(cl) }),
@@ -222,7 +222,7 @@
     var mc = $("menuCenters"); mc.textContent = "";
     centers.forEach(function (c) {
       var cl = centerLive(c.key), d = deskOf(cl);
-      mc.appendChild(el("li", null, [el("a", { href: "#center-" + c.key }, [
+      mc.appendChild(el("li", null, [el("a", { href: "#center-" + c.key, "data-center": c.key }, [
         el("b", { text: c.name }), el("span", { class: "st" + (d.status === "open" ? "" : " off"), text: d.status === "open" ? "접수 중" : d.label }),
         el("small", { text: "가장 빠른 예약 " + nextText(cl) + (d.wait !== null ? " · " + C.waitLabel(d.wait) : "") })
       ])]));
@@ -459,6 +459,7 @@
     view = key;
     $("homeView").hidden = toCenter; $("centerView").hidden = !toCenter;
     var form = $("reserveForm");
+    if (toCenter) $("centerView").setAttribute("data-center", key); else $("centerView").removeAttribute("data-center");
     if (toCenter) {
       $("centerReserveSlot").appendChild(reserveSec);
       form.classList.add("in-center");
