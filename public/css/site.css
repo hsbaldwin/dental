@@ -1098,3 +1098,8 @@ html.easy .journey { display: none !important; }
   .qt:hover, .next-step:hover { transform: translateY(-2px); }
 }
 .notice-bar { background: var(--accent); color: var(--accent-ink); }
+
+/* 민트 숨결: 첫 화면 뒤 민트 잎·기포 (장식, 글자 뒤) */
+.breeze { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
+#now::before { opacity: .7; }
+#now .qt:hover, #now .chat:focus-within { box-shadow: 0 0 0 3px color-mix(in oklab, var(--mint) 35%, transparent), 0 14px 32px -18px #0b746880; }
