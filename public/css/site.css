@@ -900,3 +900,11 @@ html.eb-open { overflow: hidden; }
   .eb-bar li { font-size: 0; } .eb-bar li.now { font-size: .75rem; }
 }
 .eb-bar li.now { white-space: nowrap; overflow: visible; }
+
+/* ===================== 음성 안내 ===================== */
+.voice-btn .easy-ico { font-family: var(--f-body); font-size: 1rem; }
+.eb-head-acts { display: flex; gap: .5rem; }
+.chat-mic { flex: none; font: inherit; font-weight: 700; font-size: .9375rem; min-height: 2.75rem; padding: 0 .9rem; border-radius: 999px; border: 2px solid var(--accent); background: var(--surface); color: var(--accent); cursor: pointer; }
+.chat-mic.on { background: var(--gum-soft); border-color: var(--gum); color: var(--gum-ink); }
+@media (max-width: 1280px) { .voice-btn #voiceBtnLabel { display: none; } .voice-btn { padding-right: .35rem; } }
+html.easy .voice-btn #voiceBtnLabel { display: inline; }

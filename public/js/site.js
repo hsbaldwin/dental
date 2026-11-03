@@ -73,6 +73,32 @@
   }
   setEasy(store.get("w-easy") === "1" || store.get("w-large") === "1", false);
   textBtn.addEventListener("click", function () { setEasy(!root.classList.contains("easy"), true); });
+  /* 소리로 듣기 (음성 안내) */
+  var V = window.WVoice, voiceBtn = $("voiceBtn");
+  function voiceSummary() {
+    var parts = ["소리 안내를 켰어요. 쉬운 예약과 챗봇의 말을 읽어 드릴게요."];
+    if (live) {
+      parts.push("지금 " + (site ? site.clinic.shortName : "병원") + "는 " + live.status.text + "입니다.");
+      if (live.next) parts.push("가장 빠른 예약은 " + relDay(live.next.date) + " " + C.koTime(live.next.time, true) + "입니다.");
+    }
+    if (site) parts.push("전화는 " + site.clinic.phone + "입니다.");
+    return parts.join(" ");
+  }
+  function setVoiceUi(onNow) {
+    voiceBtn.setAttribute("aria-pressed", onNow ? "true" : "false");
+    $("voiceBtnLabel").textContent = onNow ? "소리 끄기" : "소리로 듣기"; voiceBtn.setAttribute("aria-label", onNow ? "소리 끄기" : "소리로 듣기");
+  }
+  if (V && V.canSpeak) {
+    voiceBtn.hidden = false; $("easyVoice").hidden = false;
+    setVoiceUi(V.enabled());
+    V.onChange(setVoiceUi);
+    voiceBtn.addEventListener("click", function () {
+      var next = !V.enabled(); V.set(next);
+      if (next) V.speak(voiceSummary()); 
+    });
+    $("easyVoice").addEventListener("click", function () { V.set(true); setEasy(true, true); V.speak(voiceSummary()); window.scrollTo(0, 0); });
+  }
+
   // 처음 오신 분께 한 번만 물어보기
   if (!store.get("w-easy-asked") && store.get("w-easy") === null) $("easyAsk").hidden = false;
   $("easyYes").addEventListener("click", function () { setEasy(true, true); window.scrollTo(0, 0); });

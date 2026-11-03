@@ -95,3 +95,14 @@ test("times are shown in Korean 12-hour form for older patients", () => {
   assert.equal(core.koTime("13:30", true), "오후 1시 30분");
   assert.match(core.openStatus(HOURS, {}, NOW).text, /오후 6:30까지/);
 });
+
+test("voice guidance reads times, phones and codes the way people say them", () => {
+  const { speakable } = require("../public/js/voice.js");
+  assert.equal(speakable("가장 빠른 예약 오늘 오후 2:30"), "가장 빠른 예약 오늘 오후 2시 30분");
+  assert.equal(speakable("오전 9:00 ~ 오후 6:30"), "오전 9시부터 오후 6시 30분");
+  assert.equal(speakable("전화 010-1234-5678"), "전화 공일공, 일이삼사, 오육칠팔");
+  assert.equal(speakable("예약번호 A7NG4T"), "예약번호 A 7 N G 4 T");
+  assert.match(speakable("#36 신경치료"), /36번 치아/);
+  assert.equal(speakable("2 / 7 단계. 오늘 · 11월 4일 (수)"), "7단계 중 2단계. 오늘, 11월 4일 수요일");
+  assert.equal(speakable("충치·신경치료센터"), "충치 신경치료센터");
+});

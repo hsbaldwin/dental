@@ -26,15 +26,34 @@
     parts = Array.isArray(parts) ? parts : [parts];
     queue = queue.then(function () {
       return new Promise(function (res) {
-        if (reduce) { bubble("bot", parts); return res(); }
+        if (reduce) { sayBot(bubble("bot", parts)); return res(); }
         var t = el("div", { class: "typing", "aria-hidden": "true" }, [el("i"), el("i"), el("i")]);
         log.appendChild(t); scroll();
-        setTimeout(function () { t.remove(); bubble("bot", parts); res(); }, 350 + Math.min(500, parts.length * 120));
+        setTimeout(function () { t.remove(); var m = bubble("bot", parts); sayBot(m); res(); }, 350 + Math.min(500, parts.length * 120));
       });
     });
     return queue;
   }
   function me(text) { bubble("me", [text]); }
+  var V = window.WVoice;
+  function sayBot(m) { if (V && V.enabled()) V.speak(m.innerText || m.textContent, { interrupt: false }); }
+  // 말로 묻기
+  var mic = $("chatMic");
+  if (V && V.canListen) {
+    mic.hidden = false;
+    var rec = null;
+    mic.addEventListener("click", function () {
+      if (rec) { rec.stop(); return; }
+      rec = V.listen(function (text) {
+        input.value = text;
+        if (typeof form.requestSubmit === "function") form.requestSubmit(); else form.dispatchEvent(new Event("submit", { cancelable: true }));
+      }, function (state, err) {
+        if (state === "listening") { mic.classList.add("on"); mic.textContent = "듣는 중…"; input.placeholder = "말씀해 주세요. 예: 이가 시려요"; }
+        else { mic.classList.remove("on"); mic.textContent = "말하기"; resetInput(); rec = null;
+          if (state === "error" && err !== "no-speech" && err !== "aborted") bubble("bot", ["말소리를 듣지 못했어요. 마이크 사용을 허락하셨는지 확인하시거나, 아래 버튼을 눌러 주세요."]); }
+      });
+    });
+  }
   function liveLine(items) { return el("div", { class: "live" }, items.filter(Boolean).map(function (t) { return el("span", { text: t }); })); }
   function chips(list) {
     queue.then(function () {

@@ -35,6 +35,7 @@
     <div class="tools">
       <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-expanded="false" aria-controls="menuPanel">메뉴</button>
       <a class="head-tel" id="headTel" href="#visit"><span class="vh">전화 </span><span data-bind="phone">02-000-0000</span></a>
+      <button class="easy-btn voice-btn" id="voiceBtn" type="button" aria-pressed="false" aria-label="소리로 듣기" hidden><span class="easy-ico" aria-hidden="true">♪</span><span id="voiceBtnLabel">소리로 듣기</span></button>
       <button class="easy-btn" id="textBtn" type="button" aria-pressed="false"><span class="easy-ico" aria-hidden="true">가</span><span id="textBtnLabel">크게 보기</span></button>
       <button class="icon-btn" id="themeBtn" type="button" aria-label="화면 밝기 전환">◐</button>
       <a class="btn btn-primary header-cta" href="#reserve">예약하기</a>
@@ -66,6 +67,7 @@
     <p><b>글씨가 작게 보이시나요?</b> 글씨와 버튼을 크게, 화면을 단순하게 바꿔 드립니다.</p>
     <div class="easy-ask-acts">
       <button class="btn btn-primary btn-lg" type="button" id="easyYes">크게 보기</button>
+      <button class="btn btn-ghost btn-lg" type="button" id="easyVoice" hidden>소리로도 들을래요</button>
       <button class="btn btn-ghost btn-lg" type="button" id="easyNo">지금 그대로 볼게요</button>
     </div>
   </div>
@@ -111,6 +113,7 @@
             <div class="chat-chips" id="chatChips" role="group" aria-label="빠른 답변"></div>
             <form class="chat-form" id="chatForm" autocomplete="off">
               <label class="vh" for="chatInput">메시지</label>
+              <button class="chat-mic" id="chatMic" type="button" hidden aria-label="말로 묻기">말하기</button>
               <input id="chatInput" maxlength="200" placeholder="예: 이가 시려요 · 오늘 진료해요? · 임플란트 비용">
               <button class="btn btn-primary" type="submit">보내기</button>
             </form>
@@ -435,7 +438,7 @@
   <div class="eb-panel">
     <header class="eb-head">
       <span class="eb-step" id="ebStep">1 / 7 단계</span>
-      <button class="eb-close" id="ebClose" type="button">닫기</button>
+      <span class="eb-head-acts"><button class="eb-close" id="ebSay" type="button" hidden>다시 듣기</button><button class="eb-close" id="ebClose" type="button">닫기</button></span>
     </header>
     <ol class="eb-bar" id="ebBar" aria-label="예약 단계"></ol>
     <h2 class="eb-title" id="ebTitle">어떤 진료를 받으시겠어요?</h2>
@@ -456,6 +459,7 @@
 </nav>
 
 <script src="js/core.js"></script>
+<script src="js/voice.js"></script>
 <script src="js/site.js"></script>
 <script src="js/chat.js"></script>
 <script src="js/easybook.js"></script>

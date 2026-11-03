@@ -10,6 +10,19 @@
   var $ = function (id) { return document.getElementById(id); };
   var el = A.el;
   var box = $("easyBook"), body = $("ebBody"), stepTxt = $("ebStep"), title = $("ebTitle"), back = $("ebBack");
+  var V = window.WVoice;
+  function sayStep() {
+    if (!V || !V.enabled()) return;
+    var parts = [stepTxt.textContent + ".", title.textContent];
+    body.querySelectorAll(".eb-hint, .eb-error:not([hidden])").forEach(function (n) { parts.push(n.textContent); });
+    var opts = [].slice.call(body.querySelectorAll(".eb-choice:not(:disabled) b, .eb-time")).map(function (n) { return n.textContent; });
+    if (opts.length) parts.push("고르실 수 있는 것은 " + opts.slice(0, 8).join(", ") + (opts.length > 8 ? " 등" : "") + "입니다.");
+    if (body.querySelector(".eb-pad")) parts.push("숫자판에서 번호를 누르고, 다음을 누르세요.");
+    V.speak(parts.join(" "));
+  }
+  if (V && V.canSpeak) { $("ebSay").hidden = false; $("ebSay").addEventListener("click", function () { var was = V.enabled(); if (!was) V.speak(stepTxt.textContent + ". " + title.textContent + " " + [].map.call(body.querySelectorAll(".eb-hint, .eb-choice:not(:disabled) b, .eb-time"), function (n) { return n.textContent; }).join(", "), { force: true }); else sayStep(); }); }
+  var sayTimer = null;
+  function saySoon() { clearTimeout(sayTimer); sayTimer = setTimeout(sayStep, 120); }
   var STEPS = ["진료", "날짜", "때", "시간", "성함", "전화번호", "확인"];
   var st = {}, history = [], lastFocus = null;
 
@@ -19,7 +32,9 @@
     box.hidden = false; document.documentElement.classList.add("eb-open");
     if (treatment) go(1); else go(0);
   }
+  if (V) new MutationObserver(function (ms) { ms.forEach(function (m) { var n = m.target; if (n.classList && n.classList.contains("eb-error") && !n.hidden && n.textContent) V.speak(n.textContent); }); }).observe(body, { attributes: true, attributeFilter: ["hidden"], subtree: true });
   function close() {
+    if (V) V.stop();
     box.hidden = true; document.documentElement.classList.remove("eb-open");
     if (lastFocus && lastFocus.focus) lastFocus.focus();
   }
@@ -34,6 +49,7 @@
     [stepCenter, stepDay, stepPart, stepTime, stepName, stepPhone, stepConfirm][i]();
     body.focus({ preventScroll: true });
     body.scrollTop = 0;
+    saySoon();
   }
   $("ebCall").addEventListener("click", function () {
     var s = A.site(), n = s ? s.clinic.phone : "";
@@ -58,7 +74,7 @@
   }
   function list(items) { var g = el("div", { class: "eb-list" }); items.forEach(function (x) { g.appendChild(x); }); body.appendChild(g); return g; }
   function loading(text) { body.appendChild(el("p", { class: "eb-hint", text: text || "병원 예약 장부에서 확인하고 있어요…" })); }
-  function errorMsg(t) { body.appendChild(el("p", { class: "eb-error", role: "alert", text: t })); }
+  function errorMsg(t) { body.appendChild(el("p", { class: "eb-error", role: "alert", text: t })); if (V) V.speak(t); }
 
   /* 1. 진료 */
   function stepCenter() {
@@ -84,6 +100,7 @@
       list(open.map(function (x) {
         return choice(A.relDay(x.date) === C.formatDate(x.date) ? C.formatDate(x.date) : A.relDay(x.date) + " · " + C.formatDate(x.date), "남은 자리 " + x.available + "개", function () { st.date = x.date; go(2); });
       }));
+      saySoon();
     }).catch(function (e) { body.textContent = ""; errorMsg(e.message); });
   }
 
@@ -100,6 +117,7 @@
         return choice(p.label, inP.length ? range + " · 자리 " + inP.length + "개" : range + " · 자리 없음", function () { st.part = p; go(3); }, { off: !inP.length });
       });
       list(parts);
+      saySoon();
     }).catch(function (e) { body.textContent = ""; errorMsg(e.message); });
   }
 
@@ -204,6 +222,7 @@
     var fin = el("button", { type: "button", class: "eb-next", text: "닫기" });
     fin.addEventListener("click", close);
     body.appendChild(fin);
+    if (V) V.speak("예약 신청이 접수되었어요. 예약번호는 " + r.code + "입니다. " + C.formatDate(r.date) + " " + C.koTime(r.time, true) + ". 병원에서 확인하면 문자로 알려 드려요.");
   }
 
   // 여는 곳: 큰 '진료 예약하기' 버튼, 하단 '예약하기', 센터 데스크의 '진료 예약'(크게 보기일 때)
