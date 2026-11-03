@@ -93,9 +93,14 @@
       S.summary = s;
       var b = $("pendingBadge"); b.textContent = s.pending; b.hidden = !s.pending;
       document.title = (s.pending ? "(" + s.pending + ") " : "") + "W치과 관리";
+      var db = $("deskBadge"); db.textContent = s.inquiriesNew; db.hidden = !s.inquiriesNew;
       if (!first && prev && s.latestId > prev.latestId) {
         toast("새 예약이 들어왔습니다. 확인 대기 " + s.pending + "건");
         if (current === "dashboard" || current === "reservations") route();
+      }
+      if (!first && prev && s.latestInquiryId > prev.latestInquiryId) {
+        toast("센터 데스크에 새 상담 요청이 들어왔습니다. 처리 대기 " + s.inquiriesOpen + "건");
+        if (current === "dashboard" || current === "desk") route();
       }
       return s;
     }).catch(function () {});
@@ -138,6 +143,7 @@
       [
         ["오늘 예약", s.todayCount, "취소 제외"],
         ["확인 대기", s.pending, "확정 문자 발송 전", s.pending > 0],
+        ["상담 요청 대기", s.inquiriesOpen, "센터 데스크 전화 상담", s.inquiriesNew > 0],
         ["7일 내 예약", s.week, "확인 대기 + 확정"],
         ["30일 미내원율", s.noShowRate == null ? "–" : s.noShowRate + "%", s.noShowBase ? "내원·미내원 " + s.noShowBase + "건 기준" : "기록 없음"]
       ].forEach(function (k) {
@@ -333,6 +339,82 @@
     }).catch(function (e) { err.textContent = e.message; err.hidden = false; });
   }
 
+  /* ---------- 센터 데스크 ---------- */
+  var TOPIC = function (k) { return C.labelOf(C.TOPICS, k); }, PREF = function (k) { return C.labelOf(C.PREFERS, k); };
+  function minutesAgo(iso) { var m = Math.round((Date.now() - Date.parse(iso)) / 60000); return m < 1 ? "방금" : m < 60 ? m + "분 전" : Math.floor(m / 60) + "시간 전"; }
+  VIEWS.desk = function (v) {
+    return Promise.all([
+      api("GET", "inquiries"), api("GET", "inquiries?status=done"), api("GET", "centers"),
+      fetch("../api/live").then(function (r) { return r.json(); })
+    ]).then(function (r) {
+      var open = r[0].items, done = r[1].items.slice(0, 15), centers = r[2].items, liveC = {};
+      (r[3].centers || []).forEach(function (c) { liveC[c.key] = c; });
+      var cname = {}; centers.forEach(function (c) { cname[c.key] = c.name; });
+      v.textContent = "";
+      v.appendChild(head("센터 데스크", "센터별 접수 상태와 전화 상담 요청을 처리합니다. 여기서 바꾸면 환자가 보는 센터 데스크 화면에 바로 반영됩니다."));
+
+      var inbox = el("section", { class: "panel" }, [el("h2", null, ["상담 요청함", el("span", { class: "muted small", text: "처리 중 " + open.length + "건 · 오래된 순" })])]);
+      var ul = el("ul", { class: "agenda" });
+      open.forEach(function (q) {
+        var memo = input({ type: "text", value: q.staff_memo || "", placeholder: "통화 메모", "aria-label": "통화 메모", class: "memo-in" });
+        var next = q.status === "new"
+          ? el("button", { type: "button", class: "btn btn-primary btn-sm", text: "확인했어요", onclick: function () { setInq(q, "seen", memo.value); } })
+          : el("button", { type: "button", class: "btn btn-primary btn-sm", text: "연락 완료", onclick: function () { setInq(q, "done", memo.value); } });
+        ul.appendChild(el("li", { class: "inq" }, [
+          el("span", { class: "t small", text: minutesAgo(q.created_at) }),
+          el("span", { class: "who" }, [
+            el("b", { text: q.name }), " ", el("span", { class: "pill " + (q.status === "new" ? "requested" : "confirmed"), text: C.labelOf(C.INQ_STATUSES, q.status) }), " ",
+            el("span", { class: "muted small", text: (cname[q.center] || q.center) + " · " + TOPIC(q.topic) + " · " + PREF(q.prefer) + " 연락 희망" }),
+            el("small", { text: C.formatPhone(q.phone) + (q.message ? " · " + q.message : "") + (q.handled_by ? " · 담당 " + q.handled_by : "") }),
+            memo
+          ]),
+          el("span", { class: "acts" }, [next, armButton("취소", "취소 확인", "btn-danger", function () { setInq(q, "cancelled", memo.value); })])
+        ]));
+      });
+      inbox.appendChild(open.length ? ul : el("p", { class: "empty", text: "처리할 상담 요청이 없습니다." }));
+      if (done.length) {
+        var dl = el("ul", { class: "agenda" });
+        done.forEach(function (q) { dl.appendChild(el("li", null, [el("span", { class: "t small", text: minutesAgo(q.updated_at) }), el("span", { class: "who" }, [el("b", { text: q.name }), " ", el("span", { class: "muted small", text: (cname[q.center] || q.center) + " · " + TOPIC(q.topic) + " · 담당 " + (q.handled_by || "") }), el("small", { text: q.staff_memo || "" })]), el("span")])); });
+        inbox.appendChild(el("details", { class: "done-list" }, [el("summary", { class: "small", text: "최근 연락 완료 " + done.length + "건" }), dl]));
+      }
+      v.appendChild(inbox);
+
+      var grid = el("div", { class: "desk-grid" });
+      centers.forEach(function (c) {
+        var lc = liveC[c.key], d = lc && lc.desk;
+        var accepting = input({ type: "checkbox", checked: !c.desk_paused });
+        var chosen = c.desk_updated_at ? c.desk_wait : null;
+        var waits = el("div", { class: "wait-btns" });
+        WAITS.forEach(function (w) {
+          var b = el("button", { type: "button", class: "btn btn-sm " + (w.v === chosen ? "btn-primary" : "btn-ghost"), text: w.t });
+          b.addEventListener("click", function () { chosen = w.v; waits.querySelectorAll("button").forEach(function (x) { x.className = "btn btn-sm btn-ghost"; }); b.className = "btn btn-sm btn-primary"; });
+          waits.appendChild(b);
+        });
+        var staff = input({ type: "text", value: c.desk_staff || "", maxlength: 30, placeholder: "예: 김OO 실장" });
+        var msg = input({ type: "text", value: c.desk_message || "", maxlength: 120, placeholder: "비우면 상황에 맞는 기본 인사말이 나갑니다" });
+        var save = el("button", { type: "button", class: "btn btn-primary btn-sm", text: "데스크에 반영", onclick: function () {
+          api("PUT", "centers/" + c.key + "/desk", { paused: !accepting.checked, wait: chosen, staff: staff.value, message: msg.value })
+            .then(function () { toast(c.name + " 데스크 화면에 반영했습니다."); route(); }).catch(fail);
+        } });
+        grid.appendChild(el("section", { class: "panel desk-card" }, [
+          el("h2", null, [c.name, el("span", { class: "pill " + (d && d.status === "open" ? "confirmed" : d && (d.status === "paused" || d.status === "lunch") ? "requested" : "cancelled"), text: d ? d.label : "–" })]),
+          el("p", { class: "muted small", text: "상담 요청 대기 " + (d ? d.pending : 0) + "건 · 진료 요일 " + (lc && lc.days ? lc.days : "모두") + (c.desk_updated_at ? " · " + minutesAgo(c.desk_updated_at) + " " + (c.desk_updated_by || "") + " 수정" : "") }),
+          el("label", { class: "chk" }, [accepting, "온라인 상담 요청 받기"]),
+          el("div", { class: "field" }, [el("span", { class: "small", text: "현재 대기 (접수 중일 때만 표시, 3시간 뒤 자동 해제)" }), waits]),
+          field("담당 코디네이터", staff), field("데스크 인사말", msg),
+          el("div", null, [save])
+        ]));
+      });
+      v.appendChild(el("h2", { class: "sub-h", text: "센터별 데스크 설정" }));
+      v.appendChild(grid);
+    });
+  };
+  function setInq(q, status, memo) {
+    api("PATCH", "inquiries/" + q.id, { status: status, staff_memo: memo })
+      .then(function () { toast(q.name + " · " + C.labelOf(C.INQ_STATUSES, status) + " (환자 화면에 바로 표시됩니다)"); poll(true); route(); })
+      .catch(fail);
+  }
+
   /* ---------- 진료시간 · 휴진일 ---------- */
   VIEWS.hours = function (v) {
     return Promise.all([api("GET", "settings"), api("GET", "holidays")]).then(function (r) {
@@ -496,6 +578,7 @@
     { key: "description", label: "센터 소개 (문단은 줄바꿈)", type: "textarea", wide: true, rows: 4 },
     { key: "process", label: "진료 과정 (제목|설명)", type: "textarea", wide: true, rows: 5 },
     { key: "faq", label: "자주 묻는 질문 (질문|답변)", type: "textarea", wide: true, rows: 4 },
+    { key: "prep", label: "첫 방문 준비물 (한 줄에 하나, 데스크 '첫 방문 준비물'에 표시)", type: "textarea", wide: true, rows: 4 },
     { key: "published", label: "홈페이지에 공개", type: "checkbox", def: true }
   ], {}, { fixed: true, titleKey: "key" });
   VIEWS.fees = listEditor("fees", "비급여 진료비", "의료법에 따라 비급여 진료비는 환자가 볼 수 있게 고지해야 합니다. 저장하면 홈페이지 진료비 표가 바뀝니다.", [
@@ -551,7 +634,7 @@
     "settings.clinic": "병원 정보 변경", "settings.booking": "예약 규칙 변경", "settings.hours": "진료시간 변경", "holiday.set": "휴진일 등록", "holiday.delete": "휴진일 삭제",
     "fees.create": "진료비 추가", "fees.update": "진료비 수정", "fees.delete": "진료비 삭제", "doctors.create": "의료진 추가", "doctors.update": "의료진 수정", "doctors.delete": "의료진 삭제",
     "notices.create": "공지 추가", "notices.update": "공지 수정", "notices.delete": "공지 삭제", "user.create": "계정 추가", "user.delete": "계정 삭제", "user.password": "비밀번호 변경",
-    "privacy.purge": "개인정보 자동 파기", "live.update": "홈페이지 실시간 안내 변경", "centers.update": "진료센터 수정"
+    "privacy.purge": "개인정보 자동 파기", "live.update": "홈페이지 실시간 안내 변경", "centers.update": "진료센터 수정", "desk.update": "센터 데스크 변경", "inquiry.update": "상담 요청 처리"
   };
   var OUT = { sent: "발송", failed: "실패", skipped: "미발송 (연동 전)", sending: "발송 중" };
   function when(iso) { var d = new Date(iso); return isNaN(d) ? iso : d.toLocaleString("ko-KR", { timeZone: "Asia/Seoul", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }); }

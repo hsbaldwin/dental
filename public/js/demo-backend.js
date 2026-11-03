@@ -5,7 +5,7 @@
 (function () {
   "use strict";
   var C = window.WCore;
-  var KEY = "w-demo-v3";
+  var KEY = "w-demo-v4";
   var SEED = window.WSeed;
   var realFetch = window.fetch ? window.fetch.bind(window) : null;
   var now = function () { return C.seoulNow(); };
@@ -31,7 +31,8 @@
         ["임플란트 (국산 픽스처 + 지르코니아)", "1개", 1100000], ["뼈이식 (부분)", "1부위", 300000], ["지르코니아 크라운", "1개", 500000],
         ["레진 충전 (13세 이상)", "1치아", 100000], ["투명교정 (전체)", "1회 과정", 5500000], ["전문가 미백", "1회", 200000]
       ].map(function (f, i) { return { id: i + 1, name: f[0], unit: f[1], price: f[2], note: "", sort: i + 1, center: SEED.FEE_CENTERS[i + 1] || null }; }),
-      centers: SEED.CENTERS.map(function (c) { return Object.assign({ id: c.key, published: 1 }, c); }),
+      centers: SEED.CENTERS.map(function (c) { return Object.assign({ id: c.key, published: 1, desk_paused: 0, desk_wait: null, desk_message: "", desk_staff: "", desk_updated_at: null, desk_updated_by: null }, c); }),
+      inquiries: [],
       doctors: [
         { id: 1, name: "원장 성함", role: "대표원장 · 통합치의학과 전문의", career: "치의학 석사\n임플란트 · 보철 진료", quote: "뽑지 않고 살릴 수 있는 치아부터 찾습니다.", days: "월화수목금토", sort: 1 },
         { id: 2, name: "원장 성함", role: "원장 · 치과교정과 전문의", career: "교정 · 턱관절 진료\n투명교정 인증의", quote: "교정 기간과 비용은 첫 상담에서 정해 드립니다.", days: "화목토", sort: 2 },
@@ -43,6 +44,10 @@
       reservations: [], audit: [], outbox: []
     };
     s.doctors.forEach(function (d) { d.centers = SEED.DOCTOR_CENTERS[d.sort] || ""; });
+    // 체험용 데스크 상태와 상담 요청
+    var imp = s.centers[0]; imp.desk_staff = "김예시 실장"; imp.desk_wait = 10; imp.desk_updated_at = iso(); imp.desk_updated_by = "관리자";
+    imp.desk_message = "안녕하세요, 임플란트센터 데스크입니다. 오늘 CT 촬영이 가능해 첫 상담을 한 번에 진행할 수 있어요.";
+    s.inquiries.push({ id: 1, code: "DEMOQ1", center: "implant", name: "오예시", phone: "01011110009", topic: "cost", prefer: "pm", message: "뼈이식 비용이 궁금해요", status: "new", staff_memo: "", handled_by: null, consent_at: iso(), purged: 0, created_at: iso(), updated_at: iso() });
     // 예시 예약 (가상 인물)
     var samples = [
       [t, "10:00", "김예시", "01011110001", "implant", "confirmed", "staff", ""],
@@ -91,6 +96,18 @@
   }
   function rs(treatment) { return C.restriction(treatment, S.centers, S.doctors); }
   function slotsFor(ds, n, treatment) { var r = rs(treatment); return C.computeSlots(ds, C.planFor(ds, S.hours, hmap(), r.days, r.label), S.booking, counts(ds), n || now()); }
+  function pendingBy() { var m = {}; S.inquiries.forEach(function (q) { if (q.status === "new" || q.status === "seen") m[q.center] = (m[q.center] || 0) + 1; }); return m; }
+  function pubInq(q) {
+    var c = S.centers.filter(function (x) { return x.key === q.center; })[0] || { name: q.center };
+    var ahead = (q.status === "new" || q.status === "seen") ? S.inquiries.filter(function (x) { return x.center === q.center && (x.status === "new" || x.status === "seen") && x.id < q.id; }).length : 0;
+    return { code: q.code, center: q.center, centerName: c.name, name: C.maskName(q.name), topic: q.topic, topicLabel: C.labelOf(C.TOPICS, q.topic), prefer: q.prefer, preferLabel: C.labelOf(C.PREFERS, q.prefer), status: q.status, statusLabel: C.labelOf(C.INQ_STATUSES, q.status), ahead: ahead, handledBy: q.status === "new" ? null : q.handled_by, createdAt: q.created_at, canCancel: q.status === "new" };
+  }
+  function findInq(b) {
+    var code = String(b.code || "").trim().toUpperCase(), phone = C.normalizePhone(b.phone);
+    var q = S.inquiries.filter(function (x) { return x.code === code && x.phone === phone; })[0];
+    if (!q) throw new Err(404, "일치하는 상담 요청이 없습니다.");
+    return q;
+  }
   function pubCenters() { return list("centers").filter(function (c) { return c.published; }); }
   function pub(r) {
     var n = now(), future = r.date > n.date || (r.date === n.date && C.toMin(r.time) > n.minutes);
@@ -136,7 +153,7 @@
       today: { date: n.date, plan: C.dayPlan(n.date, S.hours, m), remaining: ov.today.remaining, openSlots: ov.today.openSlots, slots: ov.today.slots },
       next: ov.next, week: ov.week,
       doctorsToday: m[n.date] ? [] : list("doctors").filter(function (d) { return C.worksOn(d.days, n.weekday); }).map(function (d) { return { name: d.name, role: d.role }; }),
-      centers: C.centerSummaries(pubCenters(), list("doctors"), S.hours, m, S.booking, counts2, n)
+      centers: C.centerSummaries(pubCenters(), list("doctors"), S.hours, m, S.booking, counts2, n, status, Date.now(), pendingBy())
     };
   });
   on("GET", /^admin\/live$/, function () { need(); return S.live || {}; });
@@ -175,6 +192,45 @@
     return pub(r);
   });
 
+  on("POST", /^inquiries$/, function (q, b) {
+    var v = C.validateInquiry(b);
+    if (!v.ok) throw new Err(400, Object.values(v.errors)[0], { fields: v.errors });
+    var c = S.centers.filter(function (x) { return x.key === v.value.center; })[0];
+    if (!c) throw new Err(404, "진료센터를 찾을 수 없습니다.");
+    if (c.desk_paused) throw new Err(409, c.name + " 데스크가 지금 온라인 상담 요청을 잠시 받지 않습니다. 전화로 문의해 주세요.");
+    var rec = Object.assign({ id: ++S.seq, code: newCode(), status: "new", staff_memo: "", handled_by: null, consent_at: iso(), purged: 0, created_at: iso(), updated_at: iso() }, v.value);
+    S.inquiries.push(rec);
+    out("staff", null, c.name + " 상담 요청: " + C.maskName(rec.name) + " · " + C.labelOf(C.TOPICS, rec.topic));
+    out("sms", rec.phone, "[" + S.clinic.shortName + "] " + c.name + " 상담 요청이 접수되었습니다. 접수번호 " + rec.code);
+    return [201, pubInq(rec)];
+  });
+  on("POST", /^inquiries\/lookup$/, function (q, b) { return pubInq(findInq(b)); });
+  on("POST", /^inquiries\/cancel$/, function (q, b) {
+    var x = findInq(b); if (x.status !== "new") throw new Err(409, "데스크에서 이미 확인한 요청은 취소할 수 없습니다.");
+    x.status = "cancelled"; x.updated_at = iso(); return pubInq(x);
+  });
+  on("PUT", /^admin\/centers\/([a-z]+)\/desk$/, function (q, b, m) {
+    var u = need(), c = S.centers.filter(function (x) { return x.key === m[1]; })[0];
+    if (!c) throw new Err(404, "진료센터를 찾을 수 없습니다.");
+    c.desk_paused = b.paused ? 1 : 0; c.desk_wait = b.wait === null || b.wait === undefined || b.wait === "" ? null : Number(b.wait);
+    c.desk_message = String(b.message || "").slice(0, 120); c.desk_staff = String(b.staff || "").slice(0, 30);
+    c.desk_updated_at = iso(); c.desk_updated_by = u.name;
+    audit(u.username, "desk.update", "centers:" + c.key); return c;
+  });
+  on("GET", /^admin\/inquiries$/, function (q) {
+    need(); var st = q.get("status") || "open", ctr = q.get("center");
+    var items = S.inquiries.filter(function (x) { return (st === "open" ? (x.status === "new" || x.status === "seen") : x.status === st) && (!ctr || x.center === ctr); });
+    items.sort(function (a, b) { return st === "open" ? a.id - b.id : b.id - a.id; });
+    return { items: items };
+  });
+  on("PATCH", /^admin\/inquiries\/(\d+)$/, function (q, b, m) {
+    var u = need(), x = S.inquiries.filter(function (y) { return y.id === Number(m[1]); })[0];
+    if (!x) throw new Err(404, "상담 요청을 찾을 수 없습니다.");
+    if (b.status && b.status !== x.status) { x.status = b.status; x.handled_by = u.name; }
+    if (b.staff_memo !== undefined) x.staff_memo = b.staff_memo;
+    x.updated_at = iso(); audit(u.username, "inquiry.update", "inquiry:" + x.id);
+    return { item: x };
+  });
   on("POST", /^admin\/login$/, function (q, b) {
     var u = S.users.filter(function (x) { return x.username === String(b.username || "").trim() && x.pw === b.password; })[0];
     if (!u) throw new Err(401, "아이디 또는 비밀번호가 올바르지 않습니다. (체험판: admin / demo1234)");
@@ -191,7 +247,10 @@
       pending: c(function (r) { return r.status === "requested" && r.date >= n.date; }),
       week: c(function (r) { return r.date >= n.date && r.date <= wk && C.ACTIVE.indexOf(r.status) >= 0; }),
       noShowRate: vis + ns ? Math.round(ns / (vis + ns) * 1000) / 10 : null, noShowBase: vis + ns,
-      latestId: S.reservations.reduce(function (m, r) { return Math.max(m, r.id); }, 0)
+      latestId: S.reservations.reduce(function (m, r) { return Math.max(m, r.id); }, 0),
+      inquiriesOpen: S.inquiries.filter(function (x) { return x.status === "new" || x.status === "seen"; }).length,
+      inquiriesNew: S.inquiries.filter(function (x) { return x.status === "new"; }).length,
+      latestInquiryId: S.inquiries.reduce(function (m, x) { return Math.max(m, x.id); }, 0)
     };
   });
   on("GET", /^admin\/reservations$/, function (q) {

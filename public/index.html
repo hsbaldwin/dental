@@ -67,9 +67,9 @@
     <div class="wrap">
       <div class="centers-head">
         <div>
-          <p class="eyebrow">W Dental Clinic · 7개 진료센터</p>
-          <h1>필요한 <em>진료센터</em>를<br>선택하세요</h1>
-          <p class="lede">센터마다 담당 원장님과 진료 요일, 남은 예약 시간이 다릅니다. 아래 카드의 정보는 병원 예약 장부와 실시간으로 연결되어 있습니다.</p>
+          <p class="eyebrow">W Dental Clinic · 7개 진료센터 리셉션</p>
+          <h1>어느 센터 <em>데스크</em>로<br>안내해 드릴까요?</h1>
+          <p class="lede">센터마다 전담 데스크가 있습니다. 접수 상황, 담당 코디네이터, 남은 예약 시간을 보고 바로 예약하거나 전화 상담을 요청하세요. 모든 정보는 병원 예약 장부와 실시간으로 연결되어 있습니다.</p>
         </div>
         <aside class="promise">
           <span class="live-tag"><i aria-hidden="true"></i><span id="boardTime">불러오는 중</span></span>
@@ -303,29 +303,49 @@
     <section class="center-page">
       <div class="wrap">
         <nav class="crumbs" aria-label="현재 위치"><a href="#top">홈</a><span aria-hidden="true">›</span><span>진료센터</span><span aria-hidden="true">›</span><b id="cvCrumb"></b></nav>
-        <div class="cv-hero">
-          <div class="cv-copy">
+        <div class="desk">
+          <div class="desk-main">
             <p class="eyebrow" id="cvEn"></p>
-            <h1 id="cvName"></h1>
-            <p class="lede" id="cvSummary"></p>
-            <ul class="tags" id="cvTags"></ul>
-            <div class="quick"><button class="btn btn-primary btn-lg" type="button" id="cvBook">이 센터 예약하기</button><a class="btn btn-ghost btn-lg" href="#lookup">내 예약 확인</a></div>
-          </div>
-          <article class="board cv-board" aria-labelledby="cvb-h">
-            <header class="board-head"><h2 id="cvb-h">센터 실시간 현황</h2><span class="live-tag"><i aria-hidden="true"></i><span id="cvTime">LIVE</span></span></header>
-            <dl class="cv-facts">
-              <div><dt>오늘</dt><dd id="cvToday">–</dd></div>
-              <div><dt>진료 요일</dt><dd id="cvDays">–</dd></div>
-              <div><dt>오늘 진료 원장</dt><dd id="cvDocs">–</dd></div>
-            </dl>
-            <div class="board-next" id="cvNextBox">
-              <span class="muted">이 센터 가장 빠른 예약</span>
-              <strong id="cvNext" class="skeleton">&nbsp;</strong>
-              <button class="btn btn-primary" type="button" id="cvNextBtn" disabled>이 시간으로 예약</button>
+            <h1 class="desk-title"><span id="cvName"></span><span class="desk-word">리셉션</span></h1>
+            <p class="desk-summary" id="cvSummary"></p>
+            <div class="desk-greet">
+              <span class="desk-avatar" aria-hidden="true"><svg viewBox="0 0 64 40"><use href="#w-mark"/></svg></span>
+              <div class="bubble">
+                <p id="deskGreeting"></p>
+                <small id="deskStaff"></small>
+              </div>
             </div>
-            <div class="heat-box"><table class="heat" id="cvHeat" aria-label="이 센터 이번 주 예약 가능 현황"><thead><tr><th scope="col"><span class="vh">시간대</span></th></tr></thead><tbody></tbody></table></div>
-            <footer class="board-foot"><span class="legend"><i class="lg ok"></i>여유 <i class="lg few"></i>얼마 안 남음 <i class="lg full"></i>마감</span><span class="muted">담당 원장님 진료일에만 예약을 받습니다.</span></footer>
-          </article>
+            <h2 class="desk-q">무엇을 도와드릴까요?</h2>
+            <div class="desk-menu" id="deskMenu" role="group" aria-label="데스크 메뉴">
+              <button type="button" data-desk="book"><b>진료 예약</b><small id="dmBook">남은 시간 확인 중</small></button>
+              <button type="button" data-desk="call"><b>전화 상담 요청</b><small id="dmCall">코디네이터가 전화드립니다</small></button>
+              <button type="button" data-desk="mine"><b>내 예약 · 요청 확인</b><small>번호로 진행 상황 조회</small></button>
+              <button type="button" data-desk="prep"><b>첫 방문 준비물</b><small>소요 시간 · 챙길 것</small></button>
+              <button type="button" data-desk="cost"><b>비용 안내</b><small>이 센터 비급여 항목</small></button>
+              <button type="button" data-desk="way"><b>오시는 길 · 주차</b><small data-bind="subway"></small></button>
+            </div>
+            <section class="desk-reply" id="deskReply" hidden tabindex="-1" aria-live="polite"></section>
+          </div>
+
+          <aside class="desk-side">
+            <article class="board desk-board" aria-labelledby="cvb-h">
+              <header class="board-head"><h2 id="cvb-h">데스크 현황</h2><span class="live-tag"><i aria-hidden="true"></i><span id="cvTime">LIVE</span></span></header>
+              <p class="desk-state" id="deskState" data-s="closed">확인 중</p>
+              <dl class="cv-facts four">
+                <div><dt>현재 대기</dt><dd id="deskWait">–</dd></div>
+                <div><dt>상담 요청 대기</dt><dd id="deskPending">–</dd></div>
+                <div><dt>오늘 진료 원장</dt><dd id="cvDocs">–</dd></div>
+                <div><dt>진료 요일</dt><dd id="cvDays">–</dd></div>
+              </dl>
+              <div class="board-next" id="cvNextBox">
+                <span class="muted">이 센터 가장 빠른 예약</span>
+                <strong id="cvNext" class="skeleton">&nbsp;</strong>
+                <button class="btn btn-primary" type="button" id="cvNextBtn" disabled>이 시간으로 예약</button>
+              </div>
+              <div class="heat-box"><table class="heat" id="cvHeat" aria-label="이 센터 이번 주 예약 가능 현황"><thead><tr><th scope="col"><span class="vh">시간대</span></th></tr></thead><tbody></tbody></table></div>
+              <footer class="board-foot"><span class="legend"><i class="lg ok"></i>여유 <i class="lg few"></i>얼마 안 남음 <i class="lg full"></i>마감</span><span class="muted">담당 원장님 진료일에만 예약을 받습니다.</span></footer>
+            </article>
+          </aside>
         </div>
       </div>
       <nav class="sub-nav" id="subNav" aria-label="센터 안 메뉴">
@@ -339,7 +359,7 @@
         </div>
       </nav>
       <div class="wrap cv-sections">
-        <section id="c-about" class="cv-sec"><h2>센터 소개</h2><div class="cv-desc" id="cvDesc"></div></section>
+        <section id="c-about" class="cv-sec"><h2>센터 소개</h2><div class="cv-desc"><div id="cvDesc"></div><ul class="tags" id="cvTags"></ul></div></section>
         <section id="c-process" class="cv-sec"><h2>진료 과정</h2><ol class="steps vertical" id="cvProcess"></ol></section>
         <section id="c-doctors" class="cv-sec"><h2>담당 의료진</h2><div class="doctors" id="cvDoctors"></div></section>
         <section id="c-fees" class="cv-sec"><h2>비용</h2><div id="cvFees"></div></section>

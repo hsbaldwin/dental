@@ -121,3 +121,9 @@ body.admin { font-size: .9375rem; line-height: 1.55; }
 .live-panel { border-color: color-mix(in oklab, var(--live) 45%, var(--line)); }
 .multi { display: flex; flex-wrap: wrap; gap: .4rem 1rem; margin-top: .3rem; }
 .multi input, .chk input { width: auto !important; }
+.kpis { grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); }
+.desk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr)); gap: 1rem; }
+.desk-card h2 .pill { font-family: var(--f-body); }
+.sub-h { font-family: var(--f-body); font-size: 1.0625rem; font-weight: 600; }
+.inq .memo-in { margin-top: .35rem; width: 100%; box-sizing: border-box; font: inherit; font-size: .8125rem; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: .4rem; padding: .3rem .5rem; }
+.done-list summary { cursor: pointer; color: var(--muted); }

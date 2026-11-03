@@ -142,6 +142,7 @@ function createApp(opts) {
   const trustProxy = env.TRUST_PROXY === "1";
   const limitReserve = rateLimiter(Number(env.RESERVE_LIMIT_PER_HOUR || 10), 3600 * 1000);
   const limitLookup = rateLimiter(30, 3600 * 1000);
+  const limitInquiry = rateLimiter(Number(env.INQUIRY_LIMIT_PER_HOUR || 10), 3600 * 1000);
   const limitLogin = rateLimiter(10, 15 * 60 * 1000);
 
   /* ---------- 실시간 알림 (Server-Sent Events) ----------
@@ -236,12 +237,17 @@ function createApp(opts) {
       fees: db.prepare("SELECT id, name, unit, price, note, center FROM fees ORDER BY sort, id").all(),
       feesUpdatedAt: (db.prepare("SELECT MAX(at) AS at FROM audit WHERE target LIKE 'fees%'").get() || {}).at || null,
       doctors: doctorsAll(),
-      centers: centersAll(false).map((c) => Object.assign({}, c, { days: core.centerDays(doctorsAll(), c.key) })),
+      centers: centersAll(false).map((c) => { const o = Object.assign({}, c, { days: core.centerDays(doctorsAll(), c.key) }); delete o.desk_updated_by; return o; }),
       notices: db.prepare("SELECT id, title, body, pinned, created_at FROM notices WHERE published = 1 ORDER BY pinned DESC, id DESC LIMIT 10").all(),
       treatments: core.TREATMENTS
     };
   });
 
+  function pendingByCenter() {
+    const m = {};
+    db.prepare("SELECT center, COUNT(*) AS n FROM inquiries WHERE status IN ('new','seen') GROUP BY center").all().forEach((r) => { m[r.center] = r.n; });
+    return m;
+  }
   function liveData() {
     const now = clock(), rules = getSetting(db, "booking"), hours = hoursAll();
     const to = core.addDays(now.date, rules.windowDays);
@@ -257,7 +263,7 @@ function createApp(opts) {
       today: { date: now.date, plan: core.dayPlan(now.date, hours, hol), remaining: ov.today.remaining, openSlots: ov.today.openSlots, slots: ov.today.slots },
       next: ov.next, week: ov.week,
       doctorsToday: hol[now.date] ? [] : doctors.filter((d) => core.worksOn(d.days, now.weekday)).map((d) => ({ name: d.name, role: d.role })),
-      centers: core.centerSummaries(centersAll(false), doctors, hours, hol, rules, counts, now)
+      centers: core.centerSummaries(centersAll(false), doctors, hours, hol, rules, counts, now, status, Date.now(), pendingByCenter())
     };
   }
   on("GET", /^\/api\/live$/, () => liveData());
@@ -335,6 +341,57 @@ function createApp(opts) {
     return publicReservation(db.prepare("SELECT * FROM reservations WHERE id = ?").get(r.id));
   });
 
+  /* ---------- 센터 데스크: 전화 상담 요청 ---------- */
+  function publicInquiry(q) {
+    const c = db.prepare("SELECT name FROM centers WHERE key = ?").get(q.center) || { name: q.center };
+    const ahead = ["new", "seen"].includes(q.status)
+      ? db.prepare("SELECT COUNT(*) AS n FROM inquiries WHERE center = ? AND status IN ('new','seen') AND id < ?").get(q.center, q.id).n : 0;
+    return {
+      code: q.code, center: q.center, centerName: c.name, name: core.maskName(q.name),
+      topic: q.topic, topicLabel: core.labelOf(core.TOPICS, q.topic), prefer: q.prefer, preferLabel: core.labelOf(core.PREFERS, q.prefer),
+      status: q.status, statusLabel: core.labelOf(core.INQ_STATUSES, q.status), ahead, handledBy: q.status === "new" ? null : q.handled_by,
+      createdAt: q.created_at, canCancel: q.status === "new"
+    };
+  }
+  on("POST", /^\/api\/inquiries$/, async (req) => {
+    if (!limitInquiry(clientIp(req))) throw new HttpError(429, "요청이 너무 많습니다. 잠시 후 다시 시도하거나 전화로 문의해 주세요.");
+    const body = await readJson(req);
+    if (body.website) throw new HttpError(400, "요청을 처리할 수 없습니다.");
+    const v = core.validateInquiry(body);
+    if (!v.ok) throw new HttpError(400, Object.values(v.errors)[0], { fields: v.errors });
+    const center = db.prepare("SELECT * FROM centers WHERE key = ? AND published = 1").get(v.value.center);
+    if (!center) throw new HttpError(404, "진료센터를 찾을 수 없습니다.");
+    if (center.desk_paused) throw new HttpError(409, center.name + " 데스크가 지금 온라인 상담 요청을 잠시 받지 않습니다. 전화로 문의해 주세요.");
+    const open = db.prepare("SELECT COUNT(*) AS n FROM inquiries WHERE phone = ? AND status IN ('new','seen')").get(v.value.phone).n;
+    if (open >= 3) throw new HttpError(409, "이 연락처로 처리 중인 상담 요청이 이미 있습니다. 곧 연락드리겠습니다.");
+    let code; do { code = newCode(); } while (db.prepare("SELECT 1 FROM inquiries WHERE code = ?").get(code));
+    const ts = nowIso(), q = v.value;
+    db.prepare("INSERT INTO inquiries (code, center, name, phone, topic, prefer, message, status, consent_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, 'new', ?, ?, ?)")
+      .run(code, q.center, q.name, q.phone, q.topic, q.prefer, q.message, ts, ts, ts);
+    const saved = db.prepare("SELECT * FROM inquiries WHERE code = ?").get(code);
+    notify.staff(center.name + " 상담 요청: " + core.maskName(q.name) + " · " + core.labelOf(core.TOPICS, q.topic) + " · " + core.labelOf(core.PREFERS, q.prefer) + " 연락 희망");
+    notify.patient(q.phone, "[" + getSetting(db, "clinic").shortName + "] " + center.name + " 상담 요청이 접수되었습니다. 접수 순서대로 연락드립니다. 접수번호 " + code);
+    return { status: 201, body: publicInquiry(saved) };
+  });
+  function findInquiry(body) {
+    const code = String(body.code || "").trim().toUpperCase(), phone = core.normalizePhone(body.phone);
+    if (!/^[A-Z0-9]{6}$/.test(code) || !core.isPhone(phone)) throw new HttpError(400, "접수번호 6자리와 연락처를 확인해 주세요.");
+    const q = db.prepare("SELECT * FROM inquiries WHERE code = ? AND phone = ? AND purged = 0").get(code, phone);
+    if (!q) throw new HttpError(404, "일치하는 상담 요청이 없습니다.");
+    return q;
+  }
+  on("POST", /^\/api\/inquiries\/lookup$/, async (req) => {
+    if (!limitLookup(clientIp(req))) throw new HttpError(429, "조회 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.");
+    return publicInquiry(findInquiry(await readJson(req)));
+  });
+  on("POST", /^\/api\/inquiries\/cancel$/, async (req) => {
+    if (!limitLookup(clientIp(req))) throw new HttpError(429, "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.");
+    const q = findInquiry(await readJson(req));
+    if (q.status !== "new") throw new HttpError(409, "데스크에서 이미 확인한 요청은 취소할 수 없습니다. 연락드릴 때 말씀해 주세요.");
+    db.prepare("UPDATE inquiries SET status = 'cancelled', updated_at = ? WHERE id = ?").run(nowIso(), q.id);
+    return publicInquiry(db.prepare("SELECT * FROM inquiries WHERE id = ?").get(q.id));
+  });
+
   /* ---------- 관리자 API ---------- */
   on("POST", /^\/api\/admin\/login$/, async (req) => {
     if (!limitLogin(clientIp(req))) throw new HttpError(429, "로그인 시도가 너무 많습니다. 15분 뒤 다시 시도해 주세요.");
@@ -367,7 +424,10 @@ function createApp(opts) {
       week: q("SELECT COUNT(*) AS n FROM reservations WHERE date BETWEEN ? AND ? AND status IN ('requested','confirmed')", now.date, weekEnd),
       noShowRate: visited + noShow ? Math.round((noShow / (visited + noShow)) * 1000) / 10 : null,
       noShowBase: visited + noShow,
-      latestId: (db.prepare("SELECT MAX(id) AS n FROM reservations").get().n) || 0
+      latestId: (db.prepare("SELECT MAX(id) AS n FROM reservations").get().n) || 0,
+      inquiriesOpen: q("SELECT COUNT(*) AS n FROM inquiries WHERE status IN ('new','seen')"),
+      inquiriesNew: q("SELECT COUNT(*) AS n FROM inquiries WHERE status = 'new'"),
+      latestInquiryId: (db.prepare("SELECT MAX(id) AS n FROM inquiries").get().n) || 0
     };
   }, "staff");
 
@@ -582,6 +642,39 @@ function createApp(opts) {
     }, role);
   });
 
+  /* 센터 데스크 */
+  on("PUT", /^\/api\/admin\/centers\/([a-z]+)\/desk$/, async (req, url, user, m) => {
+    if (!db.prepare("SELECT 1 FROM centers WHERE key = ?").get(m[1])) throw new HttpError(404, "진료센터를 찾을 수 없습니다.");
+    const b = await readJson(req);
+    const wait = b.wait === null || b.wait === "" || b.wait === undefined ? null : int(b.wait, 0, 240, "대기 시간");
+    const v = { paused: b.paused ? 1 : 0, wait, message: str(b.message, 120, false, "데스크 인사말"), staff: str(b.staff, 30, false, "담당자") };
+    db.prepare("UPDATE centers SET desk_paused = ?, desk_wait = ?, desk_message = ?, desk_staff = ?, desk_updated_at = ?, desk_updated_by = ? WHERE key = ?")
+      .run(v.paused, v.wait, v.message, v.staff, nowIso(), user.name, m[1]);
+    audit(db, user.username, "desk.update", "centers:" + m[1], v);
+    return db.prepare("SELECT * FROM centers WHERE key = ?").get(m[1]);
+  }, "staff");
+  on("GET", /^\/api\/admin\/inquiries$/, (req, url) => {
+    const p = url.searchParams, where = [], args = [];
+    const st = p.get("status") || "open";
+    if (st === "open") where.push("status IN ('new','seen')");
+    else if (core.INQ_STATUSES.some((x) => x.key === st)) { where.push("status = ?"); args.push(st); }
+    if (p.get("center")) { where.push("center = ?"); args.push(p.get("center")); }
+    const sql = "SELECT * FROM inquiries " + (where.length ? "WHERE " + where.join(" AND ") : "") + " ORDER BY " + (st === "open" ? "id" : "id DESC") + " LIMIT 500";
+    return { items: db.prepare(sql).all(...args) };
+  }, "staff");
+  on("PATCH", /^\/api\/admin\/inquiries\/(\d+)$/, async (req, url, user, m) => {
+    const q = db.prepare("SELECT * FROM inquiries WHERE id = ?").get(Number(m[1]));
+    if (!q) throw new HttpError(404, "상담 요청을 찾을 수 없습니다.");
+    const b = await readJson(req);
+    const status = b.status === undefined ? q.status : b.status;
+    if (!core.INQ_STATUSES.some((x) => x.key === status)) throw new HttpError(400, "상태 값이 올바르지 않습니다.");
+    const memo = b.staff_memo === undefined ? q.staff_memo : str(b.staff_memo, 500, false, "메모");
+    db.prepare("UPDATE inquiries SET status = ?, staff_memo = ?, handled_by = ?, updated_at = ? WHERE id = ?")
+      .run(status, memo, status !== q.status ? user.name : q.handled_by, nowIso(), q.id);
+    audit(db, user.username, "inquiry.update", "inquiry:" + q.id, { status });
+    return { item: db.prepare("SELECT * FROM inquiries WHERE id = ?").get(q.id) };
+  }, "staff");
+
   /* 진료센터 (센터 종류는 고정, 내용만 편집) */
   on("GET", /^\/api\/admin\/centers$/, () => ({ items: centersAll(true).map((c) => Object.assign({ id: c.key }, c)) }), "staff");
   on("PUT", /^\/api\/admin\/centers\/([a-z]+)$/, async (req, url, user, m) => {
@@ -589,7 +682,7 @@ function createApp(opts) {
     const b = await readJson(req);
     const v = {
       name: str(b.name, 30, true, "센터 이름"), en: str(b.en, 40), summary: str(b.summary, 120), description: str(b.description, 2000),
-      tags: str(b.tags, 200), process: str(b.process, 2000), faq: str(b.faq, 4000), sort: int(b.sort || 0, 0, 999, "순서"), published: b.published === false || b.published === 0 ? 0 : 1
+      tags: str(b.tags, 200), process: str(b.process, 2000), faq: str(b.faq, 4000), prep: str(b.prep, 1000), sort: int(b.sort || 0, 0, 999, "순서"), published: b.published === false || b.published === 0 ? 0 : 1
     };
     const cols = Object.keys(v);
     db.prepare("UPDATE centers SET " + cols.map((c) => c + " = ?").join(", ") + " WHERE key = ?").run(...cols.map((c) => v[c]), m[1]);
@@ -645,6 +738,8 @@ function createApp(opts) {
     const cutoff = core.addDays(now.date, -rules.retentionDays);
     const purged = db.prepare("UPDATE reservations SET name = '(파기)', phone = '', memo = '', staff_memo = '', purged = 1 WHERE purged = 0 AND date < ?").run(cutoff).changes;
     if (purged) audit(db, "system", "privacy.purge", "reservations", { count: Number(purged), before: cutoff });
+    const purgedQ = db.prepare("UPDATE inquiries SET name = '(파기)', phone = '', message = '', staff_memo = '', purged = 1 WHERE purged = 0 AND created_at < ?").run(cutoff + "T00:00:00Z").changes;
+    if (purgedQ) audit(db, "system", "privacy.purge", "inquiries", { count: Number(purgedQ), before: cutoff });
     db.prepare("DELETE FROM outbox WHERE at < ?").run(new Date(Date.now() - rules.retentionDays * 86400000).toISOString());
     // 2) 확정 예약 하루 전 안내 문자 (오전 10시 이후 발송)
     let reminded = 0;

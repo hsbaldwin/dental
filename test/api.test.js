@@ -277,3 +277,54 @@ test("treatment centers: content, doctor days and booking restriction", async ()
   // 수요일 교정 원장이 생기면 교정센터 수요일 예약이 열림
   assert.equal((await call("GET", "/api/slots?date=2026-11-04&treatment=ortho")).json.closed, false);
 });
+
+test("center front desk: status, callback requests and staff handling", async () => {
+  const cookie = await login();
+  let live = await call("GET", "/api/live");
+  let ortho = live.json.centers.find((c) => c.key === "ortho");
+  // 이전 테스트에서 수요일 교정 원장이 추가되어 오늘(수) 교정센터도 진료
+  assert.equal(ortho.desk.status, "open");
+  assert.match(ortho.desk.label, /접수 중/);
+  assert.equal(ortho.desk.pending, 0);
+
+  const up = await call("PUT", "/api/admin/centers/ortho/desk", { paused: false, wait: 10, message: "교정센터입니다. 오늘 오후는 여유가 있습니다.", staff: "김코디" }, { cookie });
+  assert.equal(up.status, 200);
+  live = await call("GET", "/api/live");
+  ortho = live.json.centers.find((c) => c.key === "ortho");
+  assert.equal(ortho.desk.wait, 10);
+  assert.equal(ortho.desk.staff, "김코디");
+  assert.match(ortho.desk.message, /여유/);
+
+  const bad = await call("POST", "/api/inquiries", { center: "ortho", name: "이상담", phone: "010-4545-1212", topic: "cost", prefer: "pm", consent: false });
+  assert.equal(bad.status, 400);
+  const q1 = await call("POST", "/api/inquiries", { center: "ortho", name: "이상담", phone: "010-4545-1212", topic: "cost", prefer: "pm", message: "투명교정 비용", consent: true });
+  assert.equal(q1.status, 201, q1.text);
+  assert.equal(q1.json.status, "new");
+  assert.equal(q1.json.ahead, 0);
+  const q2 = await call("POST", "/api/inquiries", { center: "ortho", name: "박상담", phone: "010-4545-3434", topic: "first", prefer: "asap", consent: true });
+  assert.equal(q2.json.ahead, 1);
+  live = await call("GET", "/api/live");
+  assert.equal(live.json.centers.find((c) => c.key === "ortho").desk.pending, 2);
+
+  const list = await call("GET", "/api/admin/inquiries?center=ortho", undefined, { cookie });
+  assert.equal(list.json.items.length, 2);
+  const id = list.json.items[0].id;
+  await call("PATCH", "/api/admin/inquiries/" + id, { status: "seen" }, { cookie });
+  const look = await call("POST", "/api/inquiries/lookup", { code: q1.json.code, phone: "01045451212" });
+  assert.equal(look.json.status, "seen");
+  assert.equal(look.json.handledBy, "관리자");
+  assert.equal((await call("POST", "/api/inquiries/cancel", { code: q1.json.code, phone: "01045451212" })).status, 409);
+  await call("PATCH", "/api/admin/inquiries/" + id, { status: "done", staff_memo: "통화 완료, 상담 예약 안내" }, { cookie });
+  assert.equal((await call("POST", "/api/inquiries/lookup", { code: q1.json.code, phone: "01045451212" })).json.status, "done");
+  assert.equal((await call("POST", "/api/inquiries/lookup", { code: q2.json.code, phone: "01045453434" })).json.ahead, 0);
+  const sum = await call("GET", "/api/admin/summary", undefined, { cookie });
+  assert.equal(sum.json.inquiriesOpen, 1);
+
+  // 데스크 일시 중단이면 상담 요청을 받지 않음
+  await call("PUT", "/api/admin/centers/ortho/desk", { paused: true }, { cookie });
+  live = await call("GET", "/api/live");
+  assert.equal(live.json.centers.find((c) => c.key === "ortho").desk.status, "paused");
+  const blocked = await call("POST", "/api/inquiries", { center: "ortho", name: "최상담", phone: "010-4545-5656", topic: "other", prefer: "am", consent: true });
+  assert.equal(blocked.status, 409);
+  await call("PUT", "/api/admin/centers/ortho/desk", { paused: false }, { cookie });
+});

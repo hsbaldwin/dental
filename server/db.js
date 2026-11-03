@@ -14,6 +14,12 @@ CREATE TABLE IF NOT EXISTS centers (
   key TEXT PRIMARY KEY, name TEXT NOT NULL, en TEXT, summary TEXT, description TEXT, tags TEXT,
   process TEXT, faq TEXT, sort INTEGER NOT NULL DEFAULT 0, published INTEGER NOT NULL DEFAULT 1
 );
+CREATE TABLE IF NOT EXISTS inquiries (
+  id INTEGER PRIMARY KEY, code TEXT NOT NULL UNIQUE, center TEXT NOT NULL, name TEXT NOT NULL, phone TEXT NOT NULL,
+  topic TEXT NOT NULL, prefer TEXT NOT NULL, message TEXT, status TEXT NOT NULL, staff_memo TEXT, handled_by TEXT,
+  consent_at TEXT, purged INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_inq_center ON inquiries(center, status);
 CREATE TABLE IF NOT EXISTS holidays (date TEXT PRIMARY KEY, label TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS fees (
   id INTEGER PRIMARY KEY, name TEXT NOT NULL, unit TEXT, price INTEGER, note TEXT, sort INTEGER NOT NULL DEFAULT 0
@@ -102,9 +108,18 @@ function migrate(db) {
     const set = db.prepare("UPDATE fees SET center = ? WHERE sort = ?");
     Object.keys(SEED.FEE_CENTERS).forEach((sort) => set.run(SEED.FEE_CENTERS[sort], Number(sort)));
   }
+  // 센터 데스크(리셉션) 상태: 직원이 관리 화면에서 바꾸는 값
+  const centerCols = db.prepare("PRAGMA table_info(centers)").all().map((c) => c.name);
+  [["prep", "TEXT"], ["desk_paused", "INTEGER NOT NULL DEFAULT 0"], ["desk_wait", "INTEGER"], ["desk_message", "TEXT"],
+   ["desk_staff", "TEXT"], ["desk_updated_at", "TEXT"], ["desk_updated_by", "TEXT"]].forEach(([col, type]) => {
+    if (!centerCols.includes(col)) db.exec("ALTER TABLE centers ADD COLUMN " + col + " " + type);
+  });
   if (!db.prepare("SELECT COUNT(*) AS n FROM centers").get().n) {
-    const ins = db.prepare("INSERT INTO centers (key, name, en, summary, description, tags, process, faq, sort, published) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)");
-    SEED.CENTERS.forEach((c) => ins.run(c.key, c.name, c.en, c.summary, c.description, c.tags, c.process, c.faq, c.sort));
+    const ins = db.prepare("INSERT INTO centers (key, name, en, summary, description, tags, process, faq, prep, sort, published) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)");
+    SEED.CENTERS.forEach((c) => ins.run(c.key, c.name, c.en, c.summary, c.description, c.tags, c.process, c.faq, c.prep, c.sort));
+  } else {
+    const fill = db.prepare("UPDATE centers SET prep = ? WHERE key = ? AND prep IS NULL");
+    SEED.CENTERS.forEach((c) => fill.run(c.prep, c.key));
   }
 }
 

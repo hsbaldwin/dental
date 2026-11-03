@@ -188,7 +188,44 @@
     if (!c) return { days: null, label: null };
     return { days: centerDays(doctors, c.key), label: c.name };
   }
-  function centerSummaries(centers, doctors, hours, holidays, rules, countsByDate, now) {
+  /* ---------- 센터 데스크(리셉션) ---------- */
+  var INQ_STATUSES = [
+    { key: "new", label: "접수" }, { key: "seen", label: "데스크 확인" }, { key: "done", label: "연락 완료" }, { key: "cancelled", label: "취소" }
+  ];
+  var TOPICS = [
+    { key: "first", label: "첫 방문 상담" }, { key: "cost", label: "비용 문의" }, { key: "schedule", label: "일정 · 예약 변경" },
+    { key: "pain", label: "통증 · 불편" }, { key: "other", label: "기타" }
+  ];
+  var PREFERS = [{ key: "asap", label: "지금 바로" }, { key: "am", label: "오전" }, { key: "pm", label: "오후" }, { key: "eve", label: "저녁 (18시 이후)" }];
+  // desk: 센터 행(desk_paused, desk_wait, desk_message, desk_staff, desk_updated_at), cs: 센터 요약, clinic: openStatus()
+  function deskState(desk, cs, clinic, nowMs) {
+    var fresh = desk.desk_updated_at && (nowMs - Date.parse(desk.desk_updated_at)) < 3 * 3600 * 1000;
+    var key, label;
+    if (desk.desk_paused) { key = "paused"; label = "온라인 접수 잠시 중단"; }
+    else if (!cs.today.open) { key = "off"; label = /진료일이 아닙니다/.test(cs.today.reason) ? "오늘은 진료가 없는 날" : "오늘 " + (cs.today.reason || "휴진"); }
+    else if (/점심/.test(clinic.text)) { key = "lunch"; label = clinic.text; }
+    else if (clinic.open) { key = "open"; label = clinic.text.replace("진료 중", "접수 중"); }
+    else { key = "closed"; label = clinic.text.replace("진료 시작", "접수 시작"); }
+    return {
+      status: key, label: label, accepting: key !== "paused",
+      wait: fresh && key === "open" && desk.desk_wait !== null && desk.desk_wait !== undefined ? desk.desk_wait : null,
+      message: desk.desk_message || "", staff: desk.desk_staff || "", updatedAt: desk.desk_updated_at || null
+    };
+  }
+  function validateInquiry(input) {
+    var errors = {};
+    var name = String(input.name || "").trim(), phone = normalizePhone(input.phone), message = String(input.message || "").trim();
+    if (!name) errors.name = "성함을 입력해 주세요."; else if (name.length > 30) errors.name = "성함은 30자 이내로 입력해 주세요.";
+    if (!isPhone(phone)) errors.phone = "연락처를 010-1234-5678 형식으로 입력해 주세요.";
+    if (!TREATMENTS.some(function (t) { return t.key === input.center && t.key !== "checkup"; })) errors.center = "진료센터를 확인해 주세요.";
+    if (!TOPICS.some(function (t) { return t.key === input.topic; })) errors.topic = "상담 내용을 골라 주세요.";
+    if (!PREFERS.some(function (t) { return t.key === input.prefer; })) errors.prefer = "연락받을 시간을 골라 주세요.";
+    if (message.length > 300) errors.message = "남기실 말씀은 300자 이내로 적어 주세요.";
+    if (input.consent !== true) errors.consent = "개인정보 수집에 동의해야 상담을 요청할 수 있습니다.";
+    return { ok: !Object.keys(errors).length, errors: errors, value: { name: name, phone: phone, center: input.center, topic: input.topic, prefer: input.prefer, message: message } };
+  }
+
+  function centerSummaries(centers, doctors, hours, holidays, rules, countsByDate, now, clinic, nowMs, pending) {
     return centers.map(function (c) {
       var days = centerDays(doctors, c.key);
       var ov = overview(hours, holidays, rules, countsByDate, now, 7, days, c.name);
@@ -198,6 +235,9 @@
         today: { open: !tp.closed, reason: tp.reason || "", openSlots: ov.today.openSlots },
         doctorsToday: tp.closed ? [] : doctors.filter(function (d) { return inCenter(d, c.key) && worksOn(d.days, now.weekday); }).map(function (d) { return d.name; })
       };
+    }).map(function (cs, i) {
+      if (clinic) { cs.desk = deskState(centers[i], cs, clinic, nowMs || Date.now()); cs.desk.pending = (pending && pending[cs.key]) || 0; }
+      return cs;
     });
   }
   function parseLines(text) {
@@ -236,6 +276,7 @@
     normalizePhone: normalizePhone, isPhone: isPhone, formatPhone: formatPhone, maskName: maskName,
     dayPlan: dayPlan, computeSlots: computeSlots, openStatus: openStatus, validateReservation: validateReservation,
     PARTS: PARTS, overview: overview, liveNotice: liveNotice, waitLabel: waitLabel, worksOn: worksOn,
+    INQ_STATUSES: INQ_STATUSES, TOPICS: TOPICS, PREFERS: PREFERS, deskState: deskState, validateInquiry: validateInquiry,
     inCenter: inCenter, centerDays: centerDays, planFor: planFor, restriction: restriction, centerSummaries: centerSummaries, parseLines: parseLines
   };
 });
