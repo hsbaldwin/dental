@@ -85,3 +85,37 @@ body { margin: 0; font-family: var(--font-sans); font-size: 17px; line-height: 1
 .wd-easy i { font-style: normal; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--ink); color: var(--enamel); font: 700 18px/1 var(--font-display); }
 .wd-easy[aria-pressed="true"] { background: var(--ink); color: var(--enamel); }
 .wd-easy[aria-pressed="true"] i { background: var(--enamel); color: var(--ink); }
+
+/* ===== 어르신 컴포넌트: 한 화면 한 질문 ===== */
+.wd-q { font: 600 28px/36px var(--font-display); margin: 0; }
+.wd-hint { margin: 0; color: var(--ink-muted); font-size: 17px; }
+.wd-progress { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.wd-progress li { display: grid; gap: 4px; text-align: center; font: 500 13px/18px var(--font-sans); color: var(--ink-muted); }
+.wd-progress li::before { content: ""; height: 6px; border-radius: var(--radius-pill); background: var(--line); }
+.wd-progress .done::before { background: var(--teal); }
+.wd-progress .now { color: var(--ink); font-weight: 700; white-space: nowrap; }
+.wd-progress .now::before { background: var(--live); }
+.wd-step-label { font: 700 17px/24px var(--font-sans); color: var(--teal); }
+.wd-choice { font: inherit; text-align: left; display: grid; gap: 2px; min-height: 68px; padding: 14px 48px 14px 18px; border: 2px solid var(--line-strong); border-radius: var(--radius-crown) var(--radius-crown) var(--radius-root) var(--radius-root); background: var(--enamel-raised); color: var(--ink); cursor: pointer; position: relative; width: 100%; box-sizing: border-box; }
+.wd-choice::after { content: "→"; position: absolute; right: 18px; top: 50%; transform: translateY(-50%); font-size: 20px; color: var(--teal); }
+.wd-choice b { font-size: 20px; line-height: 28px; }
+.wd-choice small { font-size: 16px; color: var(--ink-muted); }
+.wd-choice-primary { background: var(--teal-soft); border-color: var(--teal); }
+.wd-choice:disabled { border-style: dashed; color: var(--ink-muted); cursor: not-allowed; }
+.wd-choice:disabled::after { content: ""; }
+.wd-choice:focus-visible, .wd-key:focus-visible, .wd-nav:focus-visible { outline: 3px solid var(--teal); outline-offset: 3px; }
+.wd-phone { display: block; text-align: center; font: 700 32px/44px var(--font-display); letter-spacing: .04em; padding: 12px; border-radius: var(--radius-root); background: var(--enamel-raised); border: 2px solid var(--line-strong); font-variant-numeric: tabular-nums; }
+.wd-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.wd-key { font: 700 28px/1 var(--font-sans); min-height: 64px; border-radius: var(--radius-root); border: 2px solid var(--line-strong); background: var(--enamel-raised); color: var(--ink); cursor: pointer; }
+.wd-key-sub { font-size: 17px; }
+.wd-key-go { background: var(--teal); border-color: var(--teal); color: var(--on-teal); font-size: 20px; }
+.wd-summary { margin: 0; border: 2px solid var(--line); border-radius: var(--radius-root); background: var(--enamel-raised); }
+.wd-summary div { display: grid; grid-template-columns: 80px 1fr auto; gap: 12px; align-items: center; padding: 12px 16px; }
+.wd-summary div + div { border-top: 1px solid var(--line); }
+.wd-summary dt { color: var(--ink-muted); font-size: 16px; }
+.wd-summary dd { margin: 0; font-size: 20px; font-weight: 700; }
+.wd-nav { font: 600 16px/22px var(--font-sans); min-height: var(--tap-min); padding: 0 var(--space-4); border-radius: var(--radius-root); border: 2px solid var(--line-strong); background: var(--enamel-raised); color: var(--ink); cursor: pointer; }
+.wd-foot { display: flex; justify-content: space-between; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
+.wd-go { font: 700 20px/28px var(--font-sans); min-height: 64px; border: 0; border-radius: var(--radius-root); background: var(--teal); color: var(--on-teal); width: 100%; cursor: pointer; }
+.wd-agree { display: flex; gap: 12px; align-items: flex-start; font-size: 17px; }
+.wd-agree input { width: 26px; height: 26px; accent-color: var(--teal); flex: none; margin-top: 2px; }

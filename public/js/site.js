@@ -285,7 +285,7 @@
     var cl = centerLive(c.key), d = deskOf(cl), box = $("deskReply");
     deskMode = mode; inquiryShown = false;
     document.querySelectorAll("#deskMenu button").forEach(function (b) { b.setAttribute("aria-pressed", b.getAttribute("data-desk") === mode ? "true" : "false"); });
-    if (mode === "book") { box.hidden = true; goBook(null, null, c.key); return; }
+    if (mode === "book") { box.hidden = true; if (window.WEasyBook && (root.classList.contains("easy") || window.innerWidth <= 760)) window.WEasyBook.open(c.key); else goBook(null, null, c.key); return; }
     if (mode === "cost") { box.hidden = true; document.getElementById("c-fees").scrollIntoView({ behavior: "smooth", block: "start" }); return; }
     box.textContent = ""; box.hidden = false;
     if (mode === "call") {

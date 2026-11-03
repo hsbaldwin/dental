@@ -844,3 +844,59 @@ html.easy .tools { margin-left: auto; }
 .shades span { border-radius: 18px 18px 22px 22px / 14px 14px 30px 30px; }
 /* 브랜드 마크: 첫 화면 대화창 머리의 W가 민트 위에 */
 .chat-head .desk-avatar { background: var(--accent); }
+
+/* ===================== 쉬운 예약 (어르신용 단계별 안내) ===================== */
+html.eb-open { overflow: hidden; }
+.eb { position: fixed; inset: 0; z-index: 90; background: color-mix(in oklab, var(--ink) 45%, transparent); display: grid; place-items: center; padding: env(safe-area-inset-top, 0px) var(--gutter-r) env(safe-area-inset-bottom, 0px) var(--gutter-l); }
+.eb-panel { width: min(40rem, 100%); max-height: calc(100vh - 2rem); display: grid; grid-template-rows: auto auto auto minmax(0, 1fr) auto; background: var(--bg); border-radius: var(--radius-crown) var(--radius-crown) var(--radius-root) var(--radius-root); box-shadow: var(--shadow); overflow: hidden; font-size: 1.125rem; }
+.eb-head { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.25rem .5rem; }
+.eb-step { font-weight: 700; color: var(--accent); }
+.eb-close, .eb-back, .eb-call, .eb-fix { font: inherit; font-size: 1rem; font-weight: 600; min-height: 3rem; padding: 0 1.1rem; border-radius: var(--radius-root); border: 2px solid var(--line-strong); background: var(--surface); color: var(--ink); cursor: pointer; }
+.eb-bar { list-style: none; margin: 0; padding: 0 1.25rem; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: .3rem; }
+.eb-bar li { font-size: .75rem; color: var(--muted); display: grid; gap: .2rem; text-align: center; }
+.eb-bar li::before { content: ""; height: .4rem; border-radius: 999px; background: var(--line); }
+.eb-bar li.done::before { background: var(--accent); }
+.eb-bar li.now { color: var(--ink); font-weight: 700; }
+.eb-bar li.now::before { background: var(--live); }
+.eb-title { font-size: clamp(1.5rem, 1.2rem + 1.5vw, 2rem); padding: 1rem 1.25rem .25rem; }
+.eb-body { overflow-y: auto; padding: .5rem 1.25rem 1.25rem; display: grid; gap: .9rem; align-content: start; outline: none; }
+.eb-hint { color: var(--muted); font-size: 1.0625rem; }
+.eb-error { color: var(--warn); font-weight: 700; }
+.eb-list { display: grid; gap: .6rem; }
+.eb-choice { font: inherit; text-align: left; display: grid; gap: .15rem; min-height: 4.25rem; padding: .85rem 1.15rem; border: 2px solid var(--line-strong); border-radius: var(--radius-crown) var(--radius-crown) var(--radius-root) var(--radius-root); background: var(--surface); color: var(--ink); cursor: pointer; position: relative; padding-right: 3rem; }
+.eb-choice::after { content: "→"; position: absolute; right: 1.15rem; top: 50%; transform: translateY(-50%); font-size: 1.25rem; color: var(--accent); }
+.eb-choice b { font-size: 1.25rem; }
+.eb-choice small { font-size: 1rem; color: var(--muted); }
+.eb-choice:hover { border-color: var(--accent); }
+.eb-choice.primary { background: var(--soft); border-color: var(--accent); }
+.eb-choice.off { opacity: .55; cursor: not-allowed; border-style: dashed; }
+.eb-choice.off::after { content: ""; }
+.eb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr)); gap: .6rem; }
+.eb-time { font: inherit; font-size: 1.25rem; font-weight: 700; min-height: 4rem; border-radius: var(--radius-root); border: 2px solid var(--line-strong); background: var(--surface); color: var(--ink); cursor: pointer; }
+.eb-time:hover { border-color: var(--accent); }
+.eb-input { font: inherit; font-size: 1.5rem; min-height: 4rem; padding: 0 1rem; border: 2px solid var(--line-strong); border-radius: var(--radius-root); background: var(--surface); color: var(--ink); width: 100%; box-sizing: border-box; }
+.eb-next { font: inherit; font-size: 1.25rem; font-weight: 700; min-height: 4rem; border: 0; border-radius: var(--radius-root); background: var(--accent); color: var(--accent-ink); cursor: pointer; display: grid; place-items: center; text-decoration: none; }
+.eb-next:disabled { opacity: .6; }
+.eb-phone { display: block; text-align: center; font-family: var(--f-display); font-size: 2rem; font-weight: 700; letter-spacing: .04em; padding: .75rem; border-radius: var(--radius-root); background: var(--surface); border: 2px solid var(--line-strong); font-variant-numeric: tabular-nums; }
+.eb-pad { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5rem; }
+.eb-key { font: inherit; font-size: 1.75rem; font-weight: 700; min-height: 4rem; border-radius: var(--radius-root); border: 2px solid var(--line-strong); background: var(--surface); color: var(--ink); cursor: pointer; }
+.eb-key.sub { font-size: 1.0625rem; }
+.eb-key.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-size: 1.25rem; }
+.eb-summary { margin: 0; display: grid; border: 2px solid var(--line); border-radius: var(--radius-root); background: var(--surface); }
+.eb-summary div { display: grid; grid-template-columns: 5rem minmax(0, 1fr) auto; gap: .75rem; align-items: center; padding: .75rem 1rem; }
+.eb-summary div + div { border-top: 1px solid var(--line); }
+.eb-summary dt { color: var(--muted); font-size: 1rem; }
+.eb-summary dd { margin: 0; font-size: 1.25rem; font-weight: 700; }
+.eb-fix { min-height: 2.75rem; }
+.eb-agree { display: flex; gap: .75rem; align-items: flex-start; font-size: 1.0625rem; cursor: pointer; }
+.eb-agree input { width: 1.6rem; height: 1.6rem; margin-top: .15rem; accent-color: var(--accent); flex: none; }
+.eb-code { font-family: var(--f-mono); font-size: 2rem; letter-spacing: .15em; color: var(--accent); text-align: center; }
+.eb-foot { display: flex; justify-content: space-between; gap: .5rem; padding: .75rem 1.25rem 1rem; border-top: 1px solid var(--line); background: var(--surface); }
+.eb-call { margin-left: auto; }
+.eb :focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+@media (max-width: 560px) {
+  .eb { padding: 0; place-items: stretch; }
+  .eb-panel { max-height: none; height: 100%; border-radius: 0; }
+  .eb-bar li { font-size: 0; } .eb-bar li.now { font-size: .75rem; }
+}
+.eb-bar li.now { white-space: nowrap; overflow: visible; }

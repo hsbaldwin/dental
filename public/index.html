@@ -80,7 +80,7 @@
       <h2 class="vh" id="qb-h">자주 찾는 메뉴</h2>
       <div class="quick-tiles">
         <a class="qt qt-tel" id="qtTel" href="#visit"><span class="qt-label">전화하기</span><b class="qt-big" data-bind="phone">02-000-0000</b><small id="qtTelState">진료시간 확인 중</small></a>
-        <a class="qt qt-book" href="#reserve"><span class="qt-label">진료 예약하기</span><b class="qt-big">예약</b><small id="qtNext">남은 시간 확인 중</small></a>
+        <a class="qt qt-book" href="#reserve"><span class="qt-label">진료 예약하기</span><b class="qt-big">쉬운 예약</b><small id="qtNext">남은 시간 확인 중</small></a>
         <a class="qt" href="#today"><span class="qt-label">오늘 진료하나요?</span><b class="qt-big" id="qtToday">확인 중</b><small id="qtHours">진료시간 보기</small></a>
         <a class="qt" href="#visit"><span class="qt-label">오시는 길</span><b class="qt-big qt-addr" data-bind="subway">지하철 안내</b><small>주차 · 지도 보기</small></a>
       </div>
@@ -431,6 +431,22 @@
 <button class="chat-fab" id="chatFab" type="button" hidden><span class="desk-avatar" aria-hidden="true"><svg viewBox="0 0 64 40"><use href="#w-mark"/></svg></span>챗봇 상담</button>
 <div class="chat-sheet" id="chatSheet" hidden></div>
 
+<div class="eb" id="easyBook" hidden role="dialog" aria-modal="true" aria-labelledby="ebTitle">
+  <div class="eb-panel">
+    <header class="eb-head">
+      <span class="eb-step" id="ebStep">1 / 7 단계</span>
+      <button class="eb-close" id="ebClose" type="button">닫기</button>
+    </header>
+    <ol class="eb-bar" id="ebBar" aria-label="예약 단계"></ol>
+    <h2 class="eb-title" id="ebTitle">어떤 진료를 받으시겠어요?</h2>
+    <div class="eb-body" id="ebBody" tabindex="-1"></div>
+    <footer class="eb-foot">
+      <button class="eb-back" id="ebBack" type="button" hidden>← 이전</button>
+      <button class="eb-call" id="ebCall" type="button">전화로 할게요</button>
+    </footer>
+  </div>
+</div>
+
 <div class="live-toast" id="liveToast" role="status" aria-live="polite" hidden></div>
 
 <nav class="dock" aria-label="빠른 연락">
@@ -442,5 +458,6 @@
 <script src="js/core.js"></script>
 <script src="js/site.js"></script>
 <script src="js/chat.js"></script>
+<script src="js/easybook.js"></script>
 </body>
 </html>
