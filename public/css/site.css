@@ -1,14 +1,17 @@
 /* 토큰 출처: design/tokens.json (W치과 디자인 시스템 — 건강한 입속의 색과 모양) */
 :root {
-  --bg: #F7FAF9;        /* enamel: 법랑질 화이트 */
+  --bg: #F8FCFB;        /* enamel: 법랑질 화이트 */
   --surface: #FFFFFF;   /* enamel-raised */
   --ink: #10211F;
   --muted: #43524E;     /* ink-muted */
   --line: #D3DEDA;
   --line-strong: #7C8D88; /* 입력칸·선택 버튼 테두리 (3:1 이상) */
-  --accent: #0E6A5D;    /* teal: 믿음의 틸 */
+  --accent: #0B7468;    /* teal: 맑은 틸 */
   --accent-ink: #FFFFFF; /* on-teal */
-  --soft: #E0EFEA;      /* teal-soft */
+  --soft: #DDF3EF;      /* teal-soft */
+  --fresh: #DDF6EE;     /* 상쾌한 민트 바탕: 첫 단계와 바닥글 */
+  --aqua: #38C6C0;      /* 물빛 아쿠아: 장식 면만 */
+  --foam: rgba(255,255,255,.6); /* 거품 원 */
   --paper: #F1EAD8;     /* dentin: VITA A2 상아색 */
   --paper-ink: #2B261A; /* dentin-ink */
   --mint: #2BA884;      /* 상쾌한 민트 (장식 면만) */
@@ -53,7 +56,7 @@
     --bg: #0E1716; --surface: #152220; --ink: #E6EFEC; --muted: #B1C2BD; --line: #2A3B37; --line-strong: #5E726D;
     --accent: #52C2AC; --accent-ink: #062019; --soft: #15302A; --paper: #2A2619; --paper-ink: #EFE6CF;
     --mint: #3FCB9E; --mint-soft: #143329; --gum: #EE8FA0; --gum-ink: #F4A9B6; --gum-soft: #3A1E25;
-    --ok: #4FD58C; --warn: #E3A15F; --shadow: 0 18px 40px -24px #000000b3; --live: #4FD58C; --h-ok: #1D4A3F; --h-few: #4A3519; --h-full: #1A2725; --deep: #123F38; --on-deep: #F2F8F6; --on-deep-muted: #BFD6D0; --mint-on-deep: #7FE0C2; --mint-tile: #8EE3C8;
+    --ok: #4FD58C; --warn: #E3A15F; --shadow: 0 18px 40px -24px #000000b3; --live: #4FD58C; --h-ok: #1D4A3F; --h-few: #4A3519; --h-full: #1A2725; --fresh: #102824; --aqua: #4FD1CB; --foam: rgba(255,255,255,.04); --deep: #123F38; --on-deep: #F2F8F6; --on-deep-muted: #BFD6D0; --mint-on-deep: #7FE0C2; --mint-tile: #8EE3C8;
     --c-implant-ink: #5FD0B8; --c-implant-soft: #123A33; --c-implant-solid: #5FD0B8;
     --c-ortho-ink: #9DB8F2; --c-ortho-soft: #1B2A4A; --c-ortho-solid: #9DB8F2;
     --c-endo-ink: #F0C46B; --c-endo-soft: #3A2C0E; --c-endo-solid: #F0C46B;
@@ -68,7 +71,7 @@
   --bg: #0E1716; --surface: #152220; --ink: #E6EFEC; --muted: #B1C2BD; --line: #2A3B37; --line-strong: #5E726D;
   --accent: #52C2AC; --accent-ink: #062019; --soft: #15302A; --paper: #2A2619; --paper-ink: #EFE6CF;
   --mint: #3FCB9E; --mint-soft: #143329; --gum: #EE8FA0; --gum-ink: #F4A9B6; --gum-soft: #3A1E25;
-  --ok: #4FD58C; --warn: #E3A15F; --shadow: 0 18px 40px -24px #000000b3; --live: #4FD58C; --h-ok: #1D4A3F; --h-few: #4A3519; --h-full: #1A2725; --deep: #123F38; --on-deep: #F2F8F6; --on-deep-muted: #BFD6D0; --mint-on-deep: #7FE0C2; --mint-tile: #8EE3C8;
+  --ok: #4FD58C; --warn: #E3A15F; --shadow: 0 18px 40px -24px #000000b3; --live: #4FD58C; --h-ok: #1D4A3F; --h-few: #4A3519; --h-full: #1A2725; --fresh: #102824; --aqua: #4FD1CB; --foam: rgba(255,255,255,.04); --deep: #123F38; --on-deep: #F2F8F6; --on-deep-muted: #BFD6D0; --mint-on-deep: #7FE0C2; --mint-tile: #8EE3C8;
     --c-implant-ink: #5FD0B8; --c-implant-soft: #123A33; --c-implant-solid: #5FD0B8;
     --c-ortho-ink: #9DB8F2; --c-ortho-soft: #1B2A4A; --c-ortho-solid: #9DB8F2;
     --c-endo-ink: #F0C46B; --c-endo-soft: #3A2C0E; --c-endo-solid: #F0C46B;
@@ -1057,3 +1060,41 @@ html.easy .journey { display: none !important; }
 .site-footer .foot-links a:first-child { color: var(--on-deep); }
 .ccard h3 .cc-name { display: inline-flex; align-items: center; gap: .1rem; } .ccard .cc-swatch { margin-right: .35rem; }
 #now .chat, #now .quick-tiles, #now .senior-note, #now .easy-ask { color: var(--ink); }
+
+
+/* ===================== 상쾌함: 맑은 민트 + 거품 ===================== */
+#now { background: var(--fresh); color: var(--ink); position: relative; overflow: hidden; isolation: isolate; }
+#now::before, #now::after { content: ""; position: absolute; z-index: -1; border-radius: 50%; background: var(--foam); pointer-events: none; }
+#now::before { width: 46rem; height: 46rem; right: -14rem; top: -18rem; }
+#now::after { width: 26rem; height: 26rem; left: -10rem; bottom: -12rem; box-shadow: 30rem -6rem 0 -9rem var(--foam); }
+#now .chat-intro h1, #now .chat-intro p, #now .chat-intro .lede { color: var(--ink); }
+#now .chat-intro .lede { color: var(--muted); }
+#now .chat-intro h1 em { color: var(--accent); }
+#now .eyebrow { color: var(--accent); }
+#now .eyebrow .stage-no { background: var(--accent); color: var(--accent-ink); }
+#now .promise { border-left-color: var(--aqua); color: var(--muted); }
+#now .promise b { color: var(--ink); }
+#now .live-tag { color: var(--live); }
+#now .live-tag i { background: var(--live); box-shadow: 0 0 0 3px var(--mint-soft); }
+#now .qt { border-color: transparent; box-shadow: 0 10px 28px -18px #0b746866; }
+#now .qt-tel { background: var(--surface); color: var(--ink); }
+#now .qt-tel small { color: var(--muted); }
+#now .qt-book { background: var(--accent); color: var(--accent-ink); }
+#now .qt-book small { color: var(--accent-ink); }
+#now .qt:hover { border-color: var(--aqua); }
+#now .chat { border-color: transparent; box-shadow: 0 24px 60px -30px #0b746880; }
+.site-footer { background: var(--fresh); color: var(--muted); border-top: 1px solid var(--line); }
+.site-footer a, .site-footer .brand, .site-footer .foot-links a:first-child { color: var(--ink); }
+.site-footer .brand svg { color: var(--accent); }
+.livebar { background: var(--surface); }
+#stage-book { background: var(--soft); }
+/* 물빛 포인트: 단계 번호와 다음 단계 카드 */
+.next-step { border-color: var(--aqua); }
+.next-step:hover { background: var(--fresh); }
+.ns-arrow { color: var(--accent); }
+.stage-no { box-shadow: 0 0 0 3px color-mix(in oklab, var(--aqua) 30%, transparent); }
+@media (prefers-reduced-motion: no-preference) {
+  .qt, .ccard, .next-step { transition: transform .15s ease, box-shadow .15s ease, background .15s ease; }
+  .qt:hover, .next-step:hover { transform: translateY(-2px); }
+}
+.notice-bar { background: var(--accent); color: var(--accent-ink); }
