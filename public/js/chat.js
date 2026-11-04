@@ -105,11 +105,12 @@
   function greet() {
     if (started) return; started = true;
     var lv = live();
-    var parts = ["안녕하세요, W치과 안내 챗봇입니다."];
-    if (lv) parts.push(liveLine([lv.status.text, lv.notice.wait !== null ? "현재 " + C.waitLabel(lv.notice.wait) : null, lv.next ? "가장 빠른 예약 " + A.relDay(lv.next.date) + " " + C.koTime(lv.next.time) : "예약 가능한 시간 확인 중"]));
+    // 첫 인사는 짧게: 인사 한 줄 + 지금 상황 한 줄 (+ 병원 안내가 있을 때만)
+    // (진료 중 여부는 바로 위 실시간 줄에 있으므로 여기서는 가장 빠른 예약만)
+    var parts = ["안녕하세요, W치과입니다."];
+    if (lv) parts.push(liveLine([lv.next ? "가장 빠른 예약 " + A.relDay(lv.next.date) + " " + C.koTime(lv.next.time) : lv.status.text]));
     if (lv && lv.notice.message) parts.push("병원 안내: " + lv.notice.message);
-    parts.push("증상이나 궁금한 것을 편하게 적어 주시거나, 아래에서 골라 주세요.");
-    parts.push(el("p", { class: "muted", text: "저는 자동 안내 챗봇이라 진단은 하지 않아요. 사람과 이야기하시려면 '상담원과 통화'를 눌러 주세요." }));
+    parts.push(el("p", { class: "muted", text: "자동 안내라 진단은 하지 않아요." }));
     bot(parts);
     if (A.myBooking()) {
       A.api("reservations/lookup", A.myBooking()).then(function (r) {
@@ -120,18 +121,26 @@
   }
   function menu(text, silent) {
     if (!silent) bot(text || "더 도와드릴 일이 있을까요?");
+    // 큰 버튼 넷 + '다른 것' (나머지는 한 번 더 눌러야 보임)
     chips([
       { label: "예약하기", primary: true, go: function () { flowBook(); } },
       { label: "아픈 곳이 있어요", go: function () { flowSymptom(); } },
       { label: "오늘 진료하나요?", go: flowToday },
-      { label: "비용이 궁금해요", go: function () { flowCost(); } },
-      { label: "내 예약 확인", go: flowMine },
-      { label: "오시는 길", go: flowWay },
-      { label: "상담원과 통화", go: function () { flowCall(); } },
-      { label: "전화번호 알려줘요", go: flowPhone }
+      { label: "전화로 할게요", go: flowPhone },
+      { label: "다른 것 물어보기", go: menuMore }
     ]);
   }
 
+  function menuMore() {
+    bot("어떤 것이 궁금하세요?");
+    chips([
+      { label: "비용이 궁금해요", go: function () { flowCost(); } },
+      { label: "내 예약 확인", go: flowMine },
+      { label: "오시는 길", go: flowWay },
+      { label: "상담원과 통화 요청", go: function () { flowCall(); } },
+      HOME
+    ]);
+  }
   function flowPhone() {
     var c = site() && site().clinic, lv = live();
     if (!c) return menu("병원 정보를 불러오는 중이에요.");

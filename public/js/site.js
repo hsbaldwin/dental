@@ -89,14 +89,13 @@
     $("voiceBtnLabel").textContent = onNow ? "소리 끄기" : "소리로 듣기"; voiceBtn.setAttribute("aria-label", onNow ? "소리 끄기" : "소리로 듣기");
   }
   if (V && V.canSpeak) {
-    voiceBtn.hidden = false; $("easyVoice").hidden = false;
+    voiceBtn.hidden = false;
     setVoiceUi(V.enabled());
     V.onChange(setVoiceUi);
     voiceBtn.addEventListener("click", function () {
       var next = !V.enabled(); V.set(next);
       if (next) V.speak(voiceSummary()); 
     });
-    $("easyVoice").addEventListener("click", function () { V.set(true); setEasy(true, true); V.speak(voiceSummary()); window.scrollTo(0, 0); });
   }
 
   // 처음 오신 분께 한 번만 물어보기
@@ -132,16 +131,12 @@
   }
   function renderQuick() {
     if (!live) return;
-    $("qtTelState").textContent = live.status.open ? "지금 통화 가능 · " + live.status.text.replace("진료 중 · ", "") : live.status.text;
-    $("qtNext").textContent = live.next ? "가장 빠른 시간 " + relDay(live.next.date) + " " + C.koTime(live.next.time) : "전화로 문의해 주세요";
-    $("qtToday").textContent = live.today.plan.closed ? "오늘은 쉽니다" : live.status.open ? "네, 진료 중" : live.status.text.split(" · ")[0];
-    $("qtHours").textContent = live.today.plan.closed ? (live.next ? "다음 진료 " + relDay(live.next.date) : "진료시간 보기") : C.koTime(live.today.plan.open) + " ~ " + C.koTime(live.today.plan.close);
   }
   function tickClock() {
     if (!liveAt) return;
     var d = new Date(liveAt);
     $("lvTime").textContent = hhmmss(d) + " 기준 · " + ago(liveAt);
-    $("boardTime").textContent = "실시간 · " + ago(liveAt) + " 확인";
+    if ($("boardTime")) $("boardTime").textContent = "실시간 · " + ago(liveAt) + " 확인";
     if (live && live.notice.updatedAt) $("liveMsgAt").textContent = "병원에서 " + ago(Date.parse(live.notice.updatedAt)) + " 업데이트";
     if (view !== "home") { var cc = currentCenter(), cl = cc && centerLive(cc.key); if (cl) renderCounterProps(cc, deskOf(cl)); }
   }
@@ -512,10 +507,44 @@
     }
     if (view !== "home") showView("home");
     var target = h && document.getElementById(h);
-    if (target) setTimeout(function () { target.scrollIntoView({ block: "start" }); }, 0);
+    if (target) { openFold(target); setTimeout(function () { target.scrollIntoView({ block: "start" }); }, 0); }
     else if (!h || h === "top") window.scrollTo(0, 0);
   }
   window.addEventListener("hashchange", route);
+
+  (function () {
+    var now = $("now"); if (!now || !window.IntersectionObserver) return;
+    new IntersectionObserver(function (es) { document.documentElement.classList.toggle("at-now", es[0].isIntersecting && es[0].intersectionRatio > .35 && view === "home"); }, { threshold: [0, .35, .6] }).observe(now);
+  })();
+
+  /* ---------- 펼쳐 보기: 긴 안내는 제목 + 한 줄만 보이고 '자세히 보기'로 펼침 ---------- */
+  function openFold(t) {
+    var sec = t && t.closest && t.closest("section[data-fold]");
+    if (sec && sec._fold) sec._fold(true);
+  }
+  document.querySelectorAll("section[data-fold]").forEach(function (sec) {
+    // 홈 구역: .wrap 안 .sec-head 뒤를 접음 / 센터 페이지 구역: 제목(h2) 뒤를 접음
+    var wrap = sec.querySelector(".wrap") || sec, head = sec.querySelector(".wrap") ? wrap.querySelector(".sec-head") : sec.querySelector("h2");
+    if (!head) return;
+    var body = el("div", { class: "fold-body", id: sec.id + "-more", hidden: true });
+    [].slice.call(wrap.children).forEach(function (n) { if (n !== head && !n.classList.contains("next-step")) body.appendChild(n); });
+    var title = (sec.querySelector("h2") || {}).textContent || "";
+    var btn = el("button", { type: "button", class: "fold-btn", "aria-expanded": "false", "aria-controls": body.id }, [el("span", { class: "fold-t", text: "자세히 보기" }), el("span", { class: "vh", text: " · " + title }), el("span", { class: "fold-arrow", "aria-hidden": "true", text: "▾" })]);
+    sec._fold = function (on) {
+      body.hidden = !on; btn.setAttribute("aria-expanded", on ? "true" : "false");
+      btn.querySelector(".fold-t").textContent = on ? "접기" : "자세히 보기";
+      sec.classList.toggle("folded", !on);
+    };
+    btn.addEventListener("click", function () { sec._fold(body.hidden); });
+    head.after(btn); btn.after(body);
+    sec._fold(false);
+  });
+  // 같은 주소를 다시 눌러 hashchange가 없어도 펼침
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest('a[href^="#"]'); if (!a) return;
+    var t = document.getElementById(decodeURIComponent(a.getAttribute("href").slice(1)));
+    if (t) openFold(t);
+  }, true);
   // 센터 화면 안에 있는 대상(#reserve, #lookup 등)으로 가는 링크는 화면을 바꾸지 않고 스크롤만
   document.addEventListener("click", function (e) {
     var a = e.target.closest && e.target.closest('a[href^="#"]');
@@ -536,7 +565,7 @@
   // 2 depth 하위 메뉴
   $("subNav").addEventListener("click", function (e) {
     var b = e.target.closest("button[data-go]"); if (!b) return;
-    var t = document.getElementById(b.getAttribute("data-go")); if (t) t.scrollIntoView({ behavior: "smooth", block: "start" });
+    var t = document.getElementById(b.getAttribute("data-go")); if (t) { openFold(t); t.scrollIntoView({ behavior: "smooth", block: "start" }); }
   });
   if (window.IntersectionObserver) {
     var io = new IntersectionObserver(function (entries) {
@@ -643,7 +672,6 @@
     document.querySelectorAll("[data-bind]").forEach(function (n) { var v = c[n.getAttribute("data-bind")]; if (v) n.textContent = v; });
     document.querySelectorAll("[data-href]").forEach(function (n) { var v = c[n.getAttribute("data-href")]; if (v) n.setAttribute("href", v); else n.hidden = true; });
     $("dockTel").setAttribute("href", "tel:" + C.normalizePhone(c.phone));
-    $("qtTel").setAttribute("href", "tel:" + C.normalizePhone(c.phone));
     $("headTel").setAttribute("href", "tel:" + C.normalizePhone(c.phone));
     document.title = c.shortName + " | 실시간 예약";
   }
@@ -662,7 +690,7 @@
     if (l.length) notes.push("점심시간 " + l.join(", "));
     notes.push("접수는 진료 종료 " + site.booking.lastEntryMinutes + "분 전까지 받습니다.");
     $("hoursNote").textContent = notes.join(" · ");
-    if (lateDays.length) $("hoursLead").textContent = lateDays.join("·") + "요일은 저녁까지 진료합니다. 진료시간과 휴진일은 병원에서 바뀌는 즉시 반영됩니다.";
+    if (lateDays.length) $("hoursLead").textContent = lateDays.join("·") + "요일은 저녁까지 진료해요.";
     var list = $("holidayList"); list.textContent = "";
     holidays.slice(0, 5).forEach(function (h) { list.appendChild(el("li", null, [el("span", { text: h.label }), el("span", { class: "mono small", text: C.formatDate(h.date) })])); });
     if (!holidays.length) list.appendChild(el("li", null, [el("small", { text: "예정된 휴진일이 없습니다." })]));
@@ -713,6 +741,7 @@
     $("notices").hidden = !notices.length;
     var pinned = notices.filter(function (n) { return n.pinned; })[0];
     $("noticeBar").hidden = !pinned;
+    $("lvNotice").hidden = !pinned; if (pinned) $("lvNotice").setAttribute("title", pinned.title);
     if (pinned) $("noticeBarText").textContent = pinned.title;
   }
   function loadSite() {
@@ -765,7 +794,14 @@
   });
 
   var pick = { date: null, time: null };
+  // 휴대폰 · 크게 보기에서 홈의 긴 예약 폼은 접어 두고 '쉬운 예약'을 먼저 권함
+  function setFormOpen(on) {
+    $("reserve").classList.toggle("form-closed", !on);
+    var b = $("formFoldBtn"); b.setAttribute("aria-expanded", on ? "true" : "false"); b.firstChild.textContent = on ? "예약 폼 접기" : "한 화면에서 예약하기";
+  }
+  $("formFoldBtn").addEventListener("click", function () { setFormOpen($("reserve").classList.contains("form-closed")); });
   function goBook(date, time, treatment) {
+    setFormOpen(true);
     pick.time = time || null;
     if (treatment) $("rClinic").value = treatment;
     if (!$("tracker").hidden) $("reserveForm").hidden = false;

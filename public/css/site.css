@@ -1278,3 +1278,72 @@ html.easy .tm-t { font-size: 1rem; }
 .tm-u { margin-bottom: .7rem; }
 /* 쉬운 예약 · 챗봇은 바로 위 안내 문장이 같은 말을 하므로 그림 판 설명은 숨김 */
 #easyBook .tm-cap, .msg .tm-cap { display: none; }
+
+/* ===================== 간결하게: 첫 화면 큰 버튼 · 펼쳐 보기 · 한 줄 안내 ===================== */
+/* 크게 보기 권유: 한 줄 */
+.easy-ask-row { padding-block: .6rem; gap: .5rem 1rem; }
+.easy-ask p { font-size: 1.0625rem; }
+.easy-ask .btn { min-height: 2.75rem; padding-inline: 1rem; }
+/* 휴대폰: 공지 띠 대신 실시간 줄의 '공지' 표시, 실시간 줄은 상태와 공지 · 내 예약만 */
+.lv-notice { font-weight: 700; color: var(--warn); }
+.lv-notice::before { content: "●"; font-size: .6rem; margin-right: .1rem; }
+@media (min-width: 761px) { .lv-notice { display: none !important; } }
+@media (max-width: 760px) {
+  .notice-bar { display: none !important; }
+  .livebar .lv-conn, .livebar #lvWait, .livebar #lvToday, .livebar .lv-time, .livebar .lv-next { display: none !important; }
+  .livebar .lv:nth-child(2) { padding-left: 0; border-left: 0; }
+}
+/* 첫 화면: 질문 하나 + 챗봇 큰 버튼 */
+.chat-intro h1 { font-size: clamp(1.9rem, 1.4rem + 2vw, 2.75rem); }
+.chat-chips { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; max-height: none; overflow: visible; }
+.chat-chips button, .chat-chips a { min-height: 3.25rem; font-size: 1rem; font-weight: 600; white-space: normal; text-align: center; justify-content: center; border-radius: 1rem; line-height: 1.25; }
+.chat-chips .primary { grid-column: 1 / -1; background: var(--accent); color: var(--accent-ink); font-size: 1.0625rem; }
+.chat-chips .has-picto { justify-content: flex-start; text-align: left; }
+html.easy .chat-chips { grid-template-columns: minmax(0, 1fr); }
+html.easy .chat-chips button, html.easy .chat-chips a { min-height: 3.75rem; font-size: 1.125rem; }
+/* 펼쳐 보기 */
+.fold-btn { font: inherit; display: inline-flex; align-items: center; gap: .5rem; min-height: 3rem; margin-top: 1rem; padding: .5rem 1.25rem; border: 2px solid var(--line-strong); border-radius: 999px; background: var(--surface); color: var(--ink); font-weight: 600; cursor: pointer; }
+.fold-btn:hover { border-color: var(--accent); color: var(--accent); }
+.fold-btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.fold-arrow { transition: transform .2s; }
+.fold-btn[aria-expanded="true"] .fold-arrow { transform: rotate(180deg); }
+.fold-body { margin-top: 1.5rem; }
+section.folded { padding-block: 2.25rem; }
+section.folded .sec-head { margin-bottom: 0; }
+html.easy .fold-btn { min-height: 3.5rem; font-size: 1.125rem; }
+@media (prefers-reduced-motion: reduce) { .fold-arrow { transition: none; } }
+/* 진료비 안의 65세 안내 */
+#price .senior-note { margin: 1rem 0 0; display: block; }
+@media (max-width: 760px) {
+  #now .chat-intro .eyebrow { display: none; }
+  #now .chat-who small { display: none; }
+  html.at-now .dock { transform: translateY(110%); }
+}
+.dock { transition: transform .25s ease; }
+@media (prefers-reduced-motion: reduce) { .dock { transition: none; } }
+/* 센터 데스크: 같은 말 반복 줄이기 */
+.desk-q { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; } /* 인사말이 같은 질문을 하므로 화면에서는 숨김(읽기 프로그램용으로 남김) */
+#deskMenu button[data-desk="mine"] small, #deskMenu button[data-desk="prep"] small, #deskMenu button[data-desk="cost"] small, #deskMenu button[data-desk="way"] small { display: none; }
+#deskMenu button { justify-content: center; }
+.desk-greet { margin-bottom: 1rem; }
+@media (max-width: 760px) {
+  #centerView .crumbs, #cvEn, #centerView .desk-summary { display: none; }
+  #centerView .desk-word { font-size: .8125rem; }
+}
+/* 예약: 휴대폰 · 크게 보기에서는 '쉬운 예약 시작'을 먼저, 한 화면 폼은 펼쳐서 */
+.reserve-start { display: none; }
+@media (max-width: 760px) {
+  .reserve-start { display: grid; gap: .5rem; justify-items: start; margin-top: 1rem; }
+  #reserve.form-closed #reserveForm:not(.in-center) { display: none; }
+}
+html.easy .reserve-start { display: grid; gap: .5rem; justify-items: start; margin-top: 1rem; }
+html.easy #reserve.form-closed #reserveForm:not(.in-center) { display: none; }
+.reserve-start small { color: var(--muted); }
+.reserve-start .fold-btn { margin-top: .25rem; }
+#centerView .reserve-start { display: none !important; }
+/* 센터 카드(휴대폰): 이름 · 접수 상태 · 가장 빠른 예약 세 줄만 */
+@media (max-width: 760px) {
+  #centerGrid .cc-staff { display: none; }
+  #centerGrid .ccard { padding-block: .9rem; }
+  #centerGrid .cc-live { gap: .3rem; }
+}
