@@ -1206,3 +1206,75 @@ html.easy .desk-counter { opacity: .6; }
 @media (max-width: 960px) { .counter-props { display: none; } #centerView .desk-main { padding-bottom: 0; } }
 html.easy .lamp { animation: none !important; }
 html.easy .desk-scene { opacity: .5; }
+
+/* ===================== 그림 안내: 증상 그림 + 아픈 곳 짚기 (그림은 늘 글자와 함께) ===================== */
+.picto { width: 2rem; height: 2rem; flex: none; color: var(--accent); --pa: var(--accent); }
+/* 심볼 안 요소는 문서 위치로 선택자가 맞춰지므로 앞에 .picto 를 붙이지 않고 변수로 색을 받음 */
+.pi-a { stroke: var(--pa, currentColor); }
+.pi-f { fill: var(--pa, currentColor); }
+.pi-shade { fill: var(--pshade, #E8C98A); opacity: var(--pshade-o, .75); }
+.picto[data-p="cold"]    { --pa: var(--aqua); }
+.picto[data-p="bite"]    { --pa: var(--warn); }
+.picto[data-p="gum"]     { --pa: var(--gum); }
+.picto[data-p="lost"]    { --pa: var(--muted); }
+.picto[data-p="crooked"] { --pa: var(--c-ortho-solid, var(--accent)); }
+.picto[data-p="jaw"]     { --pa: var(--c-tmj-solid, var(--accent)); }
+.picto[data-p="kid"]     { --pa: #E0A040; }
+.picto[data-p="color"]   { --pa: var(--c-esthetic-solid, var(--accent)); }
+html.no-picto .picto { display: none !important; }
+
+/* 예약 폼: 증상 타일(그림 위 · 글자 아래) */
+.sym-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr)); gap: .5rem; }
+.sym-tile span { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .35rem; min-height: 5.5rem; border-radius: var(--radius-crown) var(--radius-crown) var(--radius-root) var(--radius-root); padding: .7rem .5rem; text-align: center; }
+.sym-tile b { font-weight: 600; font-size: .9375rem; line-height: 1.25; }
+.sym-tile .picto { width: 2.25rem; height: 2.25rem; }
+.sym-tile input:checked + span .picto { color: var(--bg); --pa: var(--bg); --pshade: var(--bg); --pshade-o: .45; }
+html.no-picto .sym-tile span { min-height: 3.25rem; }
+
+/* 챗봇 칩 · 쉬운 예약 선택지 */
+.chat-chips .has-picto { display: inline-flex; align-items: center; gap: .4rem; padding-left: .55rem; }
+.chat-chips .has-picto .picto { width: 1.5rem; height: 1.5rem; }
+.chat-chips .has-picto:hover .picto { color: var(--accent-ink); --pa: var(--accent-ink); --pshade: var(--accent-ink); }
+.eb-choice.has-picto { grid-template-columns: auto minmax(0, 1fr); column-gap: .9rem; align-items: center; }
+.eb-choice.has-picto .picto { grid-row: span 2; width: 2.75rem; height: 2.75rem; }
+.eb-choice.has-picto.primary .picto { color: var(--accent-ink); --pa: var(--accent-ink); --pshade: var(--accent-ink); --pshade-o: .4; }
+html.no-picto .eb-choice.has-picto { grid-template-columns: minmax(0, 1fr); }
+.eb-sym { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 480px) { .eb-sym { grid-template-columns: minmax(0, 1fr); } }
+
+/* 아픈 곳 짚기: 윗니는 ∩, 아랫니는 ∪ 모양으로 살짝 휘게 */
+.sym-where { margin-top: .75rem; padding: 1rem; border: 1px dashed var(--line-strong); border-radius: var(--radius-crown) var(--radius-crown) var(--radius-root) var(--radius-root); background: var(--surface); }
+.sym-where-h { margin: 0 0 .5rem; }
+.tooth-map { display: grid; gap: .45rem; max-width: 34rem; }
+.tm-cap { margin: 0; font-size: .9375rem; color: var(--muted); }
+.tm-head { display: grid; grid-template-columns: 3.25rem repeat(3, minmax(0, 1fr)); gap: .4rem; font-size: .8125rem; color: var(--muted); text-align: center; }
+.tm-head::before { content: ""; }
+.tm-row { display: grid; grid-template-columns: 3.25rem minmax(0, 1fr); gap: .4rem; align-items: center; }
+.tm-rowname { font-weight: 700; font-size: .9375rem; }
+.tm-arch { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .4rem; }
+.tm-u .tm-l, .tm-u .tm-r { transform: translateY(.45rem); }
+.tm-d .tm-l, .tm-d .tm-r { transform: translateY(-.45rem); }
+.tm-u { margin-bottom: .1rem; }
+.tm-btn { font: inherit; position: relative; display: grid; justify-items: center; gap: .2rem; min-height: 4.75rem; padding: .5rem .35rem; border: 2px solid var(--line-strong); border-radius: 1rem; background: var(--bg); color: var(--ink); cursor: pointer; }
+.tm-btn:hover { border-color: var(--accent); }
+.tm-btn:focus-visible, .tm-unsure:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.tm-teeth { width: 100%; max-width: 5.5rem; height: 2.4rem; }
+.tm-teeth .tm-gum { fill: color-mix(in oklab, var(--gum) 35%, var(--surface)); }
+.tm-teeth .tm-tooth { fill: var(--surface); stroke: var(--ink); stroke-width: 1.4; stroke-linejoin: round; }
+.tm-t { font-size: .875rem; font-weight: 600; line-height: 1.2; }
+.tm-mark { display: none; position: absolute; top: -.6rem; right: -.35rem; padding: .1rem .45rem; border-radius: 999px; background: var(--gum); color: #fff; font-size: .75rem; font-weight: 700; }
+.tm-btn[aria-pressed="true"] { border-color: var(--gum); background: color-mix(in oklab, var(--gum) 12%, var(--surface)); }
+.tm-btn[aria-pressed="true"] .tm-tooth { fill: color-mix(in oklab, var(--gum) 40%, var(--surface)); stroke: var(--gum-ink, var(--gum)); }
+.tm-btn[aria-pressed="true"] .tm-mark { display: block; }
+.tm-unsure { font: inherit; justify-self: start; min-height: 2.75rem; padding: .4rem 1rem; border: 2px solid var(--line-strong); border-radius: 999px; background: var(--surface); color: var(--ink); cursor: pointer; }
+.tm-unsure[aria-pressed="true"] { border-color: var(--accent); background: var(--accent); color: var(--accent-ink); }
+.tm-out { margin: 0; min-height: 1.4em; font-weight: 600; color: var(--gum-ink, var(--ink)); }
+html.no-picto .tm-btn { min-height: 3.25rem; align-content: center; }
+html.easy .tm-btn { min-height: 5.5rem; }
+html.easy .tm-t { font-size: 1rem; }
+.msg .tooth-map { margin-top: .5rem; }
+#easyBook .tooth-map { max-width: none; }
+@media (max-width: 420px) { .tm-head, .tm-row { grid-template-columns: 2.6rem minmax(0, 1fr); } .tm-head { grid-template-columns: 2.6rem repeat(3, minmax(0, 1fr)); } .tm-t { font-size: .8125rem; } }
+.tm-u { margin-bottom: .7rem; }
+/* 쉬운 예약 · 챗봇은 바로 위 안내 문장이 같은 말을 하므로 그림 판 설명은 숨김 */
+#easyBook .tm-cap, .msg .tm-cap { display: none; }

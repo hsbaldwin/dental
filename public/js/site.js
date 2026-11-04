@@ -736,13 +736,30 @@
    * ========================================================= */
   var SYMPTOMS = C.SYMPTOMS;
   var chips = $("symChips");
+  var P = window.WPicto;
+  chips.classList.add("sym-tiles");
   SYMPTOMS.forEach(function (s) {
-    chips.appendChild(el("label", { class: "chip", for: "sym-" + s.id }, [el("input", { type: "radio", name: "sym", id: "sym-" + s.id, value: s.id }), el("span", { text: s.label })]));
+    chips.appendChild(el("label", { class: "chip sym-tile", for: "sym-" + s.id }, [el("input", { type: "radio", name: "sym", id: "sym-" + s.id, value: s.id }),
+      el("span", null, [P ? P.icon(s.id) : null, el("b", { text: s.label })])]));
   });
+  // 아픈 곳 짚기(선택): 고른 곳은 예약 메모에 "아픈 곳: 윗니 오른쪽 어금니"처럼 붙음
+  var symNow = null, autoMemo = "", where = null;
+  function syncMemo() {
+    if (!symNow) return;
+    var m = $("rMemo"), txt = symNow.label + (where && where.text() ? " · 아픈 곳: " + where.text() : "");
+    if (!m.value || m.value === autoMemo) { m.value = txt; autoMemo = txt; }
+  }
+  if (P) {
+    where = P.toothMap({ onChange: syncMemo });
+    var wbox = el("div", { class: "sym-where", id: "symWhere", hidden: true }, [el("p", { class: "sym-where-h" }, [el("b", { text: "아픈 곳을 짚어 주세요" }), el("span", { class: "muted", text: " (선택 · 원장님이 미리 보고 준비합니다)" })]), where.el]);
+    $("symHint").after(wbox);
+  }
   chips.addEventListener("change", function (e) {
     var s = SYMPTOMS.filter(function (x) { return x.id === e.target.value; })[0]; if (!s) return;
+    symNow = s;
     $("rClinic").value = s.t;
-    if (!$("rMemo").value) $("rMemo").value = s.label;
+    if (where) { if (!s.where) where.clear(); $("symWhere").hidden = !s.where; }
+    syncMemo();
     var h = $("symHint"); h.hidden = false;
     h.textContent = C.labelOf(C.TREATMENTS, s.t) + " · 첫 방문 " + s.time + " · " + s.ins;
   });

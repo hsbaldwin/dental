@@ -36,7 +36,11 @@
   }
   function me(text) { bubble("me", [text]); }
   var V = window.WVoice;
-  function sayBot(m) { if (V && V.enabled()) V.speak(m.innerText || m.textContent, { interrupt: false }); }
+  function sayBot(m) {
+    if (!V || !V.enabled()) return;
+    var c = m.cloneNode(true); c.querySelectorAll("[data-nosay]").forEach(function (n) { n.remove(); }); // 그림 고르기 판은 읽지 않음(안내 문장만)
+    V.speak((c.textContent || "").replace(/\s+/g, " ").trim(), { interrupt: false });
+  }
   // 말로 묻기
   var mic = $("chatMic");
   if (V && V.canListen) {
@@ -58,10 +62,11 @@
   function chips(list) {
     queue.then(function () {
       chipBox.textContent = "";
-      list.forEach(function (c) {
+      list.filter(Boolean).forEach(function (c) {
         var b;
         if (c.href) b = el("a", { href: c.href, target: c.ext && !/^tel:/.test(c.href) ? "_blank" : null, rel: c.ext ? "noopener" : null, text: c.label });
         else b = el("button", { type: "button", class: c.primary ? "primary" : null, text: c.label });
+        if (c.icon && window.WPicto) { b.classList.add("has-picto"); b.insertBefore(window.WPicto.icon(c.icon), b.firstChild); }
         b.addEventListener("click", function (e) {
           if (c.href && !c.ext) { e.preventDefault(); }
           me(c.label); chipBox.textContent = ""; pending = null; resetInput();
@@ -137,15 +142,28 @@
   /* ---------- 증상 → 센터 안내 ---------- */
   function flowSymptom(text) {
     bot(text || "어디가 불편하세요? 가장 가까운 것을 골라 주세요.");
-    chips(C.SYMPTOMS.map(function (s) { return { label: s.label, go: function () { recommend(s); } }; }).concat([HOME]));
+    chips(C.SYMPTOMS.map(function (s) { return { label: s.label, icon: s.id, go: function () { recommend(s); } }; }).concat([HOME]));
   }
-  function recommend(s) {
+  // 아픈 곳 짚기(선택) → 예약 메모로
+  function flowWhere(s) {
+    var P = window.WPicto; if (!P) return recommend(s);
+    var map = P.toothMap();
+    map.el.setAttribute("data-nosay", "");
+    bot(["아픈 곳을 그림에서 눌러 주세요. 거울을 볼 때처럼, 화면 오른쪽이 내 오른쪽이에요. 다 고르시면 '다 골랐어요'를 눌러 주세요.", map.el]);
+    chips([
+      { label: "다 골랐어요", primary: true, go: function () { var t = map.text(); map.el.querySelectorAll("button").forEach(function (b) { b.disabled = true; }); recommend(s, t || ""); } },
+      { label: "건너뛰기", go: function () { recommend(s, ""); } }
+    ]);
+  }
+  function recommend(s, where) {
     var c = center(s.t);
     if (!c) return menu("죄송해요, 지금은 센터 정보를 불러오지 못했어요.");
-    bot([c.name + "에서 봐 드려요.", "첫 방문은 " + s.time + " 정도 걸리고, " + s.ins + "이에요.", deskInfo(c.key),
+    var memo = s.label + (where ? " · 아픈 곳: " + where : "");
+    bot([where ? "고르신 곳(" + where + ")은 예약에 적어 원장님께 미리 전해 드릴게요." : null, c.name + "에서 봐 드려요.", "첫 방문은 " + s.time + " 정도 걸리고, " + s.ins + "이에요.", deskInfo(c.key),
       el("p", { class: "muted", text: "정확한 진단은 검사 후 원장님이 직접 설명해 드립니다." })]);
     chips([
-      { label: "이 센터로 예약", primary: true, go: function () { pickSlot(c.key, s.label); } },
+      { label: "이 센터로 예약", primary: true, go: function () { pickSlot(c.key, memo); } },
+      s.where && where === undefined ? { label: "아픈 곳 그림으로 짚기", icon: "bite", go: function () { flowWhere(s); } } : null,
       { label: c.name + " 데스크 보기", href: "#center-" + c.key },
       { label: "상담원과 통화", go: function () { flowCall(c.key, "pain"); } },
       { label: "다른 증상", go: function () { flowSymptom(); } }

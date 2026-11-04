@@ -15,12 +15,12 @@
     if (!V || !V.enabled()) return;
     var parts = [stepTxt.textContent + ".", title.textContent];
     body.querySelectorAll(".eb-hint, .eb-error:not([hidden])").forEach(function (n) { parts.push(n.textContent); });
-    var opts = [].slice.call(body.querySelectorAll(".eb-choice:not(:disabled) b, .eb-time")).map(function (n) { return n.textContent; });
+    var opts = [].slice.call(body.querySelectorAll(".eb-choice:not(:disabled) b, .eb-time, [data-say]")).map(function (n) { return n.getAttribute("data-say") || n.textContent; });
     if (opts.length) parts.push("고르실 수 있는 것은 " + opts.slice(0, 8).join(", ") + (opts.length > 8 ? " 등" : "") + "입니다.");
     if (body.querySelector(".eb-pad")) parts.push("숫자판에서 번호를 누르고, 다음을 누르세요.");
     V.speak(parts.join(" "));
   }
-  if (V && V.canSpeak) { $("ebSay").hidden = false; $("ebSay").addEventListener("click", function () { var was = V.enabled(); if (!was) V.speak(stepTxt.textContent + ". " + title.textContent + " " + [].map.call(body.querySelectorAll(".eb-hint, .eb-choice:not(:disabled) b, .eb-time"), function (n) { return n.textContent; }).join(", "), { force: true }); else sayStep(); }); }
+  if (V && V.canSpeak) { $("ebSay").hidden = false; $("ebSay").addEventListener("click", function () { var was = V.enabled(); if (!was) V.speak(stepTxt.textContent + ". " + title.textContent + " " + [].map.call(body.querySelectorAll(".eb-hint, .eb-choice:not(:disabled) b, .eb-time, [data-say]"), function (n) { return n.getAttribute("data-say") || n.textContent; }).join(", "), { force: true }); else sayStep(); }); }
   var sayTimer = null;
   function saySoon() { clearTimeout(sayTimer); sayTimer = setTimeout(sayStep, 120); }
   var STEPS = ["진료", "날짜", "때", "시간", "성함", "전화번호", "확인"];
@@ -44,7 +44,8 @@
     stepTxt.textContent = (i + 1) + " / " + STEPS.length + " 단계";
     var bar = $("ebBar"); bar.textContent = "";
     STEPS.forEach(function (s, k) { bar.appendChild(el("li", { class: k < i ? "done" : k === i ? "now" : null, text: s })); });
-    back.hidden = i === 0 && !history.length;
+    if (i !== 0) st.sub = null;
+    back.hidden = i === 0 && !history.length && !st.sub;
     body.textContent = ""; body.onkeydown = null;
     [stepCenter, stepDay, stepPart, stepTime, stepName, stepPhone, stepConfirm][i]();
     body.focus({ preventScroll: true });
@@ -59,15 +60,18 @@
     body.appendChild(el("a", { class: "eb-next", href: "tel:" + C.normalizePhone(n), text: "전화 걸기" }));
     back.hidden = false; if (st.step !== undefined) history.push(st.step);
   });
-  back.addEventListener("click", function () { if (history.length) go(history.pop(), true); });
+  back.addEventListener("click", function () {
+    if (st.step === 0 && st.sub) { st.sub = st.sub === "where" ? "sym" : null; go(0, true); return; } // 증상 · 아픈 곳 화면 → 한 칸 뒤로
+    if (history.length) go(history.pop(), true);
+  });
   $("ebClose").addEventListener("click", close);
   document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !box.hidden) close(); });
 
   function ask(q, hint) { title.textContent = q; if (hint) body.appendChild(el("p", { class: "eb-hint", text: hint })); }
   function choice(label, sub, onClick, opts) {
     opts = opts || {};
-    var b = el("button", { type: "button", class: "eb-choice" + (opts.primary ? " primary" : "") + (opts.off ? " off" : ""), disabled: !!opts.off, "data-center": opts.center || null }, [
-      el("b", { text: label }), sub ? el("small", { text: sub }) : null
+    var b = el("button", { type: "button", class: "eb-choice" + (opts.primary ? " primary" : "") + (opts.off ? " off" : "") + (opts.icon ? " has-picto" : ""), disabled: !!opts.off, "data-center": opts.center || null }, [
+      opts.icon && window.WPicto ? window.WPicto.icon(opts.icon) : null, el("b", { text: label }), sub ? el("small", { text: sub }) : null
     ]);
     b.addEventListener("click", onClick);
     return b;
@@ -78,14 +82,43 @@
 
   /* 1. 진료 */
   function stepCenter() {
-    ask("어떤 진료를 받으시겠어요?", "잘 모르시면 맨 위 '검진 · 상담'을 누르세요. 원장님이 보고 알려드립니다.");
+    if (st.sub === "sym") return stepSymptom();
+    if (st.sub === "where") return stepWhere();
+    ask("어떤 진료를 받으시겠어요?", "잘 모르시면 '어디가 불편한지 그림으로 고르기'나 '검진 · 상담'을 누르세요.");
     var s = A.site();
-    var items = [choice("검진 · 상담", "어디가 아픈지 잘 모를 때", function () { st.treatment = "checkup"; go(1); }, { primary: true })];
+    var items = [
+      choice("어디가 불편한지 그림으로 고르기", "이가 시려요 · 잇몸 피 · 이가 빠졌어요 …", function () { st.sub = "sym"; go(0); }, { primary: true, icon: "cold" }),
+      choice("검진 · 상담", "어디가 아픈지 잘 모를 때", function () { st.treatment = "checkup"; st.memo = ""; go(1); })
+    ];
     (s ? s.centers : []).forEach(function (c) {
       var cl = A.centerLive(c.key), d = A.deskOf(cl);
-      items.push(choice(c.name, (c.summary || "") + (cl && !cl.today.open ? " · 오늘은 진료 없음" : d.status === "open" ? " · 오늘 진료" : ""), function () { st.treatment = c.key; go(1); }, { center: c.key }));
+      items.push(choice(c.name, (c.summary || "") + (cl && !cl.today.open ? " · 오늘은 진료 없음" : d.status === "open" ? " · 오늘 진료" : ""), function () { st.treatment = c.key; st.memo = ""; go(1); }, { center: c.key }));
     });
     list(items);
+  }
+  // 1-1. 증상 그림 (그림 + 글자)
+  function stepSymptom() {
+    ask("어디가 불편하세요?", "가장 가까운 것을 하나 눌러 주세요. 맞는 진료센터로 안내합니다.");
+    var g = list(C.SYMPTOMS.map(function (sy) {
+      var cname = (A.site() && A.site().centers.filter(function (c) { return c.key === sy.t; })[0] || {}).name || C.labelOf(C.TREATMENTS, sy.t);
+      return choice(sy.label, cname, function () {
+        st.symptom = sy; st.treatment = sy.t; st.memo = sy.label;
+        if (sy.where && window.WPicto) { st.sub = "where"; go(0); } else go(1);
+      }, { icon: sy.id, center: sy.t });
+    }));
+    g.classList.add("eb-sym");
+  }
+  // 1-2. 아픈 곳 짚기 (선택)
+  function stepWhere() {
+    var sy = st.symptom;
+    ask("아픈 곳을 눌러 주세요", "거울을 볼 때처럼, 화면 오른쪽이 내 오른쪽이에요. 여러 곳을 눌러도 되고, 모르시면 '다음'을 누르세요.");
+    var map = window.WPicto.toothMap({ value: st.where || [] });
+    body.appendChild(map.el);
+    body.appendChild(el("button", { type: "button", class: "eb-next", text: "다음", onclick: function () {
+      st.where = map.get(); var t = map.text();
+      st.memo = sy.label + (t ? " · 아픈 곳: " + t : "");
+      go(1);
+    } }));
   }
   function tLabel() { return st.treatment === "checkup" ? "검진 · 상담" : (A.site().centers.filter(function (c) { return c.key === st.treatment; })[0] || {}).name || C.labelOf(C.TREATMENTS, st.treatment); }
 
@@ -186,10 +219,11 @@
     ask("이대로 예약할까요?");
     var days = A.site() ? A.site().booking.retentionDays : 180;
     var rows = [["진료", tLabel()], ["날짜", C.formatDate(st.date)], ["시간", C.koTime(st.time, true)], ["성함", st.name], ["전화", C.formatPhone(st.phone)]];
+    if (st.memo) rows.push(["불편한 곳", st.memo]);
     var dl = el("dl", { class: "eb-summary" });
     rows.forEach(function (r, i) {
       var fix = el("button", { type: "button", class: "eb-fix", text: "고치기" });
-      fix.addEventListener("click", function () { go([0, 1, 3, 4, 5][i]); });
+      fix.addEventListener("click", function () { if (i === 5) { st.sub = "sym"; go(0); } else go([0, 1, 3, 4, 5][i]); });
       dl.appendChild(el("div", null, [el("dt", { text: r[0] }), el("dd", { text: r[1] }), fix]));
     });
     body.appendChild(dl);
@@ -199,7 +233,7 @@
     ok.addEventListener("click", function () {
       if (!$("ebAgree").checked) { err.textContent = "동의에 표시해 주셔야 예약할 수 있어요."; err.hidden = false; return; }
       ok.disabled = true; ok.textContent = "예약하는 중…";
-      A.api("reservations", { name: st.name, phone: st.phone, treatment: st.treatment, date: st.date, time: st.time, memo: "쉬운 예약", consent: true }).then(function (r) {
+      A.api("reservations", { name: st.name, phone: st.phone, treatment: st.treatment, date: st.date, time: st.time, memo: "쉬운 예약" + (st.memo ? " · " + st.memo : ""), consent: true }).then(function (r) {
         A.trackBooking(r, st.phone);
         done(r);
       }).catch(function (e) {

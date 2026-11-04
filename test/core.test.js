@@ -118,3 +118,12 @@ test("reception counter: desk photo paths and time-of-day lighting", () => {
   assert.equal(core.deskLight(8 * 60 + 30, "closed"), "morning");
   assert.equal(core.deskLight(11 * 60, "off"), "night");
 });
+
+test("every symptom has a picture symbol and a text label", () => {
+  const html = require("node:fs").readFileSync(require("node:path").join(__dirname, "..", "public", "index.html"), "utf8");
+  core.SYMPTOMS.forEach((s) => {
+    assert.ok(html.includes('<symbol id="p-' + s.id + '"'), "그림 없음: " + s.id);
+    assert.ok(s.label && s.label.length > 2, "글자 이름 없음: " + s.id);
+  });
+  assert.deepEqual(core.SYMPTOMS.filter((s) => s.where).map((s) => s.id), ["cold", "bite", "gum", "lost", "color"]);
+});
