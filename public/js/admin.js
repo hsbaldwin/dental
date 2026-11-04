@@ -392,8 +392,9 @@
         });
         var staff = input({ type: "text", value: c.desk_staff || "", maxlength: 30, placeholder: "예: 김OO 실장" });
         var msg = input({ type: "text", value: c.desk_message || "", maxlength: 120, placeholder: "비우면 상황에 맞는 기본 인사말이 나갑니다" });
+        var photo = input({ type: "text", value: c.desk_photo || "", maxlength: 80, placeholder: "예: /img/desk/" + c.key + ".jpg (비우면 그림 카운터)" });
         var save = el("button", { type: "button", class: "btn btn-primary btn-sm", text: "데스크에 반영", onclick: function () {
-          api("PUT", "centers/" + c.key + "/desk", { paused: !accepting.checked, wait: chosen, staff: staff.value, message: msg.value })
+          api("PUT", "centers/" + c.key + "/desk", { paused: !accepting.checked, wait: chosen, staff: staff.value, message: msg.value, photo: photo.value })
             .then(function () { toast(c.name + " 데스크 화면에 반영했습니다."); route(); }).catch(fail);
         } });
         grid.appendChild(el("section", { class: "panel desk-card" }, [
@@ -401,7 +402,7 @@
           el("p", { class: "muted small", text: "상담 요청 대기 " + (d ? d.pending : 0) + "건 · 진료 요일 " + (lc && lc.days ? lc.days : "모두") + (c.desk_updated_at ? " · " + minutesAgo(c.desk_updated_at) + " " + (c.desk_updated_by || "") + " 수정" : "") }),
           el("label", { class: "chk" }, [accepting, "온라인 상담 요청 받기"]),
           el("div", { class: "field" }, [el("span", { class: "small", text: "현재 대기 (접수 중일 때만 표시, 3시간 뒤 자동 해제)" }), waits]),
-          field("담당 코디네이터", staff), field("데스크 인사말", msg),
+          field("담당 코디네이터", staff), field("데스크 인사말", msg), field("접수 데스크 사진 (선택)", photo),
           el("div", null, [save])
         ]));
       });

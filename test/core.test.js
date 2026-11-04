@@ -106,3 +106,15 @@ test("voice guidance reads times, phones and codes the way people say them", () 
   assert.equal(speakable("2 / 7 단계. 오늘 · 11월 4일 (수)"), "7단계 중 2단계. 오늘, 11월 4일 수요일");
   assert.equal(speakable("충치·신경치료센터"), "충치 신경치료센터");
 });
+
+test("reception counter: desk photo paths and time-of-day lighting", () => {
+  assert.ok(core.isDeskPhoto("/img/desk/implant.webp"));
+  assert.ok(core.isDeskPhoto("/img/desk/kids-2.JPG"));
+  ["https://x.com/a.jpg", "/img/desk/../admin.jpg", "/img/desk/a.svg", "//x.com/img/desk/a.jpg", "", null].forEach((p) => assert.equal(core.isDeskPhoto(p), false, String(p)));
+  assert.equal(core.deskLight(10 * 60, "open"), "morning");
+  assert.equal(core.deskLight(14 * 60, "open"), "afternoon");
+  assert.equal(core.deskLight(17 * 60 + 30, "open"), "evening");
+  assert.equal(core.deskLight(19 * 60, "closed"), "night");
+  assert.equal(core.deskLight(8 * 60 + 30, "closed"), "morning");
+  assert.equal(core.deskLight(11 * 60, "off"), "night");
+});

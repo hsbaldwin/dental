@@ -295,6 +295,14 @@ test("center front desk: status, callback requests and staff handling", async ()
   assert.equal(ortho.desk.staff, "김코디");
   assert.match(ortho.desk.message, /여유/);
 
+  // 접수 데스크 사진: 같은 사이트 /img/desk/ 경로만
+  const badPhoto = await call("PUT", "/api/admin/centers/ortho/desk", { paused: false, wait: 10, staff: "김코디", photo: "https://evil.example/x.jpg" }, { cookie });
+  assert.equal(badPhoto.status, 400);
+  const okPhoto = await call("PUT", "/api/admin/centers/ortho/desk", { paused: false, wait: 10, message: "교정센터입니다. 오늘 오후는 여유가 있습니다.", staff: "김코디", photo: "/img/desk/ortho.webp" }, { cookie });
+  assert.equal(okPhoto.status, 200);
+  const site = await call("GET", "/api/site");
+  assert.equal(site.json.centers.find((c) => c.key === "ortho").desk_photo, "/img/desk/ortho.webp");
+
   const bad = await call("POST", "/api/inquiries", { center: "ortho", name: "이상담", phone: "010-4545-1212", topic: "cost", prefer: "pm", consent: false });
   assert.equal(bad.status, 400);
   const q1 = await call("POST", "/api/inquiries", { center: "ortho", name: "이상담", phone: "010-4545-1212", topic: "cost", prefer: "pm", message: "투명교정 비용", consent: true });

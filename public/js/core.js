@@ -220,6 +220,15 @@
       message: desk.desk_message || "", staff: desk.desk_staff || "", updatedAt: desk.desk_updated_at || null
     };
   }
+  // 접수 데스크 사진: 같은 사이트 안 /img/desk/ 경로의 이미지 파일만(외부 주소 · 상위 경로 금지)
+  function isDeskPhoto(p) { return /^\/img\/desk\/[A-Za-z0-9_\-]+\.(jpe?g|png|webp)$/i.test(String(p || "")); }
+  // 시간대별 데스크 조명: 아침 · 오후 · 저녁(접수 종료 뒤엔 소등)
+  function deskLight(minutes, status) {
+    if (status === "off" || status === "closed" && (minutes >= 17 * 60 || minutes < 8 * 60)) return "night";
+    if (minutes < 12 * 60) return "morning";
+    if (minutes < 17 * 60) return "afternoon";
+    return "evening";
+  }
   function validateInquiry(input) {
     var errors = {};
     var name = String(input.name || "").trim(), phone = normalizePhone(input.phone), message = String(input.message || "").trim();
@@ -315,7 +324,7 @@
     labelOf: labelOf, koTime: koTime, seoulNow: seoulNow, toMin: toMin, toHHMM: toHHMM, isDate: isDate, isTime: isTime,
     weekdayOf: weekdayOf, addDays: addDays, diffDays: diffDays, formatDate: formatDate,
     normalizePhone: normalizePhone, isPhone: isPhone, formatPhone: formatPhone, maskName: maskName,
-    dayPlan: dayPlan, computeSlots: computeSlots, openStatus: openStatus, validateReservation: validateReservation,
+    dayPlan: dayPlan, computeSlots: computeSlots, isDeskPhoto: isDeskPhoto, deskLight: deskLight, openStatus: openStatus, validateReservation: validateReservation,
     PARTS: PARTS, overview: overview, liveNotice: liveNotice, waitLabel: waitLabel, worksOn: worksOn,
     SYMPTOMS: SYMPTOMS, chatIntent: chatIntent, maskPhone: maskPhone,
     INQ_STATUSES: INQ_STATUSES, TOPICS: TOPICS, PREFERS: PREFERS, deskState: deskState, validateInquiry: validateInquiry,

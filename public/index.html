@@ -427,7 +427,19 @@
               <footer class="board-foot"><span class="legend"><i class="lg ok"></i>여유 <i class="lg few"></i>얼마 안 남음 <i class="lg full"></i>마감</span><span class="muted">담당 원장님 진료일에만 예약을 받습니다.</span></footer>
             </article>
           </aside>
+          <div class="desk-scene" aria-hidden="true">
+            <img class="scene-photo" id="scenePhoto" alt="" hidden>
+            <span class="scene-light"></span>
+          </div>
           <div class="desk-counter" aria-hidden="true">
+            <span class="counter-shadow"></span>
+            <div class="counter-props" id="counterProps">
+              <span class="prop prop-lamp"><i class="lamp" id="propLamp" data-s="closed"></i><span id="propLampText">확인 중</span></span>
+              <span class="prop prop-queue" id="propQueue"><small>현재 대기</small><b id="propQueueVal">–</b></span>
+              <span class="prop prop-plate" id="propPlate" hidden><small>오늘 접수</small><b id="propPlateName"></b></span>
+              <span class="prop prop-clock"><b id="propClock">–</b></span>
+              <span class="prop prop-sign" id="propSign" hidden></span>
+            </div>
             <span class="counter-top"></span>
             <span class="counter-front"><svg class="counter-mark" viewBox="0 0 64 40"><use href="#w-mark"/></svg><span class="counter-name" id="counterName">W치과</span></span>
           </div>

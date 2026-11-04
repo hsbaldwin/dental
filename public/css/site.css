@@ -1141,3 +1141,68 @@ html.easy .desk-counter { opacity: .6; }
 /* 카운터 이름은 왼쪽 데스크 쪽에(오른쪽 현황판이 모니터처럼 카운터 위에 놓임) */
 .counter-front { justify-content: flex-start; padding-left: clamp(1.25rem, 14%, 10rem); }
 @media (max-width: 960px) { .counter-front { justify-content: center; padding-left: 0; } }
+
+/* ===================== 접수 카운터 현실감: 운영 소품 · 시간대 조명 · 재질 · 사진 자리 ===================== */
+/* 왼쪽 안내 칸 아래로 카운터+소품 자리를 비워 둠(오른쪽 현황판은 그대로 카운터 위 모니터처럼 겹침) */
+#centerView .desk-main { padding-bottom: 9.75rem; }
+/* 장면(사진 · 조명)은 카운터보다 더 뒤에 */
+.desk-scene { position: absolute; inset: 0; z-index: -2; pointer-events: none; overflow: hidden; }
+.scene-photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 70%;
+  filter: blur(6px) saturate(.75); transform: scale(1.06); opacity: .32;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 45%, #000 100%); mask-image: linear-gradient(180deg, transparent 0%, #000 45%, #000 100%); }
+/* 민트 톤으로 색 맞춤(사진 위 옅은 막) */
+#centerView.has-photo .desk-scene::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, var(--bg) 0%, color-mix(in oklab, var(--bg) 70%, var(--cc-soft, var(--fresh))) 100%); opacity: .45; }
+.scene-light { position: absolute; inset: 0; transition: background 1.2s ease, opacity 1.2s ease; }
+/* 천장 조명 두 개가 카운터 위에 만드는 빛 웅덩이 + 시간대별 색 */
+#centerView[data-light] .scene-light { background:
+  radial-gradient(28% 22% at 24% 82%, var(--_pool, rgba(255,255,255,.55)), transparent 70%),
+  radial-gradient(28% 22% at 62% 82%, var(--_pool, rgba(255,255,255,.55)), transparent 70%),
+  radial-gradient(80% 60% at var(--_sun-x, 15%) 0%, var(--_sun, transparent), transparent 70%); }
+#centerView[data-light="morning"]   { --_sun: rgba(120, 220, 200, .16); --_sun-x: 12%; --_pool: rgba(255,255,255,.55); }
+#centerView[data-light="afternoon"] { --_sun: rgba(255, 236, 200, .16); --_sun-x: 55%; --_pool: rgba(255,250,240,.55); }
+#centerView[data-light="evening"]   { --_sun: rgba(255, 196, 140, .14); --_sun-x: 88%; --_pool: rgba(255,232,200,.5); }
+#centerView[data-light="night"]     { --_sun: rgba(16, 33, 31, .05); --_sun-x: 50%; --_pool: rgba(255,240,215,.32); }
+:root:not([data-theme="dark"]) #centerView[data-light="night"] .counter-front { filter: brightness(.95) saturate(.85); }
+#centerView[data-light="night"] .counter-name, #centerView[data-light="night"] .counter-mark { opacity: .5; }
+:root[data-theme="dark"] #centerView[data-light] { --_pool: rgba(127,224,194,.07); --_sun: rgba(127,224,194,.05); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) #centerView[data-light] { --_pool: rgba(127,224,194,.07); --_sun: rgba(127,224,194,.05); } }
+
+/* 재질: 앞판 무광 결 + 바닥 쪽 걸레받이 그림자 */
+.counter-front { background-image:
+  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .06 0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E"),
+  linear-gradient(180deg, rgba(255,255,255,.18), transparent 35%, rgba(16,33,31,.05)),
+  repeating-linear-gradient(90deg, transparent 0 2.4rem, color-mix(in oklab, var(--cc-solid, var(--accent)) 22%, transparent) 2.4rem calc(2.4rem + 2px)); }
+.counter-shadow { position: absolute; left: 1.5%; right: 1.5%; bottom: 0; height: .7rem; z-index: 1;
+  background: linear-gradient(180deg, transparent, rgba(16,33,31,.16)); border-radius: 0; }
+.counter-top { box-shadow: var(--ceramic-glaze), 0 6px 10px -6px rgba(16,33,31,.28); }
+
+/* 카운터 위 소품 */
+.counter-props { position: absolute; bottom: calc(100% - .15rem); left: clamp(1.25rem, 14%, 10rem); display: flex; align-items: flex-end; gap: .7rem;
+  max-width: calc(58% - clamp(1.25rem, 14%, 10rem)); flex-wrap: nowrap; }
+.prop { display: inline-flex; flex-direction: column; justify-content: center; gap: .1rem; min-height: 2.6rem; padding: .35rem .7rem; line-height: 1.15;
+  border-radius: .55rem .55rem .2rem .2rem; background: linear-gradient(180deg, var(--ceramic-top), var(--ceramic-bottom)); box-shadow: var(--ceramic-glaze), 0 8px 10px -8px rgba(16,33,31,.35);
+  color: var(--ink); white-space: nowrap; font-size: .8125rem; }
+.prop[hidden] { display: none !important; }
+.prop small { font-size: .6875rem; color: var(--muted); }
+.prop b { font-weight: 700; }
+/* 상태등: 진료 중 초록 · 점심 호박색 · 그 밖엔 꺼짐 */
+.prop-lamp { flex-direction: row; align-items: center; gap: .45rem; }
+.lamp { width: .7rem; height: .7rem; border-radius: 50%; background: #9AA8A5; box-shadow: inset 0 -1px 2px rgba(0,0,0,.25); }
+.lamp[data-s="open"] { background: var(--live); box-shadow: 0 0 0 3px color-mix(in oklab, var(--live) 22%, transparent), 0 0 10px color-mix(in oklab, var(--live) 60%, transparent); }
+.lamp[data-s="lunch"], .lamp[data-s="paused"] { background: #E0A040; box-shadow: 0 0 0 3px rgba(224,160,64,.22); }
+/* 대기 표시기: 작은 전광판 */
+.prop-queue { background: #12302B; color: #E9FFF7; }
+.prop-queue small { color: #9FD9C7; }
+.prop-queue b { font-variant-numeric: tabular-nums; color: #7FE0C2; }
+/* 담당 명패: 센터 색 띠 */
+.prop-plate { border-top: 3px solid var(--cc-solid, var(--accent)); }
+.prop-clock b { font-variant-numeric: tabular-nums; font-size: .875rem; }
+/* 팻말: 세워 둔 안내판 */
+.prop-sign { background: var(--surface); border: 1px solid var(--line); border-radius: .35rem; font-weight: 700; color: var(--warn); font-size: .8125rem; transform: rotate(-1.5deg); }
+#centerView[data-desk="open"] .prop-sign { display: none; }
+@media (prefers-reduced-motion: no-preference) { .lamp[data-s="open"] { animation: lampGlow 3.2s ease-in-out infinite; } }
+@keyframes lampGlow { 50% { box-shadow: 0 0 0 5px color-mix(in oklab, var(--live) 12%, transparent), 0 0 14px color-mix(in oklab, var(--live) 45%, transparent); } }
+/* 한 줄로 쌓이는 화면에서는 현황판이 카운터 위 모니터 역할을 하므로 소품은 숨김(정보는 현황판에 그대로) */
+@media (max-width: 960px) { .counter-props { display: none; } #centerView .desk-main { padding-bottom: 0; } }
+html.easy .lamp { animation: none !important; }
+html.easy .desk-scene { opacity: .5; }

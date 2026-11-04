@@ -215,6 +215,7 @@
     c.desk_paused = b.paused ? 1 : 0; c.desk_wait = b.wait === null || b.wait === undefined || b.wait === "" ? null : Number(b.wait);
     c.desk_message = String(b.message || "").slice(0, 120); c.desk_staff = String(b.staff || "").slice(0, 30);
     c.desk_updated_at = iso(); c.desk_updated_by = u.name;
+    if (b.photo !== undefined) { var ph = String(b.photo || "").trim(); if (ph && !C.isDeskPhoto(ph)) throw new Err(400, "데스크 사진은 /img/desk/ 아래의 jpg · png · webp 파일 경로로 입력해 주세요."); c.desk_photo = ph; }
     audit(u.username, "desk.update", "centers:" + c.key); return c;
   });
   on("GET", /^admin\/inquiries$/, function (q) {

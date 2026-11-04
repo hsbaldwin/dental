@@ -143,6 +143,7 @@
     $("lvTime").textContent = hhmmss(d) + " 기준 · " + ago(liveAt);
     $("boardTime").textContent = "실시간 · " + ago(liveAt) + " 확인";
     if (live && live.notice.updatedAt) $("liveMsgAt").textContent = "병원에서 " + ago(Date.parse(live.notice.updatedAt)) + " 업데이트";
+    if (view !== "home") { var cc = currentCenter(), cl = cc && centerLive(cc.key); if (cl) renderCounterProps(cc, deskOf(cl)); }
   }
 
   function level(p) {
@@ -238,6 +239,10 @@
     $("cvEn").textContent = "W치과 " + c.name + " 접수 데스크";
     $("cvName").textContent = c.name;
     $("counterName").textContent = c.name;
+    var ph = $("scenePhoto"), src = C.isDeskPhoto(c.desk_photo) ? c.desk_photo : "";
+    $("centerView").classList.toggle("has-photo", false);
+    if (src) { ph.onload = function () { ph.hidden = false; $("centerView").classList.add("has-photo"); }; ph.onerror = function () { ph.hidden = true; }; ph.src = src; }
+    else { ph.hidden = true; ph.removeAttribute("src"); }
     $("cvSummary").textContent = c.summary || "";
     var tags = $("cvTags"); tags.textContent = "";
     String(c.tags || "").split(",").map(function (t) { return t.trim(); }).filter(Boolean).forEach(function (t) { tags.appendChild(el("li", { text: t })); });
@@ -280,6 +285,7 @@
     var ds = $("deskState"); ds.setAttribute("data-s", d.status); ds.textContent = d.label;
     $("deskWait").textContent = d.wait !== null ? C.waitLabel(d.wait) : d.status === "open" ? "안내 없음" : "–";
     $("deskPending").textContent = d.accepting ? d.pending + "건" : "접수 중단";
+    renderCounterProps(c, d);
     $("cvDays").textContent = cl.days ? cl.days.split("").join(" · ") : "진료일 모두";
     $("cvDocs").textContent = cl.doctorsToday.length ? cl.doctorsToday.join(", ") : "없음";
     var nx = $("cvNext"); nx.classList.remove("skeleton"); nx.textContent = nextText(cl);
@@ -293,6 +299,23 @@
     $("cvTime").textContent = "실시간 · " + ago(liveAt) + " 확인";
     markDoctors();
   }
+
+  /* 카운터 위 소품: 모두 지금의 운영 정보 그대로 (상태등 · 대기 표시기 · 담당 명패 · 시계 · 팻말) */
+  var SIGN = { lunch: "점심시간 · 잠시 자리 비움", off: "오늘은 이 센터 휴진", paused: "온라인 접수 잠시 중단" };
+  function renderCounterProps(c, d) {
+    var lamp = $("propLamp"); lamp.setAttribute("data-s", d.status);
+    $("propQueue").hidden = d.status !== "open";
+    $("propQueueVal").textContent = d.wait !== null ? C.waitLabel(d.wait) : d.pending ? "요청 " + d.pending + "건" : "바로 안내";
+    $("propPlate").hidden = !d.staff; $("propPlateName").textContent = d.staff || "";
+    var mins = live && live.now ? live.now.minutes + Math.floor((Date.now() - liveAt) / 60000) : new Date().getHours() * 60 + new Date().getMinutes();
+    mins = mins % 1440;
+    $("propLampText").textContent = d.status === "open" ? "접수 중" : d.status === "lunch" ? "점심시간" : d.status === "paused" ? "온라인 중단" : d.status === "off" ? "휴진" : mins < 12 * 60 ? "접수 시작 전" : "오늘 접수 마감";
+    $("propClock").textContent = C.koTime(pad2(Math.floor(mins / 60)) + ":" + pad2(mins % 60));
+    var sign = $("propSign"); sign.hidden = !SIGN[d.status]; sign.textContent = SIGN[d.status] || "";
+    $("centerView").setAttribute("data-light", C.deskLight(mins, d.status));
+    $("centerView").setAttribute("data-desk", d.status);
+  }
+  function pad2(n) { return (n < 10 ? "0" : "") + n; }
 
   /* ---------- 데스크 응답 창 ---------- */
   var deskMode = null, inquiryShown = false;

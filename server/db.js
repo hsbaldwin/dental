@@ -111,7 +111,7 @@ function migrate(db) {
   // 센터 데스크(리셉션) 상태: 직원이 관리 화면에서 바꾸는 값
   const centerCols = db.prepare("PRAGMA table_info(centers)").all().map((c) => c.name);
   [["prep", "TEXT"], ["desk_paused", "INTEGER NOT NULL DEFAULT 0"], ["desk_wait", "INTEGER"], ["desk_message", "TEXT"],
-   ["desk_staff", "TEXT"], ["desk_updated_at", "TEXT"], ["desk_updated_by", "TEXT"]].forEach(([col, type]) => {
+   ["desk_staff", "TEXT"], ["desk_updated_at", "TEXT"], ["desk_updated_by", "TEXT"], ["desk_photo", "TEXT"]].forEach(([col, type]) => {
     if (!centerCols.includes(col)) db.exec("ALTER TABLE centers ADD COLUMN " + col + " " + type);
   });
   if (!db.prepare("SELECT COUNT(*) AS n FROM centers").get().n) {

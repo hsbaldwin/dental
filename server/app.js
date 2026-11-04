@@ -648,8 +648,11 @@ function createApp(opts) {
     const b = await readJson(req);
     const wait = b.wait === null || b.wait === "" || b.wait === undefined ? null : int(b.wait, 0, 240, "대기 시간");
     const v = { paused: b.paused ? 1 : 0, wait, message: str(b.message, 120, false, "데스크 인사말"), staff: str(b.staff, 30, false, "담당자") };
+    const photo = b.photo === undefined ? null : String(b.photo || "").trim();
+    if (photo && !core.isDeskPhoto(photo)) throw new HttpError(400, "데스크 사진은 /img/desk/ 아래의 jpg · png · webp 파일 경로로 입력해 주세요.");
     db.prepare("UPDATE centers SET desk_paused = ?, desk_wait = ?, desk_message = ?, desk_staff = ?, desk_updated_at = ?, desk_updated_by = ? WHERE key = ?")
       .run(v.paused, v.wait, v.message, v.staff, nowIso(), user.name, m[1]);
+    if (photo !== null) { db.prepare("UPDATE centers SET desk_photo = ? WHERE key = ?").run(photo, m[1]); v.photo = photo; }
     audit(db, user.username, "desk.update", "centers:" + m[1], v);
     return db.prepare("SELECT * FROM centers WHERE key = ?").get(m[1]);
   }, "staff");
