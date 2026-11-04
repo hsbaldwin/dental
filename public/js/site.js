@@ -649,7 +649,7 @@
   }
   function renderHours(hours, holidays) {
     var tb = $("hoursRows"); tb.textContent = "";
-    var today = C.seoulNow().weekday, lunch = {}, lateDays = [];
+    var today = live && live.now ? live.now.weekday : C.seoulNow().weekday, lunch = {}, lateDays = [];
     [1, 2, 3, 4, 5, 6, 0].forEach(function (w) {
       var h = hours.filter(function (x) { return x.weekday === w; })[0] || { closed: 1 };
       var td = el("td", null, [h.closed ? "휴진" : h.open + " – " + h.close]);

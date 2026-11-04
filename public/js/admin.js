@@ -124,11 +124,19 @@
   }
   window.addEventListener("hashchange", function () { if (S.user) { route(); $("view").focus({ preventScroll: true }); } });
 
+  // 병원 기준 '오늘'은 서버 시각을 따른다(서버 시계와 PC 시계가 달라도, 로컬 시간 이동 테스트에서도 맞게)
+  function clinicNow() {
+    var s = S.summary;
+    return s && s.today ? { date: s.today, minutes: s.minutes || 0, weekday: C.weekdayOf(s.today) } : C.seoulNow();
+  }
+
   /* ---------- 대시보드 ---------- */
   VIEWS.dashboard = function (v) {
-    var now = C.seoulNow();
+    return poll(true).then(function () { return dashboard(v, clinicNow()); });
+  };
+  function dashboard(v, now) {
     return Promise.all([
-      poll(true),
+      S.summary,
       api("GET", "reservations?from=" + now.date + "&to=" + now.date),
       api("GET", "reservations?status=requested&from=" + now.date + "&to=" + C.addDays(now.date, 180)),
       api("GET", "live")
@@ -227,7 +235,7 @@
   /* ---------- 예약 관리 ---------- */
   var resFilter = null;
   VIEWS.reservations = function (v) {
-    var now = C.seoulNow();
+    var now = clinicNow();
     if (!resFilter) resFilter = { from: now.date, to: C.addDays(now.date, 14), status: "", q: "" };
     var f = resFilter;
     var fFrom = input({ type: "date", value: f.from, id: "fltFrom" }), fTo = input({ type: "date", value: f.to, id: "fltTo" });
@@ -443,7 +451,7 @@
         el("div", null, [save])
       ]));
 
-      var hd = input({ type: "date", id: "holDate", value: C.seoulNow().date }), hl = input({ type: "text", id: "holLabel", maxlength: 40, placeholder: "예: 원장 학회 참석" });
+      var hd = input({ type: "date", id: "holDate", value: clinicNow().date }), hl = input({ type: "text", id: "holLabel", maxlength: 40, placeholder: "예: 원장 학회 참석" });
       var add = el("form", { class: "filters" }, [field("날짜", hd), el("div", { class: "field grow" }, [el("label", { for: "holLabel", text: "사유 (홈페이지에 표시)" }), hl]), el("button", { class: "btn btn-primary btn-sm", type: "submit", text: "휴진일 추가" })]);
       add.addEventListener("submit", function (e) {
         e.preventDefault();
@@ -452,7 +460,7 @@
           route();
         }).catch(fail);
       });
-      var today = C.seoulNow().date;
+      var today = clinicNow().date;
       var list = el("ul", { class: "agenda" });
       r[1].items.forEach(function (h) {
         list.appendChild(el("li", null, [

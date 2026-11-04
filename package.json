@@ -11,6 +11,10 @@
     "start": "node --disable-warning=ExperimentalWarning --env-file-if-exists=.env server/index.js",
     "dev": "node --disable-warning=ExperimentalWarning --env-file-if-exists=.env --watch server/index.js",
     "test": "node --disable-warning=ExperimentalWarning --test test/*.test.js",
+    "local": "node --disable-warning=ExperimentalWarning scripts/local.js",
+    "local:reset": "node --disable-warning=ExperimentalWarning scripts/local.js --reset",
+    "local:watch": "node --disable-warning=ExperimentalWarning --watch-path=server --watch-path=public --watch-path=scripts scripts/local.js",
+    "check": "npm test && node scripts/build-demo.js",
     "build:demo": "node scripts/build-demo.js",
     "backup": "node --disable-warning=ExperimentalWarning scripts/backup.js"
   }
