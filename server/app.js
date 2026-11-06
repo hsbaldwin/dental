@@ -784,7 +784,8 @@ function createApp(opts) {
     const from = core.isDate(p.get("from")) ? p.get("from") : core.addDays(now.date, -31);
     const to = core.isDate(p.get("to")) ? p.get("to") : now.date;
     const rows = db.prepare("SELECT * FROM audit WHERE at >= ? AND at < ? ORDER BY id").all(core.addDays(from, -1) + "T15:00:00", to + "T15:00:00"); // 기록은 UTC, 날짜는 서울 기준(자정 = 전날 15시 UTC)
-    const lines = [["시각", "계정", "접속지(IP)", "한 일", "대상", "내용"].join(",")].concat(rows.map((r) => [r.at, r.username, r.ip || "", r.action, r.target || "", r.detail || ""].map(csvCell).join(",")));
+    const seoul = (iso) => new Date(iso).toLocaleString("sv-SE", { timeZone: "Asia/Seoul" }); // 2026-11-06 10:56:56
+    const lines = [["시각(서울)", "계정", "접속지(IP)", "한 일", "대상", "내용"].join(",")].concat(rows.map((r) => [seoul(r.at), r.username, r.ip || "", r.action, r.target || "", r.detail || ""].map(csvCell).join(",")));
     audit(db, user.username, "audit.export", null, { from, to, count: rows.length });
     return { raw: "\ufeff" + lines.join("\r\n"), headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": "attachment; filename=\"audit-" + from + "-" + to + ".csv\"" } };
   }, "admin");

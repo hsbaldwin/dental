@@ -287,29 +287,26 @@ npm start
 - 첫 실행 때 `admin` 계정이 만들어집니다. `.env`에 `ADMIN_PASSWORD`를 비워두면 임시 비밀번호가 서버 로그에 한 번 출력됩니다. 로그인 후 **계정** 메뉴에서 바로 바꾸세요.
 - 로컬에서 HTTP로 접속할 때는 `.env`의 `COOKIE_SECURE`를 비워야 로그인이 됩니다.
 
-## 서버에 올리기
+## 서버에 올리기 (실제 운영)
 
-### Docker
+실제 운영 절차 전체(환경 · 릴리스 · 오픈 D-30~D+14 · 운영 일과 · 장애 · 유출 대응 · 백업 · 보안 · 서버 준비)는 **[`docs/production.md`](docs/production.md)** 에 있습니다. 요약:
 
-```bash
-docker build -t w-dental .
-```
+| 무엇 | 어디 |
+|---|---|
+| 앱 · HTTPS 구성 | `deploy/compose.yaml`(앱, 서버 안 127.0.0.1에만), `deploy/edge.compose.yaml` + `deploy/Caddyfile`(HTTPS · HSTS · 스테이징 비밀번호 · 관리 화면 IP 제한 · 실시간 신호) |
+| 배포 · 되돌리기 | `deploy/deploy.sh v1.2.0` — 배포 전 백업 → 오픈 기준 점검 → 교체 → 상태 확인 → 실패하면 이전 버전으로 자동 되돌림. 급할 때 `deploy/rollback.sh` |
+| 운영 도우미 | `deploy/ops.sh status · preflight · backup · verify · restore <파일> · logs` |
+| 예약 작업 | `deploy/cron.example` (진료 시간 매시 · 매일 03:10 백업, 외부 보관, 주간 복구 검사) |
+| 설정 | `deploy/env.production.example` · `env.staging.example` · `edge.env.example` → 서버에서만 채움 |
+| 자동 검사 · 이미지 | `.github/workflows/ci.yml`(테스트 · 이미지 · 실제 배포 · 깨진 배포 되돌림 · 복구 · Caddy 검사), `release.yml`(`v*` 태그 → `ghcr.io/hsbaldwin/dental`) |
+| 바뀐 점 | `CHANGELOG.md` |
 
-```bash
-docker run -d --name w-dental -p 3000:3000 -v w-dental-data:/data --env-file .env --restart unless-stopped w-dental
-```
+운영에 꼭 필요한 것:
 
-### HTTPS
-
-개인정보를 다루므로 반드시 HTTPS로 서비스하세요. Caddy를 쓰면 인증서가 자동으로 발급됩니다.
-
-```
-wdental.example.com {
-  reverse_proxy 127.0.0.1:3000
-}
-```
-
-프록시 뒤에서는 `.env`에 `TRUST_PROXY=1`, `COOKIE_SECURE=1`을 둡니다.
+- **HTTPS 뒤에서만**: `TRUST_PROXY=1` · `COOKIE_SECURE=1`. 앱 포트를 바깥에 직접 열지 않습니다(Caddy만).
+- **오픈 전 점검**: `npm run preflight -- --strict`(서버에서는 `deploy/ops.sh preflight`)가 예시 병원 정보 · 예시 금액 · '원장 성함' · 임시 비밀번호 · 초안 처리방침 · 빈 문자 설정 · 백업 키 없음 · 26시간 넘은 백업 · 로컬 예시 데이터를 찾아 막습니다.
+- **상태 확인**: `GET /api/health` — 바깥에는 `{ ok, version }`만, 서버 안이나 `X-Health-Token`이 맞으면 백업 · 문자 실패까지. DB가 안 되면 503.
+- **스키마 버전**: `PRAGMA user_version`으로 번호를 매긴 마이그레이션(`server/db.js`), 추가만 합니다. 이 앱보다 새 DB는 열지 않습니다.
 
 ## 문자 · 알림 연동
 
@@ -322,13 +319,16 @@ wdental.example.com {
 
 문자 발송 업체(솔라피, 알리고, NHN Cloud 등)는 API 모양이 서로 다릅니다. 그래서 위 형식을 받아 업체 API로 넘겨주는 작은 중계(Make·Zapier 같은 자동화 도구나 서버리스 함수)를 두는 방식으로 열어 두었습니다. 카카오 알림톡은 발신 프로필과 템플릿 심사가 필요하므로 업체와 계약한 뒤 같은 방식으로 연결합니다.
 
-## 백업
+## 백업 · 복구
 
 ```bash
 npm run backup
 ```
 
-`backups/wdental-날짜.db` 사본이 생깁니다. 서버가 돌아가는 중에도 안전합니다. 매일 실행되도록 예약 작업(cron)에 넣고, 사본은 다른 장소에도 보관하세요. Docker에서는 `docker exec w-dental node --disable-warning=ExperimentalWarning scripts/backup.js`로 실행합니다(사본은 `/data` 볼륨이 아니라 컨테이너 안에 생기므로 `BACKUP_DIR=/data/backups`를 함께 지정하세요).
+- `$BACKUP_DIR`(기본: DB 폴더의 `backups/`)에 `wdental-날짜-시각.db` 사본이 생깁니다. 운영 중에도 안전하고, 사본은 무결성 검사를 거칩니다.
+- `BACKUP_KEY`가 있으면 AES-256-GCM으로 암호화(`.db.enc`) — 운영에서는 필수. 키는 서버 밖에도 보관하세요.
+- 보관: 48시간 안 모두 · 14일 하루 1개 · 8주 한 주 1개 · 배포 전 사본 최근 10개, **개인정보 보관 기간을 넘는 사본은 지움**(파기한 정보가 백업에 남지 않게).
+- 복구 연습(현재 DB는 그대로): `npm run restore -- <파일> --verify` / 실제 복구(서버를 멈춘 뒤): `npm run restore -- <파일>` — 현재 DB는 `before-restore` 이름으로 옆에 남습니다.
 
 ## 보안 · 개인정보
 
@@ -337,23 +337,22 @@ npm run backup
 - 로그인 시도, 예약 신청, 예약 조회에 IP별 횟수 제한이 있습니다. 예약 폼에는 스팸 방지용 숨김 필드가 있습니다.
 - 모든 응답에 CSP 등 보안 헤더를 붙입니다. 화면은 외부 스크립트를 쓰지 않습니다(글꼴만 Google Fonts).
 - 예약할 때 개인정보 수집 동의 시각을 저장합니다. 예약일이 보관 기간(기본 180일)을 지나면 성함·연락처·메모를 자동으로 지웁니다.
-- 직원의 설정 변경, 예약 수정, 내려받기, 로그인은 **활동 기록**에 남습니다.
-- `public/privacy.html`의 개인정보처리방침은 초안입니다. 병원 사정에 맞게 검토하세요.
+- **증상 메모 · 아픈 곳(건강 정보 = 민감정보)** 은 성함·연락처와 따로 동의를 받은 경우에만 저장하고 동의 시각을 남깁니다(예약 폼 · 쉬운 예약 · 챗봇 · 센터 상담 요청). 동의하지 않으면 빼고 예약할 수 있습니다. '쉬운 예약' · '챗봇에서 신청' 같은 경로 표시는 건강 정보가 아니므로 따로 받아 서버가 붙입니다.
+- **접속기록**: 로그인 · 설정 변경 · 예약 수정 · 예약/상담 목록 조회(같은 조건은 10분에 한 번) · 내려받기를 계정 · 시각 · 접속지(IP)와 함께 남기고 지우지 않습니다. 관리자는 관리 화면 → 기록에서 지난달 기록을 내려받아 매월 점검합니다.
+- 처음 받은 비밀번호를 바꾸지 않은 계정에는 관리 화면에 안내 띠가 뜹니다.
+- `public/privacy.html`의 개인정보처리방침은 **초안**(`data-draft`)이고, 위탁 업체 · 시행일은 빈칸(`data-fill`)입니다. 법률 검토 뒤 채우고 표시를 지워야 오픈 전 점검을 통과합니다.
 
 ## 오픈 전에 할 일
 
-1. **병원 정보 · 예약 규칙**에서 실제 주소, 전화, 사업자번호, 네이버 예약·카카오 채널 주소를 입력합니다.
-2. **진료비**에 실제 비급여 고지 금액을 입력합니다(현재는 예시 금액).
-3. **의료진**에 원장님 성함과 확인 가능한 이력을 입력합니다. 사진을 쓰려면 `public/`에 이미지를 넣고 화면을 수정합니다.
-4. **진료시간 · 휴진일**에 공휴일을 미리 등록합니다(기본으로 2026-12-25, 2027-01-01만 들어 있습니다).
-5. 문자 연동 주소를 설정하고, 직원 계정을 만듭니다.
-6. 의료광고 심의 대상인지 확인합니다(치료 후기·전후 사진은 넣지 않았습니다).
+`docs/production.md`의 **오픈 절차(D-30 ~ D+14)** 를 따릅니다. 내용 입력(병원 정보 · 실제 비급여 금액 · 의료진 · 공휴일 · 센터), 문자 업체 계약과 발신번호 사전 등록, 처리방침 법률 검토, 직원 1인 1계정, 백업 · 복구 리허설을 마치고 `deploy/ops.sh preflight`가 통과해야 도메인을 알립니다. 의료광고 표현(치료 후기 · 전후 사진 · 최고 · 최저가)은 넣지 않았습니다.
 
 ## 구조
 
 ```
 server/
-  index.js     서버 시작, 10분마다 정기 작업(문자 안내, 개인정보 파기)
+  index.js     서버 시작, 10분마다 정기 작업(문자 안내, 개인정보 파기, 운영 알림)
+  backup.js    백업(암호화 · 무결성 · 보관 규칙) · 복구
+  preflight.js 오픈 전 · 배포 전 점검
   app.js       API와 정적 파일 제공, 권한 검사
   db.js        SQLite 스키마와 초기 데이터
   auth.js      비밀번호, 로그인 세션
@@ -363,7 +362,9 @@ public/
   admin/       직원용 관리 화면       js/admin.js
   js/core.js   예약 가능 시간 계산·입력 검증 (서버와 브라우저가 같이 씀)
   js/demo-backend.js  체험판 전용 가짜 API (운영 서버에서는 쓰지 않음)
-scripts/       build-demo.js(체험판), backup.js(백업)
+scripts/       build-demo.js(체험판), local.js(로컬), backup.js · restore.js · preflight.js(운영)
+deploy/        compose · Caddy · deploy.sh · rollback.sh · ops.sh · cron · 설정 예시
+docs/          production.md(실 운영 절차), 사용성 테스트, 조사
 test/          npm test
 ```
 
@@ -371,6 +372,7 @@ test/          npm test
 
 | 경로 | 설명 |
 |---|---|
+| `GET /api/health` | 상태 확인(바깥: ok · 버전 / 서버 안 · 토큰: 백업 · 문자 실패까지) |
 | `GET /api/site` | 병원 정보, 진료시간, 휴진일, 진료비, 의료진, 공지, 진료 중 여부 |
 | `GET /api/live`, `GET /api/live/stream` | 실시간 현황(진료 상태, 대기, 7일 예약 현황, 가장 빠른 시간, 오늘 진료 의료진) / 변경 신호 |
 | `GET /api/days?treatment=`, `GET /api/slots?date=&treatment=` | 예약 가능한 날짜 / 시간과 남은 자리 (센터 진료 요일 반영) |
@@ -385,7 +387,7 @@ test/          npm test
 npm test
 ```
 
-예약 가능 시간 계산(점심시간, 마감 접수, 휴진일, 예약 기간), 정원 초과·중복 예약 방지, 조회·취소, 로그인·권한·CSRF, 설정 변경이 홈페이지에 반영되는지, 전날 안내 문자와 개인정보 파기를 검사합니다.
+예약 가능 시간 계산(점심시간, 마감 접수, 휴진일, 예약 기간), 정원 초과·중복 예약 방지, 조회·취소, 로그인·권한·CSRF, 설정 변경이 홈페이지에 반영되는지, 전날 안내 문자와 개인정보 파기를 검사합니다. 운영(`test/ops.test.js`): 예전 DB 마이그레이션, 건강 정보 별도 동의, 접속기록(IP · 조회 · 내려받기), 상태 확인, 운영 알림, 백업 암호화 · 위조 거부 · 복구, 보관 규칙, 오픈 전 점검. 디자인 · 문구 규칙(`test/design.test.js`, `test/copy.test.js`).
 
 ## 아직 없는 것
 

@@ -1,18 +1,17 @@
 # W치과 서버 예약 작업 — `crontab -e`로 넣습니다. 서버 시간대는 Asia/Seoul로(timedatectl set-timezone Asia/Seoul).
-# 경로는 저장소를 /srv/w-dental 에 받았다고 가정. 기록은 /var/log/w-dental/ 에 남깁니다(mkdir -p /var/log/w-dental).
+# 저장소를 /srv/w-dental 에 받았다고 가정. 기록은 /var/log/w-dental/ 에(mkdir -p /var/log/w-dental).
 SHELL=/bin/bash
-D=/srv/w-dental/deploy
-BK=docker compose -p w-dental -f compose.yaml exec -T app node --disable-warning=ExperimentalWarning scripts/backup.js
+OPS=/srv/w-dental/deploy/ops.sh
 # 운영 DB 볼륨의 백업 폴더(Docker 기본 위치)
 VOL=/var/lib/docker/volumes/w-dental_data/_data/backups
 
-# 진료 시간(오전 9시 ~ 오후 9시) 매시 5분: 백업(암호화 · 보관 규칙 정리 포함) → RPO 1시간
-5 9-21 * * * cd $D && $BK >> /var/log/w-dental/backup.log 2>&1
+# 진료 시간(오전 9시 ~ 오후 9시) 매시 5분: 백업(암호화 · 보관 규칙 정리 포함) → 잃을 수 있는 예약은 최대 1시간 치
+5 9-21 * * * $OPS backup >> /var/log/w-dental/backup.log 2>&1
 # 매일 오전 3:10: 백업 → 국내 리전 오브젝트 스토리지로 복사(rclone 원격 이름: wdental-backup)
-10 3 * * * cd $D && $BK >> /var/log/w-dental/backup.log 2>&1 && rclone copy $VOL wdental-backup:w-dental-backups --max-age 25h >> /var/log/w-dental/offsite.log 2>&1
+10 3 * * * $OPS backup >> /var/log/w-dental/backup.log 2>&1 && rclone copy $VOL wdental-backup:w-dental-backups --max-age 25h >> /var/log/w-dental/offsite.log 2>&1
 # 매주 일요일 오전 4:00: 외부 보관본도 개인정보 보관 기간(180일)을 넘기지 않게 삭제
 0 4 * * 0 rclone delete wdental-backup:w-dental-backups --min-age 180d >> /var/log/w-dental/offsite.log 2>&1
-# 매주 월요일 오전 4:30: 가장 최근 백업을 풀어 검사(복구 연습 자동판). 실패하면 직원 웹훅으로 알리도록 health 감시와 함께 확인
-30 4 * * 1 cd $D && docker compose -p w-dental -f compose.yaml exec -T app sh -c 'node --disable-warning=ExperimentalWarning scripts/restore.js "$(ls -t /data/backups/*.enc | head -n 1)" --verify' >> /var/log/w-dental/verify.log 2>&1
-# 매월 1일 오전 5:00: 쓰지 않는 이미지 정리(최근 이미지는 되돌리기용으로 남음)
+# 매주 월요일 오전 4:30: 가장 최근 백업을 풀어 검사(자동 복구 연습). 결과는 주간 점검 때 확인
+30 4 * * 1 $OPS verify >> /var/log/w-dental/verify.log 2>&1
+# 매월 1일 오전 5:00: 30일 넘은 쓰지 않는 이미지 정리(최근 이미지는 되돌리기용으로 남음)
 0 5 1 * * docker image prune -af --filter "until=720h" >> /var/log/w-dental/prune.log 2>&1

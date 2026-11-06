@@ -641,7 +641,7 @@
 
   /* ---------- 기록 ---------- */
   var ACTIONS = {
-    "login": "로그인", "reservation.create": "예약 추가", "reservation.update": "예약 수정", "reservation.cancel": "환자 예약 취소", "reservation.export": "예약 내려받기",
+    "login": "로그인", "reservation.create": "예약 추가", "reservation.update": "예약 수정", "reservation.cancel": "환자 예약 취소", "reservation.export": "예약 내려받기", "reservation.view": "예약 목록 조회", "inquiry.view": "상담 요청 조회", "audit.export": "접속기록 내려받기",
     "settings.clinic": "병원 정보 변경", "settings.booking": "예약 규칙 변경", "settings.hours": "진료시간 변경", "holiday.set": "휴진일 등록", "holiday.delete": "휴진일 삭제",
     "fees.create": "진료비 추가", "fees.update": "진료비 수정", "fees.delete": "진료비 삭제", "doctors.create": "의료진 추가", "doctors.update": "의료진 수정", "doctors.delete": "의료진 삭제",
     "notices.create": "공지 추가", "notices.update": "공지 수정", "notices.delete": "공지 삭제", "user.create": "계정 추가", "user.delete": "계정 삭제", "user.password": "비밀번호 변경",
@@ -669,9 +669,15 @@
       if (!r[1]) return;
       var ab = el("tbody");
       r[1].items.forEach(function (a) {
-        ab.appendChild(el("tr", null, [el("td", { class: "mono nowrap", text: when(a.at) }), el("td", { class: "nowrap", text: a.username }), el("td", { class: "nowrap", text: ACTIONS[a.action] || a.action }), el("td", { class: "clip", text: [a.target, a.detail].filter(Boolean).join(" ") })]));
+        ab.appendChild(el("tr", null, [el("td", { class: "mono nowrap", text: when(a.at) }), el("td", { class: "nowrap", text: a.username }), el("td", { class: "mono nowrap", text: a.ip || "" }), el("td", { class: "nowrap", text: ACTIONS[a.action] || a.action }), el("td", { class: "clip", text: [a.target, a.detail].filter(Boolean).join(" ") })]));
       });
-      v.appendChild(el("section", { class: "panel" }, [el("h2", null, ["활동 기록 (최근 300건)"]), el("div", { class: "tbl-box" }, [el("table", { class: "tbl" }, [el("thead", null, [el("tr", null, ["시각", "계정", "작업", "대상"].map(function (h) { return el("th", { text: h }); }))]), ab])])]));
+      // 월 1회 접속기록 점검: 지난달 · 이번 달 기록 내려받기(내려받은 일도 기록에 남음)
+      var t = clinicNow().date, first = t.slice(0, 8) + "01", prevLast = C.addDays(first, -1), prevFirst = prevLast.slice(0, 8) + "01";
+      var dl = el("div", { class: "acts" }, [
+        el("a", { class: "btn btn-ghost btn-sm", href: "../api/admin/audit.csv?from=" + prevFirst + "&to=" + prevLast, text: "지난달 접속기록 내려받기 (월 점검)" }),
+        el("a", { class: "btn btn-ghost btn-sm", href: "../api/admin/audit.csv?from=" + first + "&to=" + t, text: "이번 달" })
+      ]);
+      v.appendChild(el("section", { class: "panel" }, [el("h2", null, ["활동 · 접속기록 (최근 300건)"]), el("p", { class: "muted small", text: "로그인 · 변경 · 예약 목록 조회 · 내려받기를 계정 · 시각 · 접속지와 함께 남깁니다. 지우지 않으며, 매월 점검합니다." }), dl, el("div", { class: "tbl-box" }, [el("table", { class: "tbl" }, [el("thead", null, [el("tr", null, ["시각", "계정", "접속지", "작업", "대상"].map(function (h) { return el("th", { text: h }); }))]), ab])])]));
     });
   };
 

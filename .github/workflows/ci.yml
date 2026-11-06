@@ -15,8 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           # Dockerfile의 런타임과 같은 버전
           node-version: 22.23.4
@@ -30,7 +30,7 @@ jobs:
     timeout-minutes: 15
     needs: test
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: 이미지 빌드(정상 · 일부러 깨진 것)
         run: |
           docker build --build-arg APP_VERSION=ci-a -t w-dental:ci-a .
@@ -60,11 +60,16 @@ jobs:
         run: |
           deploy/rollback.sh
           curl -fsS http://127.0.0.1:3200/api/health | grep -q '"version":"ci-a"'
-      - name: 백업 복구 연습(--verify)
+      - name: 운영 도우미(ops.sh) — 상태 · 백업 · 복구 연습 · 실제 복구
+        env: { STAGE: ci, APP_IMAGE: w-dental }
         run: |
-          docker compose -p w-dental-ci -f deploy/compose.yaml exec -T app sh -c \
-            'node --disable-warning=ExperimentalWarning scripts/backup.js && node --disable-warning=ExperimentalWarning scripts/restore.js "$(ls -t /data/backups/*.db* | head -n 1)" --verify'
-        env: { TAG: ci-a, APP_IMAGE: w-dental, ENV_FILE: ./ci.env, APP_PORT: "3200" }
+          deploy/ops.sh status | grep -q '"db":"ok"'
+          deploy/ops.sh backup
+          deploy/ops.sh verify
+          FILE="$(docker compose -p w-dental-ci -f deploy/compose.yaml exec -T app sh -c 'ls -t /data/backups/wdental-*.db* | head -n 1' | tr -d '\r')"
+          deploy/ops.sh restore "$FILE"
+          for i in $(seq 1 20); do curl -fsS http://127.0.0.1:3200/api/health | grep -q '"ok":true' && ok=1 && break; sleep 2; done
+          test "${ok:-}" = 1
       - name: Caddy 설정 검사
         run: |
           docker run --rm -v "$PWD/deploy/Caddyfile:/etc/caddy/Caddyfile:ro" \
