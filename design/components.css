@@ -145,17 +145,19 @@ body { margin: 0; font-family: var(--font-sans); font-size: 17px; line-height: 1
 
 /* ===== 입체 구성: 단계 판 · 판 머리 · 단락 카드 · 구성 미리보기 · 키 ===== */
 /* 층위: 0 바닥 → 1 판(--elev-1) → 2 카드(--elev-2) → 3 떠 있는 것(--elev-3). 빛은 왼쪽 위. */
-.wd-slab { --_slab: var(--slab-3); --_edge: var(--slab-3-edge); background: var(--_slab); border-radius: 30px 30px 18px 18px; padding: 0 24px 24px; box-shadow: var(--elev-1); max-width: 760px; }
-.wd-plate { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 8px 16px; padding: 22px 0 16px; border-bottom: 1px solid var(--_edge); }
+.wd-slab { --_slab: var(--slab-3); --_edge: var(--slab-3-edge); background: var(--_slab); border: 1px solid var(--_edge); border-radius: 30px 30px 18px 18px; padding: 0 24px 32px; box-shadow: 0 6px 0 -1px var(--slab-lip, var(--_edge)), 0 14px 18px -14px #0b3d3661; max-width: 760px; }
+.wd-plate { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 12px 20px; padding: 32px 0 24px; }
 .wd-plate-key { width: 52px; height: 52px; display: grid; place-items: center; border-radius: 18px 18px 11px 11px; background: var(--teal); color: var(--on-teal); font: 700 26px/1 var(--font-display); box-shadow: inset 0 1px 0 #ffffff59, inset 0 -4px 0 #00000029; }
-.wd-plate-name { font: 700 26px/32px var(--font-display); margin: 0; }
+.wd-plate-name { font: 700 34px/44px var(--font-display); margin: 0; } /* L2 title */
 .wd-plate-name small { font: 600 14px/20px var(--font-sans); color: var(--ink-muted); margin-left: 10px; }
 .wd-plate-role { color: var(--ink-muted); margin: 0; }
 .wd-plate-map { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; }
 .wd-part-no { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--teal); background: var(--card); color: var(--teal); font: 700 13px/1 var(--font-sans); box-sizing: border-box; }
-.wd-part { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-crown) var(--radius-crown) var(--radius-root) var(--radius-root); padding: 22px 24px 24px; box-shadow: var(--elev-2); display: grid; gap: 14px; }
+.wd-part { background: var(--card); border: 1px solid var(--card-line); border-radius: var(--radius-crown) var(--radius-crown) var(--radius-root) var(--radius-root); padding: 24px; box-shadow: 0 1px 1px #10211f14, 0 6px 12px -8px #0b3d364d; display: grid; gap: 16px; }
+.wd-part-title { font: 600 24px/32px var(--font-display); margin: 0; } /* L3 heading */
+.wd-part h3 { font: 700 19px/26px var(--font-sans); margin: 0; } /* L4 subheading */
 .wd-part[open], .wd-part.open { box-shadow: var(--elev-3); }
-.wd-part-map { list-style: none; margin: 0; padding: 8px; display: flex; flex-wrap: wrap; gap: 8px; border-radius: 14px 14px 10px 10px; background: color-mix(in oklab, var(--_slab, var(--teal-soft)) 75%, var(--card)); box-shadow: inset 0 2px 5px #10211f14; }
+.wd-part-map { list-style: none; margin: 0; padding: 8px; display: flex; flex-wrap: wrap; gap: 8px; border-radius: 14px 14px 10px 10px; background: var(--_slab, var(--teal-soft)); box-shadow: inset 0 1px 2px #10211f29; }
 .wd-part-map li { min-height: 40px; padding: 0 12px; display: inline-flex; align-items: center; border-radius: 10px; background: var(--card); font: 600 15px/20px var(--font-sans); }
 .wd-part-map[data-shape="seq"] li + li::before { content: "→ "; color: var(--teal); margin-right: 6px; }
 /* 키: 누를 수 있는 것은 아랫단이 있고, 누르면 들어가고, 고르면 눌린 채로 */
