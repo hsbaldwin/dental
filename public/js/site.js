@@ -415,14 +415,16 @@
       ]),
       el("div", { class: "field" }, [el("label", { for: "iqMsg", text: "미리 남길 말씀 (선택)" }), el("textarea", { id: "iqMsg", maxlength: "300", rows: "2", placeholder: "예: 투명교정 기간과 비용이 궁금해요" })]),
       el("div", { class: "vh", "aria-hidden": "true" }, [el("input", { id: "iqWebsite", tabindex: "-1", autocomplete: "off" })]),
-      el("label", { class: "consent", for: "iqAgree" }, [el("input", { type: "checkbox", id: "iqAgree" }), el("span", { text: "상담 연락을 위한 개인정보(성함·연락처) 수집·이용에 동의합니다." })]),
+      el("label", { class: "consent", for: "iqAgree" }, [el("input", { type: "checkbox", id: "iqAgree" }), el("span", { text: "상담 연락을 위해 성함과 연락처를 수집·이용하는 데 동의합니다." })]),
+      el("label", { class: "consent consent-health", for: "iqHealth", id: "iqHealthRow", hidden: true }, [el("input", { type: "checkbox", id: "iqHealth" }), el("span", { text: "남긴 말씀에 건강 정보가 있을 수 있어, 상담 준비에만 쓰는 데 동의합니다." })]),
       el("p", { class: "form-error", id: "iqErr", hidden: true }),
       el("button", { class: "btn btn-primary", type: "submit", text: c.name + " 데스크에 상담 요청" })
     ]);
+    f.querySelector("#iqMsg").addEventListener("input", function () { var has = !!this.value.trim(), row = f.querySelector("#iqHealthRow"); row.hidden = !has; if (!has) f.querySelector("#iqHealth").checked = false; });
     f.addEventListener("submit", function (e) {
       e.preventDefault();
       var pickR = function (n) { var x = f.querySelector('input[name="' + n + '"]:checked'); return x ? x.value : null; };
-      var body = { center: c.key, topic: pickR("iqTopic"), prefer: pickR("iqPrefer"), name: $("iqName").value, phone: $("iqTel").value, message: $("iqMsg").value, consent: $("iqAgree").checked, website: $("iqWebsite").value };
+      var body = { center: c.key, topic: pickR("iqTopic"), prefer: pickR("iqPrefer"), name: $("iqName").value, phone: $("iqTel").value, message: $("iqMsg").value, consent: $("iqAgree").checked, healthConsent: $("iqHealth").checked, website: $("iqWebsite").value };
       var v = C.validateInquiry(body), err = $("iqErr");
       if (!v.ok) { err.textContent = Object.values(v.errors)[0]; err.hidden = false; return; }
       var btn = f.querySelector('button[type="submit"]'); btn.disabled = true;
@@ -783,7 +785,7 @@
       renderDoctors(s.doctors); renderNotices(s.notices);
       if (live) renderCenters(false);
       if (!first && view !== "home" && currentCenter()) renderCenterPage(currentCenter());
-      if (s.booking.retentionDays) $("retention").textContent = s.booking.retentionDays;
+      if (s.booking.retentionDays) { $("retention").textContent = s.booking.retentionDays; document.querySelectorAll(".retention-days").forEach(function (n) { n.textContent = s.booking.retentionDays; }); }
     });
   }
 
@@ -804,6 +806,7 @@
     if (!symNow) return;
     var m = $("rMemo"), txt = symNow.label + (where && where.text() ? " · 아픈 곳: " + where.text() : "");
     if (!m.value || m.value === autoMemo) { m.value = txt; autoMemo = txt; }
+    syncHealthRow();
   }
   if (P) {
     where = P.toothMap({ onChange: syncMemo });
@@ -919,15 +922,19 @@
     ["fName", "fPhone"].forEach(function (id) { $(id).classList.toggle("invalid", id === fieldId); });
   }
 
+  // 증상 메모(건강 정보)가 있을 때만 별도 동의 칸을 보여 줌 — 증상 칩이 메모를 채울 때도 같이
+  function syncHealthRow() { var has = !!$("rMemo").value.trim(); $("rHealthRow").hidden = !has; if (!has) $("rHealth").checked = false; }
+  $("rMemo").addEventListener("input", syncHealthRow);
+
   $("reserveForm").addEventListener("submit", function (e) {
     e.preventDefault();
     var payload = {
       name: $("rName").value, phone: $("rTel").value, treatment: $("rClinic").value, memo: $("rMemo").value,
-      date: pick.date, time: pick.time, consent: $("rAgree").checked, website: $("rWebsite").value
+      date: pick.date, time: pick.time, consent: $("rAgree").checked, healthConsent: $("rHealth").checked, website: $("rWebsite").value
     };
     var v = C.validateReservation(payload);
     if (!v.ok) {
-      var k = ["treatment", "date", "time", "name", "phone", "memo", "consent"].filter(function (x) { return v.errors[x]; })[0];
+      var k = ["treatment", "date", "time", "name", "phone", "memo", "consent", "healthConsent"].filter(function (x) { return v.errors[x]; })[0];
       showError(v.errors[k], k === "name" ? "fName" : k === "phone" ? "fPhone" : null);
       if (k === "name") $("rName").focus(); else if (k === "phone") $("rTel").focus();
       return;
@@ -937,7 +944,7 @@
     api("reservations", payload).then(function (r) {
       track(r.code, payload.phone, $("rRemember").checked);
       renderTracker(r, false);
-      $("rName").value = ""; $("rTel").value = ""; $("rMemo").value = ""; $("rAgree").checked = false; pick.time = null;
+      $("rName").value = ""; $("rTel").value = ""; $("rMemo").value = ""; $("rAgree").checked = false; $("rHealth").checked = false; syncHealthRow(); pick.time = null;
       $("symHint").hidden = true; document.querySelectorAll("#symChips input").forEach(function (i) { i.checked = false; });
       $("reserveForm").hidden = true;
       var tr = $("tracker"); tr.scrollIntoView({ behavior: "smooth", block: "start" }); tr.focus({ preventScroll: true });

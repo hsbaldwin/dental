@@ -305,7 +305,7 @@ test("center front desk: status, callback requests and staff handling", async ()
 
   const bad = await call("POST", "/api/inquiries", { center: "ortho", name: "이상담", phone: "010-4545-1212", topic: "cost", prefer: "pm", consent: false });
   assert.equal(bad.status, 400);
-  const q1 = await call("POST", "/api/inquiries", { center: "ortho", name: "이상담", phone: "010-4545-1212", topic: "cost", prefer: "pm", message: "투명교정 비용", consent: true });
+  const q1 = await call("POST", "/api/inquiries", { center: "ortho", name: "이상담", phone: "010-4545-1212", topic: "cost", prefer: "pm", message: "투명교정 비용", consent: true, healthConsent: true });
   assert.equal(q1.status, 201, q1.text);
   assert.equal(q1.json.status, "new");
   assert.equal(q1.json.ahead, 0);

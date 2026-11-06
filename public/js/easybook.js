@@ -228,12 +228,17 @@
     });
     body.appendChild(dl);
     var agree = el("label", { class: "eb-agree", for: "ebAgree" }, [el("input", { type: "checkbox", id: "ebAgree" }), el("span", { text: "예약 연락을 위해 성함과 전화번호를 쓰는 데 동의합니다. 예약일로부터 " + days + "일 뒤 지웁니다." })]);
+    // 불편한 곳(건강 정보)을 보낼 때만 두 번째 동의. 원하지 않으면 빼고 예약할 수 있게
+    var health = st.memo ? el("label", { class: "eb-agree", for: "ebHealth" }, [el("input", { type: "checkbox", id: "ebHealth" }), el("span", { text: "불편한 곳(건강 정보)을 진료 준비에만 쓰는 데 동의합니다." })]) : null;
+    var drop = st.memo ? el("button", { type: "button", class: "eb-fix", text: "불편한 곳은 빼고 예약하기" }) : null;
+    if (drop) drop.addEventListener("click", function () { st.memo = ""; go(6, true); });
     var err = el("p", { class: "eb-error", role: "alert", hidden: true });
     var ok = el("button", { type: "button", class: "eb-next", text: "이대로 예약하기" });
     ok.addEventListener("click", function () {
       if (!$("ebAgree").checked) { err.textContent = "동의에 표시해 주셔야 예약할 수 있어요."; err.hidden = false; return; }
+      if (health && !$("ebHealth").checked) { err.textContent = "불편한 곳을 함께 보내시려면 두 번째 칸에도 표시해 주세요. 원하지 않으시면 '불편한 곳은 빼고 예약하기'를 눌러 주세요."; err.hidden = false; return; }
       ok.disabled = true; ok.textContent = "예약하는 중…";
-      A.api("reservations", { name: st.name, phone: st.phone, treatment: st.treatment, date: st.date, time: st.time, memo: "쉬운 예약" + (st.memo ? " · " + st.memo : ""), consent: true }).then(function (r) {
+      A.api("reservations", { name: st.name, phone: st.phone, treatment: st.treatment, date: st.date, time: st.time, memo: st.memo || "", channel: "easy", consent: true, healthConsent: !!health && $("ebHealth").checked }).then(function (r) {
         A.trackBooking(r, st.phone);
         done(r);
       }).catch(function (e) {
@@ -241,7 +246,7 @@
         if (e.status === 409) { var again = el("button", { type: "button", class: "eb-fix", text: "다른 시간 고르기" }); again.addEventListener("click", function () { go(2); }); body.appendChild(again); }
       });
     });
-    body.appendChild(agree); body.appendChild(err); body.appendChild(ok);
+    body.appendChild(agree); if (health) { body.appendChild(health); body.appendChild(drop); } body.appendChild(err); body.appendChild(ok);
   }
   function done(r) {
     stepTxt.textContent = "예약 신청 완료"; back.hidden = true;

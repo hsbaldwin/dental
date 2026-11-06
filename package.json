@@ -16,6 +16,8 @@
     "local:watch": "node --disable-warning=ExperimentalWarning --watch-path=server --watch-path=public --watch-path=scripts scripts/local.js",
     "check": "npm test && node scripts/build-demo.js",
     "build:demo": "node scripts/build-demo.js",
-    "backup": "node --disable-warning=ExperimentalWarning scripts/backup.js"
+    "backup": "node --disable-warning=ExperimentalWarning scripts/backup.js",
+    "restore": "node --disable-warning=ExperimentalWarning scripts/restore.js",
+    "preflight": "node --disable-warning=ExperimentalWarning scripts/preflight.js"
   }
 }

@@ -239,7 +239,10 @@
     if (!PREFERS.some(function (t) { return t.key === input.prefer; })) errors.prefer = "연락받을 시간을 골라 주세요.";
     if (message.length > 300) errors.message = "남기실 말씀은 300자 이내로 적어 주세요.";
     if (input.consent !== true) errors.consent = "개인정보 수집에 동의해야 상담을 요청할 수 있습니다.";
-    return { ok: !Object.keys(errors).length, errors: errors, value: { name: name, phone: phone, center: input.center, topic: input.topic, prefer: input.prefer, message: message } };
+    if (message && input.healthConsent !== true) errors.healthConsent = "남기신 말씀에 건강 정보가 있을 수 있어, 상담 준비에만 쓰는 데 동의해 주세요. 원하지 않으시면 말씀을 지우고 요청하셔도 됩니다.";
+    var channel = CHANNELS[input.channel] ? input.channel : null;
+    return { ok: !Object.keys(errors).length, errors: errors, value: { name: name, phone: phone, center: input.center, topic: input.topic, prefer: input.prefer, message: message,
+      healthConsent: !!message && input.healthConsent === true, channel: channel, stored: channelMemo(channel, message) } };
   }
 
   function centerSummaries(centers, doctors, hours, holidays, rules, countsByDate, now, clinic, nowMs, pending) {
@@ -300,6 +303,13 @@
   function worksOn(days, weekday) { return String(days || "").indexOf(WEEKDAYS[weekday]) >= 0; }
 
   /* ---------- 입력 검증 ---------- */
+  /* ---------- 건강 정보(민감정보) 별도 동의 ----------
+   * 증상 메모 · 아픈 곳처럼 사람이 적은 글은 건강 정보라 성함·연락처와 따로 동의를 받는다(개인정보보호법 23조).
+   * 쉬운 예약 · 챗봇 같은 경로 표시는 건강 정보가 아니므로 글과 따로 받아 서버가 붙인다. */
+  var CHANNELS = { easy: "쉬운 예약", chat: "챗봇에서 신청" };
+  var HEALTH_CONSENT_ERROR = "증상 메모(건강 정보)를 함께 보내시려면 건강 정보 수집·이용에 동의해 주세요. 원하지 않으시면 메모를 지우고 예약하셔도 됩니다.";
+  function channelMemo(channel, text) { var tag = CHANNELS[channel]; return tag ? tag + (text ? " · " + text : "") : text; }
+
   function validateReservation(input) {
     var errors = {};
     var name = String(input.name || "").trim();
@@ -313,13 +323,17 @@
     if (!isTime(input.time)) errors.time = "시간을 선택해 주세요.";
     if (memo.length > 500) errors.memo = "메모는 500자 이내로 입력해 주세요.";
     if (input.consent !== true) errors.consent = "개인정보 수집에 동의해야 예약할 수 있습니다.";
+    if (memo && input.healthConsent !== true) errors.healthConsent = HEALTH_CONSENT_ERROR;
+    var channel = CHANNELS[input.channel] ? input.channel : null;
     return {
       ok: Object.keys(errors).length === 0, errors: errors,
-      value: { name: name, phone: phone, treatment: input.treatment, date: input.date, time: input.time, memo: memo }
+      value: { name: name, phone: phone, treatment: input.treatment, date: input.date, time: input.time, memo: memo,
+        healthConsent: !!memo && input.healthConsent === true, channel: channel, stored: channelMemo(channel, memo) }
     };
   }
 
   return {
+    CHANNELS: CHANNELS, channelMemo: channelMemo,
     TREATMENTS: TREATMENTS, STATUSES: STATUSES, ACTIVE: ACTIVE, WEEKDAYS: WEEKDAYS,
     labelOf: labelOf, koTime: koTime, seoulNow: seoulNow, toMin: toMin, toHHMM: toHHMM, isDate: isDate, isTime: isTime,
     weekdayOf: weekdayOf, addDays: addDays, diffDays: diffDays, formatDate: formatDate,

@@ -178,7 +178,7 @@
     var r = v.value, sl = slotsFor(r.date, null, r.treatment), slot = sl.slots.filter(function (s) { return s.time === r.time; })[0];
     if (sl.closed || !slot || slot.remaining <= 0) throw new Err(409, "선택한 시간에는 예약할 수 없습니다. 다른 시간을 선택해 주세요.");
     if (S.reservations.some(function (x) { return x.phone === r.phone && x.date === r.date && x.time === r.time && C.ACTIVE.indexOf(x.status) >= 0; })) throw new Err(409, "같은 시간에 이미 예약이 있습니다.");
-    var rec = Object.assign({ id: ++S.seq, code: newCode(), status: "requested", source: "web", staff_memo: "", consent_at: iso(), reminded: 0, purged: 0, created_at: iso(), updated_at: iso() }, r);
+    var rec = Object.assign({ id: ++S.seq, code: newCode(), status: "requested", source: "web", staff_memo: "", consent_at: iso(), reminded: 0, purged: 0, created_at: iso(), updated_at: iso() }, r, { memo: r.stored, health_consent_at: r.healthConsent ? iso() : null });
     S.reservations.push(rec);
     out("staff", null, "새 예약 신청: " + C.maskName(r.name) + " · " + C.formatDate(r.date) + " " + r.time);
     out("sms", r.phone, msg("requested", rec));
@@ -198,7 +198,7 @@
     var c = S.centers.filter(function (x) { return x.key === v.value.center; })[0];
     if (!c) throw new Err(404, "진료센터를 찾을 수 없습니다.");
     if (c.desk_paused) throw new Err(409, c.name + " 데스크가 지금 온라인 상담 요청을 잠시 받지 않습니다. 전화로 문의해 주세요.");
-    var rec = Object.assign({ id: ++S.seq, code: newCode(), status: "new", staff_memo: "", handled_by: null, consent_at: iso(), purged: 0, created_at: iso(), updated_at: iso() }, v.value);
+    var rec = Object.assign({ id: ++S.seq, code: newCode(), status: "new", staff_memo: "", handled_by: null, consent_at: iso(), purged: 0, created_at: iso(), updated_at: iso() }, v.value, { message: v.value.stored, health_consent_at: v.value.healthConsent ? iso() : null });
     S.inquiries.push(rec);
     out("staff", null, c.name + " 상담 요청: " + C.maskName(rec.name) + " · " + C.labelOf(C.TOPICS, rec.topic));
     out("sms", rec.phone, "[" + S.clinic.shortName + "] " + c.name + " 상담 요청이 접수되었습니다. 접수번호 " + rec.code);

@@ -235,17 +235,23 @@
         el("li", { text: "진료: " + C.labelOf(C.TREATMENTS, b.treatment) }), el("li", { text: "일시: " + C.formatDate(b.date) + " " + C.koTime(b.time) }),
         el("li", { text: "성함: " + b.name }), el("li", { text: "연락처: " + C.maskPhone(b.phone) })
       ]),
-      el("p", { class: "muted", text: "예약 연락을 위해 성함·연락처를 수집·이용하고, 예약일로부터 " + days + "일 뒤 파기합니다." })
+      el("p", { class: "muted", text: "예약 연락을 위해 성함·연락처를 수집·이용하고, 예약일로부터 " + days + "일 뒤 파기합니다." }),
+      b.memo ? el("p", { class: "muted", text: "알려 주신 증상(" + b.memo + ")은 건강 정보예요. '증상도 함께 보내기'를 누르시면 진료 준비에만 쓰는 데에도 동의하시는 거예요." }) : null
     ]);
-    chips([
-      { label: "동의하고 예약 신청", primary: true, go: submitBooking },
+    chips(b.memo ? [
+      { label: "동의하고 증상도 함께 보내기", primary: true, go: function () { submitBooking(true); } },
+      { label: "증상은 빼고 예약 신청", go: function () { submitBooking(false); } },
+      { label: "시간 다시 고르기", go: function () { pickSlot(b.treatment, b.memo); } },
+      { label: "그만할게요", go: function () { booking = null; menu(); } }
+    ] : [
+      { label: "동의하고 예약 신청", primary: true, go: function () { submitBooking(false); } },
       { label: "시간 다시 고르기", go: function () { pickSlot(b.treatment, b.memo); } },
       { label: "그만할게요", go: function () { booking = null; menu(); } }
     ]);
   }
-  function submitBooking() {
+  function submitBooking(withHealth) {
     var b = booking;
-    A.api("reservations", { name: b.name, phone: b.phone, treatment: b.treatment, date: b.date, time: b.time, memo: b.memo, consent: true }).then(function (r) {
+    A.api("reservations", { name: b.name, phone: b.phone, treatment: b.treatment, date: b.date, time: b.time, memo: withHealth ? b.memo : "", channel: "chat", consent: true, healthConsent: !!withHealth }).then(function (r) {
       A.trackBooking(r, b.phone);
       bot(["예약 신청이 접수됐어요. 예약번호를 메모해 두세요.", el("p", { class: "code", text: r.code }),
         liveLine([C.formatDate(r.date) + " " + C.koTime(r.time), r.treatmentLabel, r.statusLabel]),
@@ -370,7 +376,7 @@
   }
   function submitCall() {
     var q0 = call;
-    A.api("inquiries", { center: q0.center, topic: q0.topic, prefer: q0.prefer, name: q0.name, phone: q0.phone, message: "챗봇 상담 요청", consent: true }).then(function (q) {
+    A.api("inquiries", { center: q0.center, topic: q0.topic, prefer: q0.prefer, name: q0.name, phone: q0.phone, message: "", channel: "chat", consent: true }).then(function (q) {
       A.setInquiry(q, q0.phone);
       bot(["상담 요청이 " + q.centerName + " 데스크에 접수됐어요.", el("p", { class: "code", text: q.code }),
         liveLine([q.statusLabel, q.ahead ? "앞에 " + q.ahead + "건" : "다음 순서", q.preferLabel + " 연락"]),

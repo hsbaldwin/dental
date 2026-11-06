@@ -1,0 +1,44 @@
+# W치과 HTTPS 앞단. 값은 edge.env에서 받습니다(edge.env.example 참고).
+# 인증서는 Caddy가 자동으로 받고 갱신합니다(도메인의 DNS가 이 서버를 가리켜야 함).
+
+(app) {
+	# 접속기록에 실제 접속지가 남도록 앱은 TRUST_PROXY=1, Caddy가 X-Forwarded-For를 붙임
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+	# 실시간 신호(SSE)는 압축 · 버퍼 없이 바로 흘려보냄
+	handle /api/live/stream {
+		reverse_proxy {args[0]} {
+			flush_interval -1
+		}
+	}
+	handle {
+		# 관리 화면은 병원 · 개발자 IP에서만(ADMIN_ALLOW_IPS가 비어 있으면 제한 없음)
+		@adminOutside {
+			path /admin /admin/* /api/admin/*
+			not remote_ip {$ADMIN_ALLOW_IPS:0.0.0.0/0 ::/0}
+		}
+		respond @adminOutside "관리 화면은 등록된 곳에서만 접속할 수 있습니다." 403
+		encode zstd gzip
+		reverse_proxy {args[0]}
+	}
+	log {
+		output stdout
+		format console
+	}
+}
+
+# 운영
+{$SITE_DOMAIN:localhost} {
+	import app 127.0.0.1:{$APP_PORT:3000}
+}
+
+# 스테이징: 비밀번호로 막고, 검색에 나오지 않게
+{$STAGING_DOMAIN:staging.localhost} {
+	basic_auth {
+		{$STAGING_USER:staging} {$STAGING_HASH}
+	}
+	header X-Robots-Tag "noindex, nofollow"
+	import app 127.0.0.1:{$STAGING_PORT:3100}
+}

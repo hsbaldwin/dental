@@ -1,0 +1,24 @@
+# W치과 앱 (운영 · 스테이징 공용). 배포는 deploy.sh로 — 직접 쓰지 마세요. 자세한 절차: docs/production.md
+#   운영     : 프로젝트 w-dental,         포트 127.0.0.1:3000, production.env
+#   스테이징 : 프로젝트 w-dental-staging, 포트 127.0.0.1:3100, staging.env
+# 앱은 서버 안(127.0.0.1)에만 열고, 바깥은 Caddy(edge.compose.yaml)가 HTTPS로 받습니다.
+services:
+  app:
+    image: ${APP_IMAGE:-ghcr.io/hsbaldwin/dental}:${TAG:?배포할 버전 TAG가 필요합니다}
+    env_file: ${ENV_FILE:-./production.env}
+    environment:
+      DB_FILE: /data/wdental.db
+      BACKUP_DIR: /data/backups
+    volumes:
+      - data:/data
+    ports:
+      - "127.0.0.1:${APP_PORT:-3000}:3000"
+    restart: unless-stopped
+    stop_grace_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+volumes:
+  data:

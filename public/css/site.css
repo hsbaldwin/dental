@@ -1627,3 +1627,8 @@ body { line-height: 1.7; }
 .part-tag { letter-spacing: 0; }
 /* 데스크 메뉴 설명은 '…'로 자르지 않고 줄을 바꿈(시각 · 건수가 잘리면 뜻이 사라짐) */
 .desk-menu button small { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.4; }
+/* 개인정보처리방침: 초안 표시와 채울 칸 */
+.policy-draft { display: none; }
+.policy[data-draft] .policy-draft { display: block; padding: .75rem 1rem; border-radius: var(--radius-root); background: var(--warn-soft, #F6E7D6); color: var(--warn); font-weight: 700; }
+.policy mark[data-fill] { background: var(--gum-soft); color: var(--gum-ink); padding: 0 .3rem; border-radius: .25rem; }
+.policy ul { margin: 0; padding-left: 1.2rem; display: grid; gap: .35rem; }

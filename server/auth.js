@@ -52,7 +52,7 @@ function currentUser(db, req) {
   const token = sessionToken(req);
   if (!token) return null;
   const row = db.prepare(
-    "SELECT u.id, u.username, u.name, u.role FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token = ? AND s.expires_at > ?"
+    "SELECT u.id, u.username, u.name, u.role, u.pw_changed_at AS pwChangedAt FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token = ? AND s.expires_at > ?"
   ).get(sha(token), Date.now());
   return row || null;
 }

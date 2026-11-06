@@ -82,6 +82,8 @@
     $("loginView").hidden = true; $("app").hidden = false;
     $("whoami").textContent = user.name + " (" + (user.role === "admin" ? "관리자" : "직원") + ")";
     document.querySelectorAll("[data-role=admin]").forEach(function (a) { a.hidden = !isAdmin(); });
+    // 처음 받은(임시) 비밀번호를 그대로 쓰는 계정에는 바꾸라는 띠
+    $("pwBanner").hidden = !!user.pwChangedAt;
     route();
     startPolling();
   }
@@ -612,7 +614,7 @@
     var pw = el("form", { class: "grid-form" }, [field("현재 비밀번호", cur), field("새 비밀번호", nx, "10자 이상"), el("div", { class: "wide" }, [el("button", { class: "btn btn-primary btn-sm", type: "submit", text: "비밀번호 변경" })])]);
     pw.addEventListener("submit", function (e) {
       e.preventDefault();
-      api("POST", "password", { current: cur.value, next: nx.value }).then(function () { cur.value = nx.value = ""; toast("비밀번호를 바꿨습니다. 다른 기기의 로그인은 해제됩니다."); }).catch(fail);
+      api("POST", "password", { current: cur.value, next: nx.value }).then(function () { cur.value = nx.value = ""; toast("비밀번호를 바꿨습니다. 다른 기기의 로그인은 해제됩니다."); S.user.pwChangedAt = true; $("pwBanner").hidden = true; }).catch(fail);
     });
     v.appendChild(el("section", { class: "panel" }, [el("h2", null, ["내 비밀번호 · " + S.user.username]), pw]));
     if (!isAdmin()) return;

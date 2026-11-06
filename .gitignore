@@ -6,3 +6,7 @@ dist/
 *.db-wal
 *.db-shm
 backups/
+# 배포: 서버에서만 채우는 설정과 배포 상태
+deploy/*.env
+deploy/.current-*
+deploy/.history-*

@@ -3,9 +3,17 @@ const fs = require("node:fs");
 const path = require("node:path");
 const crypto = require("node:crypto");
 const core = require("../public/js/core.js");
-const { getSetting, setSetting, audit, nowIso } = require("./db");
+const { AsyncLocalStorage } = require("node:async_hooks");
+const { getSetting, setSetting, audit: auditRow, nowIso } = require("./db");
 const auth = require("./auth");
 const { createNotifier } = require("./notify");
+
+// 요청마다 접속지(IP)를 기억해 두었다가 접속기록에 함께 남김 — 모든 audit() 호출이 따로 IP를 넘기지 않아도 됨
+const requestCtx = new AsyncLocalStorage();
+function audit(db, username, action, target, detail) {
+  const ctx = requestCtx.getStore();
+  auditRow(db, username, action, target, detail, ctx ? ctx.ip : null);
+}
 
 class HttpError extends Error {
   constructor(status, message, extra) { super(message); this.status = status; this.extra = extra; }
@@ -144,6 +152,15 @@ function createApp(opts) {
   const limitLookup = rateLimiter(30, 3600 * 1000);
   const limitInquiry = rateLimiter(Number(env.INQUIRY_LIMIT_PER_HOUR || 10), 3600 * 1000);
   const limitLogin = rateLimiter(10, 15 * 60 * 1000);
+  // 개인정보 조회 기록: 관리 화면이 30초마다 다시 읽으므로 같은 사람 · 같은 조건은 10분에 한 번만 남김
+  const viewSeen = new Map();
+  function logView(user, action, url, count) {
+    const key = user.username + "|" + action + "|" + url.search, now = Date.now();
+    if (now - (viewSeen.get(key) || 0) < 10 * 60 * 1000) return;
+    viewSeen.set(key, now);
+    if (viewSeen.size > 2000) for (const [k, t] of viewSeen) if (now - t >= 10 * 60 * 1000) viewSeen.delete(k);
+    audit(db, user.username, action, null, { query: Object.fromEntries(url.searchParams), count });
+  }
 
   /* ---------- 실시간 알림 (Server-Sent Events) ----------
    * 예약·설정이 바뀌면 열려 있는 홈페이지에 'update' 신호만 보냅니다(개인정보 없음).
@@ -221,6 +238,29 @@ function createApp(opts) {
   /* ---------- 공개 API ---------- */
   const routes = [];
   const on = (method, pattern, handler, role) => routes.push({ method, pattern, handler, role });
+
+  /* ---------- 상태 확인 (외부 감시 · Docker · 배포 스크립트) ----------
+   * 바깥에는 { ok, version }만. 서버 안(컨테이너 안 127.0.0.1, 프록시를 거치지 않은 요청)이거나
+   * HEALTH_TOKEN이 맞으면 운영 정보까지. 개인정보는 어디에도 없다. */
+  const startedAt = Date.now();
+  const VERSION = env.APP_VERSION || require("../package.json").version;
+  const isLocal = (req) => ["127.0.0.1", "::1", "::ffff:127.0.0.1"].includes(req.socket.remoteAddress) && !req.headers["x-forwarded-for"];
+  on("GET", /^\/api\/health$/, (req) => {
+    let dbOk = true;
+    try { db.prepare("SELECT 1").get(); } catch (e) { dbOk = false; }
+    const body = { ok: dbOk, version: VERSION };
+    const token = env.HEALTH_TOKEN && req.headers["x-health-token"] === env.HEALTH_TOKEN;
+    if (dbOk && (isLocal(req) || token)) {
+      const ops = getSetting(db, "ops");
+      const at = ops.lastBackup || null;
+      Object.assign(body, {
+        uptimeSec: Math.round((Date.now() - startedAt) / 1000), db: "ok", lastJobsAt: ops.lastJobsAt || null,
+        backup: { at, ageHours: at ? Math.round((Date.now() - Date.parse(at)) / 360000) / 10 : null },
+        smsFailed24h: db.prepare("SELECT COUNT(*) AS n FROM outbox WHERE channel = 'sms' AND status = 'failed' AND at >= ?").get(new Date(Date.now() - 86400000).toISOString()).n
+      });
+    }
+    return dbOk ? body : { status: 503, body };
+  });
 
   on("GET", /^\/api\/site$/, () => {
     const now = clock();
@@ -309,8 +349,8 @@ function createApp(opts) {
     let code; do { code = newCode(); } while (db.prepare("SELECT 1 FROM reservations WHERE code = ?").get(code));
     const ts = nowIso();
     db.prepare(
-      "INSERT INTO reservations (code, name, phone, treatment, date, time, memo, status, source, consent_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, 'requested', 'web', ?, ?, ?)"
-    ).run(code, r.name, r.phone, r.treatment, r.date, r.time, r.memo, ts, ts, ts);
+      "INSERT INTO reservations (code, name, phone, treatment, date, time, memo, status, source, consent_at, health_consent_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, 'requested', 'web', ?, ?, ?, ?)"
+    ).run(code, r.name, r.phone, r.treatment, r.date, r.time, r.stored, ts, r.healthConsent ? ts : null, ts, ts);
     const saved = db.prepare("SELECT * FROM reservations WHERE code = ?").get(code);
     notify.staff("새 예약 신청: " + core.maskName(r.name) + " · " + core.formatDate(r.date) + " " + r.time + " · " + core.labelOf(core.TREATMENTS, r.treatment));
     notify.patient(r.phone, resMessage("requested", saved));
@@ -366,8 +406,8 @@ function createApp(opts) {
     if (open >= 3) throw new HttpError(409, "이 연락처로 처리 중인 상담 요청이 이미 있습니다. 곧 연락드리겠습니다.");
     let code; do { code = newCode(); } while (db.prepare("SELECT 1 FROM inquiries WHERE code = ?").get(code));
     const ts = nowIso(), q = v.value;
-    db.prepare("INSERT INTO inquiries (code, center, name, phone, topic, prefer, message, status, consent_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, 'new', ?, ?, ?)")
-      .run(code, q.center, q.name, q.phone, q.topic, q.prefer, q.message, ts, ts, ts);
+    db.prepare("INSERT INTO inquiries (code, center, name, phone, topic, prefer, message, status, consent_at, health_consent_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, 'new', ?, ?, ?, ?)")
+      .run(code, q.center, q.name, q.phone, q.topic, q.prefer, q.stored, ts, q.healthConsent ? ts : null, ts, ts);
     const saved = db.prepare("SELECT * FROM inquiries WHERE code = ?").get(code);
     notify.staff(center.name + " 상담 요청: " + core.maskName(q.name) + " · " + core.labelOf(core.TOPICS, q.topic) + " · " + core.labelOf(core.PREFERS, q.prefer) + " 연락 희망");
     notify.patient(q.phone, "[" + getSetting(db, "clinic").shortName + "] " + center.name + " 상담 요청이 접수되었습니다. 접수 순서대로 연락드립니다. 접수번호 " + code);
@@ -447,7 +487,11 @@ function createApp(opts) {
     return db.prepare("SELECT * FROM reservations WHERE " + where.join(" AND ") + " ORDER BY date, time, id LIMIT 2000").all(...args);
   }
 
-  on("GET", /^\/api\/admin\/reservations$/, (req, url) => ({ items: listReservations(url) }), "staff");
+  on("GET", /^\/api\/admin\/reservations$/, (req, url, user) => {
+    const items = listReservations(url);
+    logView(user, "reservation.view", url, items.length);
+    return { items };
+  }, "staff");
 
   on("GET", /^\/api\/admin\/reservations\.csv$/, (req, url, user) => {
     const rows = listReservations(url);
@@ -656,14 +700,16 @@ function createApp(opts) {
     audit(db, user.username, "desk.update", "centers:" + m[1], v);
     return db.prepare("SELECT * FROM centers WHERE key = ?").get(m[1]);
   }, "staff");
-  on("GET", /^\/api\/admin\/inquiries$/, (req, url) => {
+  on("GET", /^\/api\/admin\/inquiries$/, (req, url, user) => {
     const p = url.searchParams, where = [], args = [];
     const st = p.get("status") || "open";
     if (st === "open") where.push("status IN ('new','seen')");
     else if (core.INQ_STATUSES.some((x) => x.key === st)) { where.push("status = ?"); args.push(st); }
     if (p.get("center")) { where.push("center = ?"); args.push(p.get("center")); }
     const sql = "SELECT * FROM inquiries " + (where.length ? "WHERE " + where.join(" AND ") : "") + " ORDER BY " + (st === "open" ? "id" : "id DESC") + " LIMIT 500";
-    return { items: db.prepare(sql).all(...args) };
+    const items = db.prepare(sql).all(...args);
+    logView(user, "inquiry.view", url, items.length);
+    return { items };
   }, "staff");
   on("PATCH", /^\/api\/admin\/inquiries\/(\d+)$/, async (req, url, user, m) => {
     const q = db.prepare("SELECT * FROM inquiries WHERE id = ?").get(Number(m[1]));
@@ -724,7 +770,7 @@ function createApp(opts) {
     const row = db.prepare("SELECT pw FROM users WHERE id = ?").get(user.id);
     if (!auth.verifyPassword(String(b.current || ""), row.pw)) throw new HttpError(400, "현재 비밀번호가 올바르지 않습니다.");
     if (String(b.next || "").length < 10) throw new HttpError(400, "새 비밀번호는 10자 이상이어야 합니다.");
-    db.prepare("UPDATE users SET pw = ? WHERE id = ?").run(auth.hashPassword(b.next), user.id);
+    db.prepare("UPDATE users SET pw = ?, pw_changed_at = ? WHERE id = ?").run(auth.hashPassword(b.next), nowIso(), user.id);
     db.prepare("DELETE FROM sessions WHERE user_id = ? AND token != ?").run(user.id, crypto.createHash("sha256").update(auth.sessionToken(req) || "").digest("hex"));
     audit(db, user.username, "user.password", "users:" + user.id, null);
     return { ok: true };
@@ -732,6 +778,16 @@ function createApp(opts) {
 
   /* 기록 */
   on("GET", /^\/api\/admin\/audit$/, () => ({ items: db.prepare("SELECT * FROM audit ORDER BY id DESC LIMIT 300").all() }), "admin");
+  // 월 1회 접속기록 점검용 내려받기(관리자만). 내려받은 일도 기록
+  on("GET", /^\/api\/admin\/audit\.csv$/, (req, url, user) => {
+    const p = url.searchParams, now = core.seoulNow(); // 기록 시각은 늘 실제 시각(시간 이동과 무관)
+    const from = core.isDate(p.get("from")) ? p.get("from") : core.addDays(now.date, -31);
+    const to = core.isDate(p.get("to")) ? p.get("to") : now.date;
+    const rows = db.prepare("SELECT * FROM audit WHERE at >= ? AND at < ? ORDER BY id").all(core.addDays(from, -1) + "T15:00:00", to + "T15:00:00"); // 기록은 UTC, 날짜는 서울 기준(자정 = 전날 15시 UTC)
+    const lines = [["시각", "계정", "접속지(IP)", "한 일", "대상", "내용"].join(",")].concat(rows.map((r) => [r.at, r.username, r.ip || "", r.action, r.target || "", r.detail || ""].map(csvCell).join(",")));
+    audit(db, user.username, "audit.export", null, { from, to, count: rows.length });
+    return { raw: "\ufeff" + lines.join("\r\n"), headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": "attachment; filename=\"audit-" + from + "-" + to + ".csv\"" } };
+  }, "admin");
   on("GET", /^\/api\/admin\/outbox$/, () => ({ items: db.prepare("SELECT * FROM outbox ORDER BY id DESC LIMIT 300").all() }), "staff");
 
   /* ---------- 정기 작업 ---------- */
@@ -754,7 +810,20 @@ function createApp(opts) {
         reminded++;
       });
     }
-    return { purged: Number(purged), reminded };
+    // 3) 운영 알림(직원 웹훅). 같은 알림은 1시간에 한 번만
+    const ops = getSetting(db, "ops"), alerts = Object.assign({}, ops.alerts), sentAlerts = [];
+    const alertOnce = (key, text) => {
+      if (alerts[key] && Date.now() - Date.parse(alerts[key]) < 3600 * 1000) return;
+      alerts[key] = nowIso(); sentAlerts.push(key); notify.staff("[운영 알림] " + text);
+    };
+    const smsFailed = db.prepare("SELECT COUNT(*) AS n FROM outbox WHERE channel = 'sms' AND status = 'failed' AND at >= ?").get(new Date(Date.now() - 3600 * 1000).toISOString()).n;
+    if (smsFailed) alertOnce("smsFailed", "최근 1시간 동안 환자 문자 " + smsFailed + "건을 보내지 못했습니다. 관리 화면 → 기록 → 문자 · 알림 발송에서 확인해 주세요.");
+    if (env.NODE_ENV === "production") {
+      const last = ops.lastBackup ? Date.parse(ops.lastBackup) : startedAt;
+      if (Date.now() - last > 26 * 3600 * 1000) alertOnce("backupStale", "26시간 넘게 백업이 없습니다. 서버의 예약 작업(cron)과 백업 저장소를 확인해 주세요.");
+    }
+    setSetting(db, "ops", Object.assign({}, getSetting(db, "ops"), { alerts, lastJobsAt: nowIso() }));
+    return { purged: Number(purged), reminded, alerts: sentAlerts };
   }
 
   /* ---------- 정적 파일 ---------- */
@@ -803,7 +872,7 @@ function createApp(opts) {
           if (route.role === "admin" && user.role !== "admin") throw new HttpError(403, "관리자 권한이 필요합니다.");
         }
       }
-      const out = await route.handler(req, u, user, u.pathname.match(route.pattern));
+      const out = await requestCtx.run({ ip: clientIp(req) }, () => route.handler(req, u, user, u.pathname.match(route.pattern)));
       if (req.method !== "GET" && !/\/(login|logout|lookup|password|users)(\/|$)/.test(u.pathname)) emit(u.pathname.startsWith("/api/admin/") ? "admin" : "booking");
       if (out && out.raw !== undefined) {
         res.writeHead(200, Object.assign({}, SECURITY_HEADERS, { "Cache-Control": "no-store" }, out.headers));

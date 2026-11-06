@@ -1,0 +1,77 @@
+# 모든 PR · push: 테스트 → 이미지 빌드 → 실제 배포 스크립트로 배포 · 깨진 배포 자동 되돌림 확인 → Caddy 설정 검사
+name: CI
+on:
+  pull_request:
+  push:
+    branches: ["**"]
+    tags-ignore: ["v*"]
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # Dockerfile의 런타임과 같은 버전
+          node-version: 22.23.4
+      - name: 테스트 + 체험판 빌드
+        run: npm run check
+      - name: 배포 스크립트 문법
+        run: bash -n deploy/deploy.sh && bash -n deploy/rollback.sh
+
+  deploy-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - name: 이미지 빌드(정상 · 일부러 깨진 것)
+        run: |
+          docker build --build-arg APP_VERSION=ci-a -t w-dental:ci-a .
+          docker build --build-arg APP_VERSION=ci-b -t w-dental:ci-b .
+          printf 'FROM w-dental:ci-a\nCMD ["node", "-e", "process.exit(1)"]\n' | docker build -t w-dental:ci-bad -
+      - name: 배포 설정(CI용)
+        run: |
+          cp deploy/env.staging.example deploy/ci.env
+          sed -i 's/^COOKIE_SECURE=1/COOKIE_SECURE=/' deploy/ci.env
+          sed -i 's/^ADMIN_PASSWORD=$/ADMIN_PASSWORD=ci-admin-pass-1234/' deploy/ci.env
+      - name: 첫 배포 → 새 버전 배포(배포 전 백업 포함)
+        env: { STAGE: ci, APP_IMAGE: w-dental, SKIP_PULL: "1", PREFLIGHT: basic, HEALTH_WAIT: "40" }
+        run: |
+          deploy/deploy.sh ci-a
+          curl -fsS http://127.0.0.1:3200/api/health | tee /dev/stderr | grep -q '"version":"ci-a"'
+          curl -fsS http://127.0.0.1:3200/ | grep -q 'W치과'
+          deploy/deploy.sh ci-b
+          docker compose -p w-dental-ci -f deploy/compose.yaml exec -T app sh -c 'ls /data/backups' | grep -q 'pre-deploy-ci-b'
+      - name: 깨진 버전 배포 → 자동으로 ci-b로 되돌아와야 함
+        env: { STAGE: ci, APP_IMAGE: w-dental, SKIP_PULL: "1", PREFLIGHT: "off", HEALTH_WAIT: "20" }
+        run: |
+          if deploy/deploy.sh ci-bad; then echo "깨진 배포가 성공으로 끝나면 안 됨"; exit 1; fi
+          curl -fsS http://127.0.0.1:3200/api/health | grep -q '"version":"ci-b"'
+          test "$(cat deploy/.current-ci)" = ci-b
+      - name: 되돌리기 스크립트
+        env: { STAGE: ci, APP_IMAGE: w-dental, SKIP_PULL: "1", HEALTH_WAIT: "40" }
+        run: |
+          deploy/rollback.sh
+          curl -fsS http://127.0.0.1:3200/api/health | grep -q '"version":"ci-a"'
+      - name: 백업 복구 연습(--verify)
+        run: |
+          docker compose -p w-dental-ci -f deploy/compose.yaml exec -T app sh -c \
+            'node --disable-warning=ExperimentalWarning scripts/backup.js && node --disable-warning=ExperimentalWarning scripts/restore.js "$(ls -t /data/backups/*.db* | head -n 1)" --verify'
+        env: { TAG: ci-a, APP_IMAGE: w-dental, ENV_FILE: ./ci.env, APP_PORT: "3200" }
+      - name: Caddy 설정 검사
+        run: |
+          docker run --rm -v "$PWD/deploy/Caddyfile:/etc/caddy/Caddyfile:ro" \
+            -e SITE_DOMAIN=wdental.example.com -e STAGING_DOMAIN=staging.wdental.example.com \
+            -e STAGING_HASH='$2a$14$Zkx19XLiW6VYouLHR5NmfOFU0z2GTNmpkT/5qqR7hx4IjWJPDhjvG' \
+            caddy:2.10.2-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+      - name: 실패하면 앱 기록 보기
+        if: failure()
+        run: docker compose -p w-dental-ci -f deploy/compose.yaml logs --tail 100 app || true
+        env: { TAG: ci-a, APP_IMAGE: w-dental, ENV_FILE: ./ci.env, APP_PORT: "3200" }

@@ -1,0 +1,21 @@
+# HTTPS 앞단(Caddy) — 운영과 스테이징을 함께 받습니다. 서버에 하나만 띄웁니다.
+#   docker compose -p w-dental-edge -f edge.compose.yaml --env-file edge.env up -d
+# host 네트워크를 쓰므로 127.0.0.1:3000(운영) · 127.0.0.1:3100(스테이징)에 바로 닿고, 80/443을 직접 엽니다.
+services:
+  caddy:
+    image: caddy:2.10.2-alpine
+    network_mode: host
+    env_file: ./edge.env
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+volumes:
+  caddy_data:
+  caddy_config:

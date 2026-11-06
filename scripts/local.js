@@ -15,7 +15,7 @@ const os = require("node:os");
 const path = require("node:path");
 const http = require("node:http");
 const core = require("../public/js/core.js");
-const { openDb } = require("../server/db");
+const { openDb, getSetting, setSetting } = require("../server/db");
 const { ensureAdmin } = require("../server/auth");
 const { createApp } = require("../server/app");
 
@@ -188,6 +188,8 @@ server.listen(opts.port, async () => {
   const hasData = db.prepare("SELECT COUNT(*) AS n FROM reservations").get().n > 0;
   if (fresh && !opts.empty && !hasData) {
     try { seeded = await seed(opts.port); } catch (e) { console.error("예시 데이터를 넣지 못했습니다:", e.message); }
+    // 이 DB에 예시 데이터가 들어갔다는 표시 — 실수로 운영에 쓰면 오픈 전 점검(preflight)이 막음
+    if (seeded) setSetting(db, "ops", Object.assign({}, getSetting(db, "ops"), { localSample: true }));
   }
   const now = clock(), st = core.openStatus(db.prepare("SELECT * FROM hours").all(), {}, now);
   const home = "http://localhost:" + opts.port;
