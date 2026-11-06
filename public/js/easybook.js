@@ -56,7 +56,7 @@
     var s = A.site(), n = s ? s.clinic.phone : "";
     title.textContent = "전화로 예약하셔도 됩니다."; body.textContent = ""; body.onkeydown = null;
     body.appendChild(el("p", { class: "eb-code", text: n }));
-    body.appendChild(el("p", { class: "eb-hint", text: "직원이 받아서 예약까지 도와드려요." }));
+    body.appendChild(el("p", { class: "eb-hint", text: "직원이 받아서 예약까지 도와 드려요." }));
     body.appendChild(el("a", { class: "eb-next", href: "tel:" + C.normalizePhone(n), text: "전화 걸기" }));
     back.hidden = false; if (st.step !== undefined) history.push(st.step);
   });
@@ -84,11 +84,11 @@
   function stepCenter() {
     if (st.sub === "sym") return stepSymptom();
     if (st.sub === "where") return stepWhere();
-    ask("어떤 진료를 받으시겠어요?", "잘 모르시면 '어디가 불편한지 그림으로 고르기'나 '검진 · 상담'을 누르세요.");
+    ask("어떤 진료를 받으시겠어요?", "잘 모르시면 '어디가 불편한지 그림으로 고르기'나 '검진·상담'을 누르세요.");
     var s = A.site();
     var items = [
       choice("어디가 불편한지 그림으로 고르기", "이가 시려요 · 잇몸 피 · 이가 빠졌어요 …", function () { st.sub = "sym"; go(0); }, { primary: true, icon: "cold" }),
-      choice("검진 · 상담", "어디가 아픈지 잘 모를 때", function () { st.treatment = "checkup"; st.memo = ""; go(1); })
+      choice("검진·상담", "어디가 아픈지 잘 모를 때", function () { st.treatment = "checkup"; st.memo = ""; go(1); })
     ];
     (s ? s.centers : []).forEach(function (c) {
       var cl = A.centerLive(c.key), d = A.deskOf(cl);
@@ -98,7 +98,7 @@
   }
   // 1-1. 증상 그림 (그림 + 글자)
   function stepSymptom() {
-    ask("어디가 불편하세요?", "가장 가까운 것을 하나 눌러 주세요. 맞는 진료센터로 안내합니다.");
+    ask("어디가 불편하세요?", "가장 가까운 것을 하나 눌러 주세요. 맞는 진료센터로 안내해 드려요.");
     var g = list(C.SYMPTOMS.map(function (sy) {
       var cname = (A.site() && A.site().centers.filter(function (c) { return c.key === sy.t; })[0] || {}).name || C.labelOf(C.TREATMENTS, sy.t);
       return choice(sy.label, cname, function () {
@@ -120,7 +120,7 @@
       go(1);
     } }));
   }
-  function tLabel() { return st.treatment === "checkup" ? "검진 · 상담" : (A.site().centers.filter(function (c) { return c.key === st.treatment; })[0] || {}).name || C.labelOf(C.TREATMENTS, st.treatment); }
+  function tLabel() { return st.treatment === "checkup" ? "검진·상담" : (A.site().centers.filter(function (c) { return c.key === st.treatment; })[0] || {}).name || C.labelOf(C.TREATMENTS, st.treatment); }
 
   /* 2. 날짜 */
   function stepDay() {
@@ -186,7 +186,7 @@
 
   /* 6. 전화번호 — 큰 숫자판 */
   function stepPhone() {
-    ask("휴대폰 번호를 눌러 주세요.", "예약이 확정되면 이 번호로 문자를 보내드려요.");
+    ask("휴대폰 번호를 눌러 주세요.", "예약이 확정되면 이 번호로 문자를 보내 드려요.");
     var digits = st.phone || "010";
     var shown = el("output", { class: "eb-phone", "aria-live": "polite" });
     var err = el("p", { class: "eb-error", role: "alert", hidden: true });

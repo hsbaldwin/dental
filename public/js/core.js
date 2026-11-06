@@ -9,11 +9,11 @@
   "use strict";
 
   var TREATMENTS = [
-    { key: "checkup", label: "검진 · 상담" },
+    { key: "checkup", label: "검진·상담" },
     { key: "implant", label: "임플란트" },
     { key: "ortho", label: "교정" },
-    { key: "endo", label: "충치 · 신경치료" },
-    { key: "esthetic", label: "심미 · 미백" },
+    { key: "endo", label: "충치·신경치료" },
+    { key: "esthetic", label: "심미·미백" },
     { key: "perio", label: "잇몸 치료" },
     { key: "kids", label: "소아치과" },
     { key: "tmj", label: "턱관절" }

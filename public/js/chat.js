@@ -120,7 +120,7 @@
     } else menu(null, true);
   }
   function menu(text, silent) {
-    if (!silent) bot(text || "더 도와드릴 일이 있을까요?");
+    if (!silent) bot(text || "더 도와 드릴 일이 있을까요?");
     // 큰 버튼 넷 + '다른 것' (나머지는 한 번 더 눌러야 보임)
     chips([
       { label: "예약하기", primary: true, go: function () { flowBook(); } },
@@ -144,7 +144,7 @@
   function flowPhone() {
     var c = site() && site().clinic, lv = live();
     if (!c) return menu("병원 정보를 불러오는 중이에요.");
-    bot([el("p", { class: "code", text: c.phone }), lv ? liveLine([lv.status.open ? "지금 전화 받을 수 있어요" : lv.status.text]) : null, "전화 주시면 직원이 예약까지 도와드립니다."]);
+    bot([el("p", { class: "code", text: c.phone }), lv ? liveLine([lv.status.open ? "지금 전화 받을 수 있어요" : lv.status.text]) : null, "전화 주시면 직원이 예약까지 도와 드려요."]);
     chips([{ label: "전화 걸기", href: "tel:" + C.normalizePhone(c.phone), ext: true }, HOME]);
   }
 
@@ -185,12 +185,12 @@
     if (key) return pickSlot(key, memo);
     bot("어떤 진료로 예약할까요?");
     chips(centerChips(function (k) { pickSlot(k, memo); }, [
-      { label: "잘 모르겠어요", go: function () { flowSymptom("증상을 알려주시면 맞는 센터를 찾아 드릴게요."); } },
-      { label: "검진 · 상담", go: function () { pickSlot("checkup", memo); } }
+      { label: "잘 모르겠어요", go: function () { flowSymptom("증상을 알려 주시면 맞는 센터를 찾아 드릴게요."); } },
+      { label: "검진·상담", go: function () { pickSlot("checkup", memo); } }
     ]));
   }
   function pickSlot(t, memo) {
-    var label = t === "checkup" ? "검진 · 상담" : (center(t) || {}).name;
+    var label = t === "checkup" ? "검진·상담" : (center(t) || {}).name;
     bot(label + " 예약 장부에서 남은 시간을 확인할게요.");
     A.api("days?treatment=" + t).then(function (d) {
       var days = d.days.filter(function (x) { return !x.closed && x.available > 0; }).slice(0, 3);
@@ -212,7 +212,7 @@
     }).catch(function (e) { bot(e.message); menu(null, true); });
   }
   function askName() {
-    bot("예약하실 분 성함을 알려주세요.");
+    bot("예약하실 분 성함을 알려 주세요.");
     ask("성함", "name", function (v) {
       v = v.trim();
       if (!v || v.length > 30) { bot("성함을 30자 이내로 다시 적어 주세요."); return askName(); }
@@ -220,7 +220,7 @@
     });
   }
   function askPhone(next) {
-    bot("연락받으실 휴대폰 번호를 알려주세요. 확정되면 문자로도 알려드려요.");
+    bot("연락받으실 휴대폰 번호를 알려 주세요. 확정되면 문자로도 알려 드려요.");
     ask("010-0000-0000", "phone", function (v) {
       var d = C.normalizePhone(v);
       if (!C.isPhone(d)) { bot("번호를 다시 확인해 주세요. 010-1234-5678 형식으로 적어 주시면 돼요."); return askPhone(next); }
@@ -249,7 +249,7 @@
       A.trackBooking(r, b.phone);
       bot(["예약 신청이 접수됐어요. 예약번호를 메모해 두세요.", el("p", { class: "code", text: r.code }),
         liveLine([C.formatDate(r.date) + " " + C.koTime(r.time), r.treatmentLabel, r.statusLabel]),
-        "병원에서 확인하면 이 대화창과 문자로 바로 알려드릴게요."]);
+        "병원에서 확인하면 이 대화창과 문자로 바로 알려 드릴게요."]);
       chips([{ label: "내 예약 화면 보기", go: function () { closeSheetOnMobile(); var t = $("tracker"); if (t) t.scrollIntoView({ behavior: "smooth", block: "start" }); } }, HOME]);
       booking = null;
     }).catch(function (e) {
@@ -270,7 +270,7 @@
       off.length ? el("p", { class: "muted", text: "오늘 진료 없음: " + off.map(function (c) { return c.name + "(" + (c.days ? c.days.split("").join("·") : "") + ")"; }).join(", ") }) : null,
       lv.next ? "가장 빠른 예약은 " + A.relDay(lv.next.date) + " " + C.koTime(lv.next.time) + "이에요." : null
     ]);
-    chips([{ label: "예약하기", primary: true, go: function () { flowBook(); } }, { label: "요일별 진료시간 보기", href: "#visit" }, HOME]);
+    chips([{ label: "예약하기", primary: true, go: function () { flowBook(); } }, { label: "요일별 진료 시간 보기", href: "#visit" }, HOME]);
   }
 
   /* ---------- 비용 ---------- */
@@ -281,7 +281,7 @@
       c.name + " 비급여 진료비예요.",
       fees.length ? el("ul", null, fees.map(function (f) { return el("li", { text: f.name + (f.unit ? " (" + f.unit + ")" : "") + " · " + (f.price == null ? "상담 후 안내" : f.price.toLocaleString("ko-KR") + "원") }); }))
         : "이 센터 비급여 항목은 검사 후 치료계획서로 안내해 드려요.",
-      el("p", { class: "muted", text: "건강보험이 되는 진료는 보험 기준에 따릅니다. 정확한 비용은 검사 후 치료계획서에 적어 드려요." })
+      el("p", { class: "muted", text: "건강보험이 되는 진료는 보험 기준에 따라요. 정확한 비용은 검사 후 치료계획서에 적어 드려요." })
     ]);
     chips([
       { label: "이 센터로 예약", primary: true, go: function () { pickSlot(key); } },
@@ -298,14 +298,14 @@
       if (mb) jobs.push(A.api("reservations/lookup", mb).then(function (r) { return liveLine(["예약 " + r.code, C.formatDate(r.date) + " " + C.koTime(r.time), r.treatmentLabel, r.statusLabel]); }).catch(function () { return null; }));
       if (mq) jobs.push(A.api("inquiries/lookup", mq).then(function (q) { return liveLine(["상담 요청 " + q.code, q.centerName, q.statusLabel + (q.ahead ? " · 앞에 " + q.ahead + "건" : "")]); }).catch(function () { return null; }));
       return Promise.all(jobs).then(function (lines) {
-        bot(["이 기기에 저장된 내역이에요. 지금 병원 장부 기준입니다."].concat(lines));
+        bot(["이 기기에 저장된 내역이에요. 지금 병원 장부를 기준으로 보여 드려요."].concat(lines));
         chips([{ label: "예약 화면 보기", go: function () { closeSheetOnMobile(); var t = $("tracker"); if (t && !t.hidden) t.scrollIntoView({ behavior: "smooth" }); else location.hash = "reserve"; } }, { label: "다른 번호로 조회", go: lookupByCode }, HOME]);
       });
     }
     lookupByCode();
   }
   function lookupByCode() {
-    bot("예약번호나 상담 접수번호 6자리를 알려주세요.");
+    bot("예약번호나 상담 접수번호 6자리를 알려 주세요.");
     ask("6자리 번호", "code", function (code) {
       askPhone(function (ph) {
         var body = { code: code.trim(), phone: ph };
@@ -332,7 +332,7 @@
     var list = [];
     if (c.naverMapUrl) list.push({ label: "네이버 지도", href: c.naverMapUrl, ext: true });
     if (c.kakaoMapUrl) list.push({ label: "카카오맵", href: c.kakaoMapUrl, ext: true });
-    list.push({ label: "진료시간 보기", href: "#visit" }, HOME);
+    list.push({ label: "진료 시간 보기", href: "#visit" }, HOME);
     chips(list);
   }
 
@@ -341,7 +341,7 @@
   function flowCall(key, topic) {
     if (!key) {
       bot("어느 센터 코디네이터와 통화하시겠어요?");
-      return chips(centerChips(function (k) { flowCall(k, topic); }, [{ label: "잘 모르겠어요", go: function () { flowSymptom("증상을 알려주시면 맞는 센터로 연결해 드릴게요."); } }]));
+      return chips(centerChips(function (k) { flowCall(k, topic); }, [{ label: "잘 모르겠어요", go: function () { flowSymptom("증상을 알려 주시면 맞는 센터로 연결해 드릴게요."); } }]));
     }
     var c = center(key), cl = A.centerLive(key), d = A.deskOf(cl);
     if (!d.accepting) {
@@ -355,7 +355,7 @@
     chips(C.PREFERS.map(function (p) { return { label: p.label, go: function () { call.prefer = p.key; askCallName(); } }; }));
   }
   function askCallName() {
-    bot("성함을 알려주세요.");
+    bot("성함을 알려 주세요.");
     ask("성함", "name", function (v) {
       v = v.trim();
       if (!v || v.length > 30) { bot("성함을 30자 이내로 다시 적어 주세요."); return askCallName(); }
@@ -374,7 +374,7 @@
       A.setInquiry(q, q0.phone);
       bot(["상담 요청이 " + q.centerName + " 데스크에 접수됐어요.", el("p", { class: "code", text: q.code }),
         liveLine([q.statusLabel, q.ahead ? "앞에 " + q.ahead + "건" : "다음 순서", q.preferLabel + " 연락"]),
-        "데스크에서 확인하면 이 대화창에서 바로 알려드릴게요."]);
+        "데스크에서 확인하면 이 대화창에서 바로 알려 드릴게요."]);
       chips([{ label: q.centerName + " 데스크 보기", href: "#center-" + q.center }, HOME]);
       call = null;
     }).catch(function (e) { bot(e.message); menu(null, true); });
@@ -408,7 +408,7 @@
     if (r.intent === "way") return flowWay();
     if (r.intent === "mine") return flowMine();
     if (r.intent === "call") return flowCall(key);
-    if (r.intent === "hello") return menu("반가워요. 무엇을 도와드릴까요?");
+    if (r.intent === "hello") return menu("반가워요. 무엇을 도와 드릴까요?");
     menu("제가 이해하지 못했어요. 아래에서 골라 주시거나, 상담원과 통화를 요청해 주세요.");
   });
 
@@ -416,7 +416,7 @@
   window.addEventListener("w-status", function (e) {
     var d = e.detail, x = d.item;
     if (d.kind === "booking") {
-      bot(x.status === "confirmed" ? ["병원에서 예약을 확정했어요.", liveLine([C.formatDate(x.date) + " " + C.koTime(x.time), x.treatmentLabel, "예약 확정"]), "전날 안내 문자를 보내드릴게요."]
+      bot(x.status === "confirmed" ? ["병원에서 예약을 확정했어요.", liveLine([C.formatDate(x.date) + " " + C.koTime(x.time), x.treatmentLabel, "예약 확정"]), "전날 안내 문자를 보내 드릴게요."]
         : ["예약 상태가 바뀌었어요.", liveLine([C.formatDate(x.date) + " " + C.koTime(x.time), x.statusLabel])]);
     } else if (d.kind === "inquiry") {
       bot(x.status === "seen" ? [x.centerName + " 데스크에서 상담 요청을 확인했어요.", (x.handledBy ? x.handledBy + "님이 " : "") + x.preferLabel + "에 전화드릴게요."]

@@ -12,13 +12,15 @@
 
   // 읽기 쉬운 말로 바꾸기 (서버 테스트에서도 씀)
   function speakable(text) {
-    var t = String(text || "");
+    var t = String(text || "").replace(/\u00a0/g, " "); // 화면에서 줄바꿈을 막으려 넣은 공백도 보통 공백으로
     // 전화번호: 010-1234-5678 → 공일공, 일이삼사, 오육칠팔
     t = t.replace(/\b0\d{1,2}(-\d{3,4}){1,2}\b|\b0\d{1,2}-\*{4}-\d{4}\b/g, function (m) {
       return m.split("-").map(function (g) { return g.replace(/\d/g, function (d) { return DIG[+d]; }).replace(/\*+/g, "별표"); }).join(", ");
     });
     // 오후 2:30 → 오후 2시 30분, 오전 9:00 → 오전 9시
     t = t.replace(/(오전|오후) (\d{1,2}):(\d{2})/g, function (m, ap, h, mi) { return ap + " " + h + "시" + (mi === "00" ? "" : " " + (+mi) + "분"); });
+    // 오전·오후를 줄인 범위의 뒤쪽 시각: "오후 1:00 ~ 2:00"의 2:00 → 2시
+    t = t.replace(/(^|[^\d:])(\d{1,2}):([0-5]\d)(?![\d:])/g, function (m, pre, h, mi) { return pre + h + "시" + (mi === "00" ? "" : " " + (+mi) + "분"); });
     // 시간 범위 ~
     t = t.replace(/\s*~\s*/g, "부터 ");
     // 예약번호(대문자·숫자 6자리)는 한 글자씩

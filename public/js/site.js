@@ -36,7 +36,13 @@
     del: function (k) { try { localStorage.removeItem(k); } catch (e) {} }
   };
   function won(n) { return n == null ? "상담 후 안내" : n.toLocaleString("ko-KR") + "원"; }
-  function hhmmss(d) { return d.toLocaleTimeString("ko-KR", { timeZone: "Asia/Seoul", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }); }
+  function hhmm(d) { return d.toLocaleTimeString("ko-KR", { timeZone: "Asia/Seoul", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }); }
+  // 시각 범위: 오전·오후가 같으면 뒤쪽은 줄임 — "오후 1:00 ~ 2:00", 다르면 "오전 9:30 ~ 오후 6:30"
+  function koRange(a, b) { var x = C.koTime(a), y = C.koTime(b); return x.slice(0, 2) === y.slice(0, 2) ? x + " ~ " + y.slice(3) : x + " ~ " + y; }
+  // 날짜: 올해면 "11월 6일", 아니면 "2025년 11월 6일"
+  function koDate(iso) { var p = String(iso || "").slice(0, 10).split("-"); if (p.length < 3) return String(iso || ""); var y = live && live.now ? live.now.date.slice(0, 4) : String(new Date().getFullYear()); return (p[0] === y ? "" : p[0] + "년 ") + parseInt(p[1], 10) + "월 " + parseInt(p[2], 10) + "일"; }
+  // 줄이 바뀌어도 한 덩어리("대기 약 10분", "오후 6:30까지")는 쪼개지지 않게: 덩어리 안 띄어쓰기를 줄바꿈 없는 공백으로
+  function keep(t) { return String(t).split(" · ").map(function (c) { return c.replace(/ /g, "\u00a0"); }).join("\u00a0· "); }
   function ago(ms) {
     var s = Math.max(0, Math.round((Date.now() - ms) / 1000));
     if (s < 10) return "방금";
@@ -135,7 +141,7 @@
   function tickClock() {
     if (!liveAt) return;
     var d = new Date(liveAt);
-    $("lvTime").textContent = hhmmss(d) + " 기준 · " + ago(liveAt);
+    $("lvTime").textContent = C.koTime(hhmm(d)) + " 기준 · " + ago(liveAt);
     if ($("boardTime")) $("boardTime").textContent = "실시간 · " + ago(liveAt) + " 확인";
     if (live && live.notice.updatedAt) $("liveMsgAt").textContent = "병원에서 " + ago(Date.parse(live.notice.updatedAt)) + " 업데이트";
     if (view !== "home") { var cc = currentCenter(), cl = cc && centerLive(cc.key); if (cl) renderCounterProps(cc, deskOf(cl)); }
@@ -191,9 +197,9 @@
       el("h3", null, [el("span", { class: "cc-name" }, [el("span", { class: "cc-swatch", "aria-hidden": "true" }), " ", c.name])]),
       compact ? null : el("p", { text: c.summary || "" }),
       el("div", { class: "cc-live" }, [
-        el("span", { class: "cc-desk", "data-s": d.status, text: deskLine(cl) }),
+        el("span", { class: "cc-desk", "data-s": d.status, text: keep(deskLine(cl)) }),
         !compact && (d.staff || (cl && cl.doctorsToday.length)) ? el("span", { class: "cc-staff", text: [d.staff ? "코디네이터 " + d.staff : "", cl && cl.doctorsToday.length ? "진료 " + cl.doctorsToday.join(", ") : ""].filter(Boolean).join(" · ") }) : null,
-        el("span", { class: "cc-next" }, ["가장 빠른 예약 ", el("b", { text: nextText(cl) })])
+        el("span", { class: "cc-next" }, ["가장 빠른 예약 ", el("b", { text: keep(nextText(cl)) })])
       ])
     ]);
   }
@@ -204,8 +210,8 @@
     centers.forEach(function (c) { grid.appendChild(centerCard(c)); });
     grid.appendChild(el("a", { class: "ccard general", href: "#reserve", "data-general": "1" }, [
       el("span", { class: "cc-en", text: "안내 데스크" }), el("h3", { text: "어느 센터인지 모르겠어요" }),
-      el("p", { text: "증상을 고르면 맞는 센터를 알려드립니다. 검진 · 상담으로 예약해도 됩니다." }),
-      el("div", { class: "cc-live" }, [el("span", { class: "cc-next" }, ["가장 빠른 상담 ", el("b", { text: live && live.next ? relDay(live.next.date) + " " + C.koTime(live.next.time) : "–" })])])
+      el("p", { text: "증상을 고르시면 맞는 센터를 알려 드립니다. 검진·상담으로 예약하셔도 됩니다." }),
+      el("div", { class: "cc-live" }, [el("span", { class: "cc-next" }, ["가장 빠른 상담 ", el("b", { text: live && live.next ? keep(relDay(live.next.date) + " " + C.koTime(live.next.time)) : "–" })])])
     ]));
     if (changed) flash(grid);
     var nav = $("centerNav"); nav.textContent = "";
@@ -231,7 +237,7 @@
   function currentCenter() { return site && site.centers.filter(function (c) { return c.key === view; })[0]; }
   function renderCenterPage(c) {
     $("cvCrumb").textContent = c.name;
-    $("cvEn").textContent = "W치과 " + c.name + " 접수 데스크";
+    $("cvEn").textContent = "W치과 진료센터";
     $("cvName").textContent = c.name;
     $("counterName").textContent = c.name;
     var ph = $("scenePhoto"), src = C.isDeskPhoto(c.desk_photo) ? c.desk_photo : "";
@@ -265,18 +271,18 @@
   function greeting(c, d) {
     if (d.message) return d.message;
     var base = "안녕하세요, " + c.name + " 데스크입니다.";
-    if (d.status === "open") return base + " 무엇을 도와드릴까요?";
-    if (d.status === "lunch") return base + " 지금은 점심시간이에요. 예약과 상담 요청은 그대로 남겨주시면 오후에 바로 확인합니다.";
-    if (d.status === "off") return base + " 오늘은 이 센터 진료가 없는 날이에요. 예약과 상담 요청은 남겨주시면 다음 진료일에 확인합니다.";
-    if (d.status === "paused") return base + " 지금은 온라인 상담 요청을 잠시 받지 않고 있어요. 예약은 그대로 하실 수 있고, 급하시면 전화 주세요.";
-    return base + " 지금은 접수 시간이 아니에요. 남겨주신 예약과 상담 요청은 접수가 시작되면 순서대로 확인합니다.";
+    if (d.status === "open") return base + " 무엇을 도와 드릴까요?";
+    if (d.status === "lunch") return base + " 지금은 점심시간이에요. 예약과 상담 요청을 남겨 주시면 오후에 바로 확인할게요.";
+    if (d.status === "off") return base + " 오늘은 이 센터 진료가 없는 날이에요. 예약과 상담 요청을 남겨 주시면 다음 진료일에 확인할게요.";
+    if (d.status === "paused") return base + " 지금은 온라인 상담 요청을 잠시 받지 않고 있어요. 예약은 그대로 하실 수 있고, 급하시면 전화해 주세요.";
+    return base + " 지금은 접수 시간이 아니에요. 남겨 주신 예약과 상담 요청은 접수가 시작되면 순서대로 확인할게요.";
   }
   function renderCenterLive() {
     var c = currentCenter(); if (!c) return;
     var cl = centerLive(c.key); if (!cl) return;
     var d = deskOf(cl);
     $("deskGreeting").textContent = greeting(c, d);
-    $("deskStaff").textContent = [d.staff ? "담당 코디네이터 " + d.staff : c.name + " 데스크", d.updatedAt ? ago(Date.parse(d.updatedAt)) + " 업데이트" : ""].filter(Boolean).join(" · ");
+    $("deskStaff").textContent = keep([d.staff ? "담당 코디네이터 " + d.staff : c.name + " 데스크", d.updatedAt ? ago(Date.parse(d.updatedAt)) + " 업데이트" : ""].filter(Boolean).join(" · "));
     var ds = $("deskState"); ds.setAttribute("data-s", d.status); ds.textContent = d.label;
     $("deskWait").textContent = d.wait !== null ? C.waitLabel(d.wait) : d.status === "open" ? "안내 없음" : "–";
     $("deskPending").textContent = d.accepting ? d.pending + "건" : "접수 중단";
@@ -285,8 +291,8 @@
     $("cvDocs").textContent = cl.doctorsToday.length ? cl.doctorsToday.join(", ") : "없음";
     var nx = $("cvNext"); nx.classList.remove("skeleton"); nx.textContent = nextText(cl);
     $("cvNextBtn").disabled = !cl.next;
-    $("dmBook").textContent = cl.next ? "가장 빠른 " + nextText(cl) : "예약 가능한 시간 없음";
-    $("dmCall").textContent = !d.accepting ? "지금은 전화로 문의해 주세요" : d.pending ? "앞선 요청 " + d.pending + "건 · 순서대로 연락" : "지금 요청하면 바로 확인합니다";
+    $("dmBook").textContent = cl.next ? keep("가장 빠른 예약 · " + nextText(cl)) : "예약 가능한 시간 없음";
+    $("dmCall").textContent = keep(!d.accepting ? "지금은 전화로 문의해 주세요" : d.pending ? "앞선 요청 " + d.pending + "건 · 순서대로 연락" : "지금 요청하면 바로 확인합니다");
     var callBtn = document.querySelector('#deskMenu [data-desk="call"]'), dot = callBtn.querySelector(".badge-dot");
     if (myInquiry && myInquiry.center === c.key && !dot) callBtn.appendChild(el("span", { class: "badge-dot", title: "내 상담 요청 진행 중" }));
     if (!(myInquiry && myInquiry.center === c.key) && dot) dot.remove();
@@ -334,18 +340,18 @@
     if (mode === "cost") { box.hidden = true; document.getElementById("c-fees").scrollIntoView({ behavior: "smooth", block: "start" }); return; }
     box.textContent = ""; box.hidden = false;
     if (mode === "call") {
-      if (myInquiry && myInquiry.center === c.key) { box.appendChild(say("요청하신 상담의 진행 상황입니다.")); box.appendChild(el("div", { id: "inqTicket" })); inquiryShown = true; refreshInquiry(false); }
+      if (myInquiry && myInquiry.center === c.key) { box.appendChild(say("요청하신 상담은 지금 이렇게 진행되고 있어요.")); box.appendChild(el("div", { id: "inqTicket" })); inquiryShown = true; refreshInquiry(false); }
       else if (!d.accepting) {
-        box.appendChild(say(c.name + " 데스크가 지금 온라인 상담 요청을 잠시 받지 않고 있어요. 대표 전화로 연락 주세요."));
+        box.appendChild(say(c.name + " 데스크가 지금 온라인 상담 요청을 잠시 받지 않고 있어요. 대표 전화로 연락해 주세요."));
         box.appendChild(el("p", { class: "mono", text: site.clinic.phone }));
       } else {
-        box.appendChild(say(d.pending ? "연락처를 남겨주시면 " + (d.staff ? d.staff + " 코디네이터가 " : "코디네이터가 ") + "순서대로 전화드립니다. 지금 앞에 " + d.pending + "건이 있어요."
-          : "연락처를 남겨주시면 " + (d.staff ? d.staff + " 코디네이터가 " : "코디네이터가 ") + "바로 확인하고 전화드립니다."));
-        if (d.status !== "open") box.appendChild(el("p", { class: "muted small", text: "지금은 " + d.label + "이라, 접수가 시작되면 순서대로 연락드립니다." }));
+        box.appendChild(say(d.pending ? "연락처를 남겨 주시면 " + (d.staff ? d.staff + " 코디네이터가 " : "코디네이터가 ") + "순서대로 전화드릴게요. 지금 앞에 " + d.pending + "건이 있어요."
+          : "연락처를 남겨 주시면 " + (d.staff ? d.staff + " 코디네이터가 " : "코디네이터가 ") + "바로 확인하고 전화드릴게요."));
+        if (d.status !== "open") box.appendChild(el("p", { class: "muted small", text: "지금은 " + d.label + "이라서, 접수가 시작되면 순서대로 연락드릴게요." }));
         box.appendChild(inquiryForm(c));
       }
     } else if (mode === "mine") {
-      box.appendChild(say("예약번호나 상담 접수번호, 연락처를 알려주시면 지금 진행 상황을 바로 확인해 드릴게요."));
+      box.appendChild(say("예약번호나 상담 접수번호, 연락처를 알려 주시면 지금 진행 상황을 바로 확인해 드릴게요."));
       var f = el("form", { novalidate: true }, [
         el("div", { class: "row" }, [
           el("div", { class: "field" }, [el("label", { for: "dmCode", text: "예약번호 또는 접수번호" }), el("input", { id: "dmCode", maxlength: "6", autocomplete: "off", placeholder: "6자리" })]),
@@ -436,10 +442,10 @@
       steps.appendChild(el("li", { class: stopped ? null : i < idx || (i === idx && q.status === "done") ? "st-done" : i === idx ? "st-now" : null, text: label }));
     });
     var msg = {
-      new: q.ahead ? "데스크 확인을 기다리고 있어요. 앞에 " + q.ahead + "건이 있습니다." : "데스크 확인을 기다리고 있어요. 다음 순서입니다.",
-      seen: (q.handledBy ? q.handledBy + "님이" : "데스크에서") + " 확인했습니다. " + q.preferLabel + "에 전화드릴게요.",
-      done: "상담 연락을 마쳤습니다. 더 궁금한 점은 언제든 다시 요청해 주세요.",
-      cancelled: "취소된 상담 요청입니다."
+      new: q.ahead ? "데스크 확인을 기다리고 있어요. 앞에 " + q.ahead + "건이 있어요." : "데스크 확인을 기다리고 있어요. 다음 순서예요.",
+      seen: (q.handledBy ? q.handledBy + "님이" : "데스크에서") + " 확인했어요. " + q.preferLabel + "에 전화드릴게요.",
+      done: "상담 연락을 마쳤어요. 더 궁금한 점은 언제든 다시 요청해 주세요.",
+      cancelled: "취소된 상담 요청이에요."
     }[q.status];
     var t = el("div", { class: "ticket" }, [
       el("div", { class: "ticket-head" }, [el("span", null, [el("span", { class: "live-tag sm" }, [el("i", { "aria-hidden": "true" }), "실시간"]), " ", el("b", { text: q.centerName + " · " + q.topicLabel })]), el("span", { class: "ticket-code", text: q.code })]),
@@ -482,7 +488,7 @@
     if (toCenter) {
       $("centerReserveSlot").appendChild(reserveSec);
       form.classList.add("in-center");
-      $("step1Title").textContent = "진료센터";
+      $("step1Title").textContent = "어떤 진료를 받으세요?";
       if ($("rClinic").value !== key) { $("rClinic").value = key; pick.time = null; }
       $("deskReply").hidden = true; deskMode = null;
       document.querySelectorAll("#deskMenu button").forEach(function (b) { b.setAttribute("aria-pressed", "false"); });
@@ -594,7 +600,7 @@
       $("tlHours").textContent = plan.reason;
       box.appendChild(el("div", { class: "tl-closed", text: "오늘은 " + plan.reason + "입니다." + (live.next ? " 가장 빠른 예약은 " + relDay(live.next.date) + " " + C.koTime(live.next.time) + "입니다." : "") }));
     } else {
-      $("tlHours").textContent = C.koTime(plan.open) + " ~ " + C.koTime(plan.close) + (plan.lunchStart !== null ? " · 점심시간 " + C.koTime(plan.lunchStart) + " ~ " + C.koTime(plan.lunchEnd) : "");
+      $("tlHours").textContent = keep(koRange(plan.open, plan.close) + (plan.lunchStart !== null ? " · 점심시간 " + koRange(plan.lunchStart, plan.lunchEnd) : ""));
       var track = el("div", { class: "tl-track" });
       var nowM = live.now.minutes;
       if (nowM > plan.open) { var past = el("div", { class: "tl-past" }); past.style.width = Math.min(100, pct(nowM, plan)) + "%"; track.appendChild(past); }
@@ -607,7 +613,7 @@
       });
       box.appendChild(track);
       for (var h = Math.ceil(plan.open / 60) * 60; h <= plan.close; h += 60) {
-        var t = el("span", { class: "tl-tick", text: String(h / 60) }); t.style.left = pct(h, plan) + "%"; box.appendChild(t);
+        var t = el("span", { class: "tl-tick", text: ((h / 60) % 12 || 12) + "시" }); t.style.left = pct(h, plan) + "%"; box.appendChild(t);
       }
       if (nowM >= plan.open && nowM <= plan.close) {
         var nw = el("div", { class: "tl-now" }, [el("span", { text: "지금 " + C.koTime(nowM) })]); nw.style.left = pct(nowM, plan) + "%"; box.appendChild(nw);
@@ -686,17 +692,17 @@
     var today = live && live.now ? live.now.weekday : C.seoulNow().weekday, lunch = {}, lateDays = [];
     [1, 2, 3, 4, 5, 6, 0].forEach(function (w) {
       var h = hours.filter(function (x) { return x.weekday === w; })[0] || { closed: 1 };
-      var td = el("td", null, [h.closed ? "휴진" : h.open + " – " + h.close]);
+      var td = el("td", null, [h.closed ? "휴진" : koRange(h.open, h.close)]);
       if (!h.closed && h.note) td.appendChild(el("span", { class: "tag", text: h.note }));
-      if (!h.closed && h.lunch_start) lunch[h.lunch_start + " – " + h.lunch_end] = true;
+      if (!h.closed && h.lunch_start) lunch[koRange(h.lunch_start, h.lunch_end)] = true;
       if (!h.closed && C.toMin(h.close) >= 20 * 60) lateDays.push(C.WEEKDAYS[w]);
       tb.appendChild(el("tr", { class: w === today ? "today" : null }, [el("th", { scope: "row", text: w === 0 ? "일 · 공휴일" : C.WEEKDAYS[w] + "요일" }), td]));
     });
     var notes = [], l = Object.keys(lunch);
     if (l.length) notes.push("점심시간 " + l.join(", "));
-    notes.push("접수는 진료 종료 " + site.booking.lastEntryMinutes + "분 전까지 받습니다.");
+    notes.push("접수는 진료가 끝나기 " + site.booking.lastEntryMinutes + "분 전까지 받습니다.");
     $("hoursNote").textContent = notes.join(" · ");
-    if (lateDays.length) $("hoursLead").textContent = lateDays.join("·") + "요일은 저녁까지 진료해요.";
+    if (lateDays.length) $("hoursLead").textContent = lateDays.join("·") + "요일은 저녁까지 진료합니다.";
     var list = $("holidayList"); list.textContent = "";
     holidays.slice(0, 5).forEach(function (h) { list.appendChild(el("li", null, [el("span", { text: h.label }), el("span", { class: "mono small", text: C.formatDate(h.date) })])); });
     if (!holidays.length) list.appendChild(el("li", null, [el("small", { text: "예정된 휴진일이 없습니다." })]));
@@ -710,7 +716,7 @@
       if (f.note) name.appendChild(el("span", { class: "fee-note", text: f.note }));
       tb.appendChild(el("tr", null, [name, el("td", { text: f.unit || "" }), el("td", { class: "num", text: won(f.price) })]));
     });
-    $("feeCaption").textContent = "비급여 진료비 · " + (updatedAt ? updatedAt.slice(0, 10) + " 병원 수정 반영" : "병원 고지 금액");
+    $("feeCaption").textContent = "비급여 진료비 · " + (updatedAt ? koDate(updatedAt) + " 기준" : "병원 고지 금액");
   }
   function renderDoctors(docs) {
     renderDoctorCards($("doctorList"), docs);
@@ -755,7 +761,7 @@
     var list = $("noticeList"); list.textContent = "";
     notices.forEach(function (n) {
       list.appendChild(el("li", null, [el("details", null, [
-        el("summary", null, [el("span", { class: "t", text: n.title }), el("time", { datetime: n.created_at, text: n.created_at.slice(0, 10) })]),
+        el("summary", null, [el("span", { class: "t", text: n.title }), el("time", { datetime: n.created_at, text: koDate(n.created_at) })]),
         n.body ? el("p", { text: n.body }) : null
       ])]));
     });
@@ -969,8 +975,8 @@
     });
     var when = C.formatDate(r.date) + " " + C.koTime(r.time);
     var msg = {
-      requested: "병원에서 예약을 확인하고 있습니다. 직원이 확정하면 이 화면이 바로 바뀌고 문자로도 알려드립니다.",
-      confirmed: "예약이 확정되었습니다. " + when + "에 뵙겠습니다. 전날 안내 문자를 보내드립니다.",
+      requested: "병원에서 예약을 확인하고 있습니다. 직원이 확정하면 이 화면이 바로 바뀌고 문자로도 알려 드립니다.",
+      confirmed: "예약이 확정되었습니다. " + when + "에 뵙겠습니다. 전날 안내 문자를 보내 드립니다.",
       visited: "내원해 주셔서 감사합니다. 다음 정기검진 일정은 병원에서 안내해 드립니다.",
       no_show: "예약 시간에 오시지 않은 것으로 기록되었습니다. 다시 예약해 주세요.",
       cancelled: "취소된 예약입니다."

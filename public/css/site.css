@@ -1595,3 +1595,35 @@ html.easy .part-map[data-shape="set"] li { flex-basis: 6.5rem; }
     html:not(.easy) .parts:not(.has-open) > .part[data-fold] .part-map { align-self: start; }
   }
 }
+
+/* ===================== 글자 다듬기 (design/brand-book.md '문구와 조판') ===================== */
+/* 1) 고정폭 글꼴(Mono)은 예약번호 · 금액 · 치식 번호 · 숫자만. 한글이 섞인 줄은 본문 글꼴 + 자리 맞춘 숫자
+      (Mono에는 한글이 없어 다른 글꼴로 바뀌면서 "오늘  오전  11:30"처럼 띄어쓰기가 벌어짐) */
+.cc-next b, .lv-time, .lv-conn, .hours td, .notices summary time, .tl-now span, .tl-tick, .doctor .days, .steps .dur,
+.hol-list .mono, .price thead th, .ins .who, .map-art .exit, .portrait small, .heat td button, .desk-reply .say::before,
+.plan .meta, .plan th, .plan td.mono, .plan .sum .mono, [data-bind="phone"].mono, .ways .mono, .channel .mono, .desk-reply p.mono {
+  font-family: var(--f-body); font-variant-numeric: tabular-nums; letter-spacing: 0;
+}
+.cc-next b { font-weight: 700; }
+.lv-time { font-weight: 500; }
+.hours td { font-size: 1rem; }
+.steps .dur { font-size: .875rem; font-weight: 600; }
+.tl-tick, .tl-now span { font-size: .8125rem; }
+.doctor .days { font-size: .875rem; }
+/* 2) 숫자가 들어간 짧은 값은 줄이 바뀌어도 쪼개지지 않게, 시각 · 금액 · 대기는 자리 맞춘 숫자로 */
+.cc-next b, .wait-big, .board-next strong, .tracker-code, .ticket-code, .eb-code, .price td.num, .cv-fee-table td.num, .slot, .eb-time, .lv b, .cv-facts dd { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.cv-facts dd { white-space: normal; }
+/* 3) 줄바꿈: 제목은 고르게(balance), 문단 · 설명은 마지막 줄에 한두 글자만 남지 않게(pretty). 한국어는 어절 단위로만 끊음(keep-all) */
+p, li, dd, small, figcaption, .sp-role, .st-t small, .ns-main small, .bubble p, .msg-b, .eb-hint { text-wrap: pretty; }
+.sp-name, .stage-plate .sp-role, .part-tag, .ns-main b, .eb-title, .desk-title { text-wrap: balance; }
+/* 4) 글자 사이 · 줄 사이: 큰 제목은 조금 좁게, 작은 글자는 그대로. 줄 사이는 글자가 클수록 좁게 */
+.chat-intro h1 { letter-spacing: -0.025em; line-height: 1.2; }
+.sp-name { letter-spacing: -0.02em; line-height: 1.2; }
+#homeView .sec-head h2, .parts > .part .sec-head h2, .reserve h2, .cv-sec > h2, .ns-main b { letter-spacing: -0.015em; line-height: 1.3; }
+.principles h3, .ccard h3, .doctor h3, .steps h3, .tcard-head h3, .tracker-head h3, .form h3, .reserve .lookup h3, .reserve .channels h3 { letter-spacing: -0.01em; line-height: 1.4; }
+body { line-height: 1.7; }
+.sec-head p, .sp-role, .principles p, .steps p, .bubble p, .ins span { line-height: 1.65; }
+.ccard p, .cc-live, .part-map li, .st-t small { line-height: 1.5; }
+.part-tag { letter-spacing: 0; }
+/* 데스크 메뉴 설명은 '…'로 자르지 않고 줄을 바꿈(시각 · 건수가 잘리면 뜻이 사라짐) */
+.desk-menu button small { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.4; }

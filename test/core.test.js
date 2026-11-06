@@ -105,6 +105,10 @@ test("voice guidance reads times, phones and codes the way people say them", () 
   assert.match(speakable("#36 신경치료"), /36번 치아/);
   assert.equal(speakable("2 / 7 단계. 오늘 · 11월 4일 (수)"), "7단계 중 2단계. 오늘, 11월 4일 수요일");
   assert.equal(speakable("충치·신경치료센터"), "충치 신경치료센터");
+  // 화면용 줄바꿈 없는 공백(keep)과 오전·오후를 줄인 범위도 말로 읽힘
+  assert.equal(speakable("가장\u00a0빠른\u00a0예약\u00a0오늘\u00a0오후\u00a02:30"), "가장 빠른 예약 오늘 오후 2시 30분");
+  assert.equal(speakable("점심시간 오후 1:00 ~ 2:00"), "점심시간 오후 1시부터 2시");
+  assert.equal(speakable("예약번호 A7NG4T · 010-1234-5678"), "예약번호 A 7 N G 4 T, 공일공, 일이삼사, 오육칠팔");
 });
 
 test("reception counter: desk photo paths and time-of-day lighting", () => {
