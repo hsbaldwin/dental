@@ -95,6 +95,7 @@
 <main id="main">
   <div id="homeView">
   <!-- 고객 여정: 1 지금 → 2 찾기 → 3 알아보기 → 4 예약 → 5 오시는 날 -->
+  <!-- 입체 구성: 1 지금은 바닥(로비), 2~5는 그 위에 떠 있는 '단계 판'. 판 머리에 번호 · 역할 · 구성 지도 -->
   <div class="stage" id="now" data-stage="1">
   <canvas class="breeze" id="breeze" aria-hidden="true"></canvas>
   <section class="hero centers-hero" id="top">
@@ -109,7 +110,7 @@
           <section class="chat" id="chat" aria-label="W치과 안내 챗봇">
             <header class="chat-head">
               <span class="desk-avatar" aria-hidden="true"><svg viewBox="0 0 64 40"><use href="#w-mark"/></svg></span>
-              <div class="chat-who"><b>W치과 안내</b><small><span class="live-tag sm"><i aria-hidden="true"></i>실시간 연결</span> · 자동 안내 챗봇</small></div>
+              <div class="chat-who"><b>W치과 안내</b> <small><span class="live-tag sm"><i aria-hidden="true"></i>실시간 연결</span> · 자동 안내 챗봇</small></div>
               <button class="icon-btn chat-close" id="chatClose" type="button" aria-label="챗봇 닫기" hidden>닫기</button>
             </header>
             <div class="chat-log" id="chatLog" role="log" aria-live="polite" aria-label="대화 내용"></div>
@@ -122,116 +123,162 @@
             </form>
           </section>
         </div>
+        <nav class="stair" aria-labelledby="stair-h">
+          <p class="stair-h" id="stair-h">이 페이지의 순서</p>
+          <ol>
+            <li><a href="#top" data-stage="1" aria-current="step"><span class="stage-key" aria-hidden="true">1</span><span class="st-t"><b>지금</b> <small>물어보고 바로 안내받기</small></span> <span class="st-here">지금 여기</span></a></li>
+            <li><a href="#stage-find" data-stage="2"><span class="stage-key" aria-hidden="true">2</span><span class="st-t"><b>찾기</b> <small>나에게 맞는 진료센터 고르기</small></span></a></li>
+            <li><a href="#stage-learn" data-stage="3"><span class="stage-key" aria-hidden="true">3</span><span class="st-t"><b>알아보기</b> <small>치료 전에 미리 알아 두기</small></span></a></li>
+            <li><a href="#stage-book" data-stage="4"><span class="stage-key" aria-hidden="true">4</span><span class="st-t"><b>예약</b> <small>남은 자리 보고 예약하기</small></span></a></li>
+            <li><a href="#visit-day" data-stage="5"><span class="stage-key" aria-hidden="true">5</span><span class="st-t"><b>오시는 날</b> <small>오늘 진료와 오시는 길</small></span></a></li>
+          </ol>
+        </nav>
       </div>
     </div>
   </section>
   </div>
 
-  <div class="stage" id="stage-find" data-stage="2" data-alt>
+  <div class="stage slab" id="stage-find" data-stage="2" role="region" aria-labelledby="sp2-n">
+  <header class="stage-plate wrap">
+    <span class="stage-key" aria-hidden="true">2</span>
+    <div class="sp-text">
+      <p class="sp-name" id="sp2-n">찾기 <span class="sp-of">5단계 중 2단계</span></p>
+      <p class="sp-role">나에게 맞는 진료센터 고르기</p>
+    </div>
+  </header>
   <section class="band" id="find" aria-labelledby="fd-h">
     <div class="wrap">
       <div class="sec-head">
-        <div><p class="eyebrow"><span class="stage-no">2</span>찾기</p><h2 id="fd-h">어느 진료센터로 가면 될까요?</h2></div>
+        <div><h2 id="fd-h">어느 진료센터로 가면 될까요?</h2></div>
         <p>센터마다 접수 데스크가 따로 있어요. 잘 모르시면 챗봇에 물어보세요.</p>
       </div>
       <div class="center-grid" id="centerGrid" aria-live="polite"></div>
-      <a class="next-step" href="#stage-learn"><span class="ns-label">다음 단계</span><span class="ns-main"><span class="stage-no">3</span><b>알아보기</b><small>첫 방문은 어떻게 진행되고, 비용은 얼마인지</small></span><span class="ns-arrow" aria-hidden="true">→</span></a>
+      <a class="next-step" href="#stage-learn"><span class="ns-label">다음 단계</span><span class="ns-main"><span class="stage-no">3</span><b>알아보기</b> <small>치료 전에 미리 알아 두기</small></span><span class="ns-arrow" aria-hidden="true">→</span></a>
     </div>
   </section>
   </div>
 
-  <div class="stage" id="stage-learn" data-stage="3">
-  <section class="band" id="learn" aria-labelledby="pr-h" data-fold>
-    <div class="wrap">
-      <div class="sec-head">
-        <div><p class="eyebrow"><span class="stage-no">3</span>알아보기 · 진료 원칙</p><h2 id="pr-h">W치과가 지키는 세 가지</h2></div>
-        <p>설명 먼저 · 비용 공개 · 보이는 그대로</p>
-      </div>
-      <div class="principles">
-        <article><p class="eyebrow">하나</p><h3>설명 먼저, 치료는 다음</h3><p>CT·구강 사진을 함께 보면서 진단하고, 치료계획서에 서명하신 뒤에 치료를 시작합니다.</p></article>
-        <article><p class="eyebrow">둘</p><h3>비용은 숨기지 않습니다</h3><p>비급여 진료비는 홈페이지와 대기실에 똑같이 공개합니다. 상담 후 추가 비용이 생기면 먼저 알려드립니다.</p></article>
-        <article><p class="eyebrow">셋</p><h3>보이는 그대로 운영합니다</h3><p>예약 시간, 휴진, 대기 상황은 병원 시스템에서 바로 가져옵니다. 홈페이지와 접수 데스크의 정보가 다르지 않습니다.</p></article>
-      </div>
+  <div class="stage slab" id="stage-learn" data-stage="3" role="region" aria-labelledby="sp3-n">
+  <header class="stage-plate wrap">
+    <span class="stage-key" aria-hidden="true">3</span>
+    <div class="sp-text">
+      <p class="sp-name" id="sp3-n">알아보기 <span class="sp-of">5단계 중 3단계</span></p>
+      <p class="sp-role">치료 전에 미리 알아 두기</p>
+    </div>
+    <nav class="sp-map" aria-label="알아보기 안에 있는 것">
+      <a href="#learn"><span class="part-no" aria-hidden="true">1</span>진료 원칙</a>
+      <a href="#first-visit"><span class="part-no" aria-hidden="true">2</span>첫 방문</a>
+      <a href="#doctors"><span class="part-no" aria-hidden="true">3</span>의료진</a>
+      <a href="#price"><span class="part-no" aria-hidden="true">4</span>진료비</a>
+    </nav>
+  </header>
+  <div class="wrap parts">
+  <section class="part" id="learn" aria-labelledby="pr-h" data-fold>
+    <div class="sec-head">
+      <div><p class="eyebrow part-tag"><span class="part-no" aria-hidden="true">1</span>진료 원칙</p><h2 id="pr-h">W치과가 지키는 세 가지</h2></div>
+    </div>
+    <ul class="part-map" data-shape="set" aria-label="들어 있는 내용">
+      <li>설명 먼저</li><li>비용 공개</li><li>보이는 그대로</li>
+    </ul>
+    <div class="principles">
+      <article><p class="eyebrow">하나</p><h3>설명 먼저, 치료는 다음</h3><p>CT·구강 사진을 함께 보면서 진단하고, 치료계획서에 서명하신 뒤에 치료를 시작합니다.</p></article>
+      <article><p class="eyebrow">둘</p><h3>비용은 숨기지 않습니다</h3><p>비급여 진료비는 홈페이지와 대기실에 똑같이 공개합니다. 상담 후 추가 비용이 생기면 먼저 알려드립니다.</p></article>
+      <article><p class="eyebrow">셋</p><h3>보이는 그대로 운영합니다</h3><p>예약 시간, 휴진, 대기 상황은 병원 시스템에서 바로 가져옵니다. 홈페이지와 접수 데스크의 정보가 다르지 않습니다.</p></article>
     </div>
   </section>
 
-  <section class="band band-alt" id="first-visit" aria-labelledby="fv-h" data-fold>
-    <div class="wrap">
-      <div class="sec-head">
-        <div><p class="eyebrow">알아보기 · 처음 오시는 분</p><h2 id="fv-h">첫 방문은 이렇게 진행됩니다</h2></div>
-        <p>첫날은 검사와 상담이에요. 아픈 곳은 먼저 치료해 드려요.</p>
-      </div>
-      <div class="visit-flow">
-        <ol class="steps vertical">
-          <li><h3>예약</h3><p>홈페이지에서 남은 시간을 보고 예약합니다. 병원이 확인하면 화면과 문자로 확정 안내가 갑니다.</p><span class="dur">1분</span></li>
-          <li><h3>문진표</h3><p>복용 중인 약과 불편한 곳을 모바일 문진표로 미리 작성합니다.</p><span class="dur">5분</span></li>
-          <li><h3>검사</h3><p>파노라마·CT 촬영과 구강 사진으로 현재 상태를 기록합니다.</p><span class="dur">15분</span></li>
-          <li><h3>계획서 상담</h3><p>원장이 사진을 보며 설명하고, 비용이 적힌 치료계획서를 드립니다.</p><span class="dur">20분</span></li>
-          <li><h3>치료 · 정기검진</h3><p>동의하신 계획대로 치료하고, 끝난 뒤 검진 일정을 알려드립니다.</p><span class="dur">계획서 기준</span></li>
-        </ol>
-        <div>
-          <article class="plan" aria-label="치료계획서 예시">
-            <header><h2>치료계획서</h2><span class="meta">예시 · 초진</span></header>
-            <table>
-              <thead><tr><th scope="col">치아</th><th scope="col">진단 · 치료</th><th scope="col">방문</th></tr></thead>
-              <tbody>
-                <tr><td class="tooth">#36</td><td>깊은 충치 → 신경치료 후 지르코니아 크라운</td><td class="mono">4회</td></tr>
-                <tr><td class="tooth">#47</td><td>인접면 충치 → 레진 충전</td><td class="mono">1회</td></tr>
-                <tr><td class="tooth">전체</td><td>치석 제거 (건강보험 연 1회)</td><td class="mono">1회</td></tr>
-              </tbody>
-            </table>
-            <div class="sum"><span>예상 본인부담</span><span class="mono">약 62만 원</span></div>
-            <div class="foot"><p class="note">치식 번호는 국제 표기(FDI) 기준입니다. #36 = 아래 왼쪽 첫째 큰어금니.</p><span class="stamp">설명 완료</span></div>
-          </article>
-          <p class="plan-cap">상담이 끝나면 이 계획서를 그대로 카카오톡으로 보내드립니다. 집에서 다시 읽어보고 결정하셔도 됩니다.</p>
-        </div>
-      </div>
+  <section class="part" id="first-visit" aria-labelledby="fv-h" data-fold>
+    <div class="sec-head">
+      <div><p class="eyebrow part-tag"><span class="part-no" aria-hidden="true">2</span>처음 오시는 분</p><h2 id="fv-h">첫 방문은 이렇게 진행됩니다</h2></div>
+      <p>첫날은 검사와 상담이에요. 아픈 곳은 먼저 치료해 드려요.</p>
     </div>
-  </section>
-
-  <section class="band" id="doctors" aria-labelledby="dr-h" data-fold>
-    <div class="wrap">
-      <div class="sec-head">
-        <div><p class="eyebrow">알아보기 · 의료진</p><h2 id="dr-h">의료진</h2></div>
-        <p>오늘 진료하는 원장님에게 <b class="today-mark">오늘 진료</b> 표시가 붙어요.</p>
-      </div>
-      <div class="doctors" id="doctorList"><p class="loading">의료진 정보를 불러오는 중입니다.</p></div>
-    </div>
-  </section>
-
-  <section class="band band-alt" id="price" aria-labelledby="pc-h" data-fold>
-    <div class="wrap">
-      <div class="sec-head">
-        <div><p class="eyebrow">알아보기 · 진료비</p><h2 id="pc-h">진료비 안내</h2></div>
-        <p>건강보험 진료부터 안내해요. 비급여는 적힌 금액 그대로 받습니다.</p>
-      </div>
-      <p class="senior-note"><b>만 65세 이상이신가요?</b> 임플란트(평생 2개)와 틀니(7년마다)에 건강보험이 적용됩니다.</p>
-      <div class="price-layout">
-        <div class="table-box">
-          <table class="price">
-            <caption class="ok" id="feeCaption">비급여 진료비 (부가세 포함)</caption>
-            <thead><tr><th scope="col">항목</th><th scope="col">단위</th><th scope="col" class="num">금액</th></tr></thead>
-            <tbody id="feeRows"><tr><td colspan="3" class="loading">진료비를 불러오는 중입니다.</td></tr></tbody>
+    <ol class="part-map" data-shape="seq" aria-label="진행 순서">
+      <li>예약</li><li>문진표</li><li>검사</li><li>계획서 상담</li><li>치료</li>
+    </ol>
+    <div class="visit-flow">
+      <ol class="steps vertical">
+        <li><h3>예약</h3><p>홈페이지에서 남은 시간을 보고 예약합니다. 병원이 확인하면 화면과 문자로 확정 안내가 갑니다.</p><span class="dur">1분</span></li>
+        <li><h3>문진표</h3><p>복용 중인 약과 불편한 곳을 모바일 문진표로 미리 작성합니다.</p><span class="dur">5분</span></li>
+        <li><h3>검사</h3><p>파노라마·CT 촬영과 구강 사진으로 현재 상태를 기록합니다.</p><span class="dur">15분</span></li>
+        <li><h3>계획서 상담</h3><p>원장이 사진을 보며 설명하고, 비용이 적힌 치료계획서를 드립니다.</p><span class="dur">20분</span></li>
+        <li><h3>치료 · 정기검진</h3><p>동의하신 계획대로 치료하고, 끝난 뒤 검진 일정을 알려드립니다.</p><span class="dur">계획서 기준</span></li>
+      </ol>
+      <div>
+        <article class="plan" aria-label="치료계획서 예시">
+          <header><h2>치료계획서</h2><span class="meta">예시 · 초진</span></header>
+          <table>
+            <thead><tr><th scope="col">치아</th><th scope="col">진단 · 치료</th><th scope="col">방문</th></tr></thead>
+            <tbody>
+              <tr><td class="tooth">#36</td><td>깊은 충치 → 신경치료 후 지르코니아 크라운</td><td class="mono">4회</td></tr>
+              <tr><td class="tooth">#47</td><td>인접면 충치 → 레진 충전</td><td class="mono">1회</td></tr>
+              <tr><td class="tooth">전체</td><td>치석 제거 (건강보험 연 1회)</td><td class="mono">1회</td></tr>
+            </tbody>
           </table>
-        </div>
-        <div class="insurance">
-          <div class="ins"><span class="who">만 19세 이상</span><b>스케일링 연 1회 건강보험</b><span>매년 1월 1일부터 12월 31일 사이 한 번 보험이 적용됩니다.</span></div>
-          <div class="ins"><span class="who">만 65세 이상</span><b>임플란트 평생 2개 건강보험</b><span>본인부담 30%. 틀니도 7년마다 보험이 적용됩니다.</span></div>
-          <div class="ins"><span class="who">만 12세 이하 · 만 18세 이하</span><b>아이 충치 레진 · 실란트 보험</b><span>12세 이하 영구치 레진, 18세 이하 큰어금니 실란트에 보험이 적용됩니다.</span></div>
-        </div>
+          <div class="sum"><span>예상 본인부담</span><span class="mono">약 62만 원</span></div>
+          <div class="foot"><p class="note">치식 번호는 국제 표기(FDI) 기준입니다. #36 = 아래 왼쪽 첫째 큰어금니.</p><span class="stamp">설명 완료</span></div>
+        </article>
+        <p class="plan-cap">상담이 끝나면 이 계획서를 그대로 카카오톡으로 보내드립니다. 집에서 다시 읽어보고 결정하셔도 됩니다.</p>
       </div>
-      <a class="next-step" href="#stage-book"><span class="ns-label">다음 단계</span><span class="ns-main"><span class="stage-no">4</span><b>예약</b><small>남은 시간을 보고 바로 예약하거나, 내 예약을 확인하기</small></span><span class="ns-arrow" aria-hidden="true">→</span></a>
+    </div>
+  </section>
+
+  <section class="part" id="doctors" aria-labelledby="dr-h" data-fold>
+    <div class="sec-head">
+      <div><p class="eyebrow part-tag"><span class="part-no" aria-hidden="true">3</span>의료진</p><h2 id="dr-h">의료진</h2></div>
+      <p>오늘 진료하는 원장님에게 <b class="today-mark">오늘 진료</b> 표시가 붙어요.</p>
+    </div>
+    <ul class="part-map" data-shape="people" id="doctorMap" aria-label="원장님"></ul>
+    <div class="doctors" id="doctorList"><p class="loading">의료진 정보를 불러오는 중입니다.</p></div>
+  </section>
+
+  <section class="part" id="price" aria-labelledby="pc-h" data-fold>
+    <div class="sec-head">
+      <div><p class="eyebrow part-tag"><span class="part-no" aria-hidden="true">4</span>진료비</p><h2 id="pc-h">진료비 안내</h2></div>
+      <p>건강보험 진료부터 안내해요. 비급여는 적힌 금액 그대로 받습니다.</p>
+    </div>
+    <ul class="part-map" data-shape="set" aria-label="들어 있는 내용">
+      <li id="feeMapCount">비급여 진료비표</li><li>건강보험 세 가지</li>
+    </ul>
+    <p class="senior-note"><b>만 65세 이상이신가요?</b> 임플란트(평생 2개)와 틀니(7년마다)에 건강보험이 적용됩니다.</p>
+    <div class="price-layout">
+      <div class="table-box">
+        <table class="price">
+          <caption class="ok" id="feeCaption">비급여 진료비 (부가세 포함)</caption>
+          <thead><tr><th scope="col">항목</th><th scope="col">단위</th><th scope="col" class="num">금액</th></tr></thead>
+          <tbody id="feeRows"><tr><td colspan="3" class="loading">진료비를 불러오는 중입니다.</td></tr></tbody>
+        </table>
+      </div>
+      <div class="insurance">
+        <div class="ins"><span class="who">만 19세 이상</span><b>스케일링 연 1회 건강보험</b><span>매년 1월 1일부터 12월 31일 사이 한 번 보험이 적용됩니다.</span></div>
+        <div class="ins"><span class="who">만 65세 이상</span><b>임플란트 평생 2개 건강보험</b><span>본인부담 30%. 틀니도 7년마다 보험이 적용됩니다.</span></div>
+        <div class="ins"><span class="who">만 12세 이하 · 만 18세 이하</span><b>아이 충치 레진 · 실란트 보험</b><span>12세 이하 영구치 레진, 18세 이하 큰어금니 실란트에 보험이 적용됩니다.</span></div>
+      </div>
     </div>
   </section>
   </div>
+  <div class="wrap stage-end">
+    <a class="next-step" href="#stage-book"><span class="ns-label">다음 단계</span><span class="ns-main"><span class="stage-no">4</span><b>예약</b> <small>남은 자리 보고 예약하기</small></span><span class="ns-arrow" aria-hidden="true">→</span></a>
+  </div>
+  </div>
 
-  <div class="stage" id="stage-book" data-stage="4" data-alt>
+  <div class="stage slab" id="stage-book" data-stage="4" role="region" aria-labelledby="sp4-n">
+  <header class="stage-plate wrap">
+    <span class="stage-key" aria-hidden="true">4</span>
+    <div class="sp-text">
+      <p class="sp-name" id="sp4-n">예약 <span class="sp-of">5단계 중 4단계</span></p>
+      <p class="sp-role">남은 자리 보고 예약하기</p>
+    </div>
+    <nav class="sp-map" aria-label="예약 안에 있는 것">
+      <a href="#reserve"><span class="part-no" aria-hidden="true">1</span>실시간 예약</a>
+      <a href="#lookup"><span class="part-no" aria-hidden="true">2</span>내 예약 확인</a>
+      <a href="#channels"><span class="part-no" aria-hidden="true">3</span>다른 방법</a>
+    </nav>
+  </header>
   <div id="homeReserveSlot">
   <section class="band form-closed" id="reserve" aria-labelledby="rs-h">
     <div class="wrap reserve">
       <div class="side">
-        <p class="eyebrow"><span class="stage-no">4</span>예약</p>
-        <h2 id="rs-h">실시간 예약</h2>
+        <h2 id="rs-h"><span class="part-no" aria-hidden="true">1</span>실시간 예약</h2>
         <p>보이는 시간은 지금 남은 자리예요.</p>
         <div class="reserve-start" id="reserveStart">
           <button class="btn btn-primary btn-lg" type="button" data-easybook="">쉬운 예약 시작</button>
@@ -278,7 +325,7 @@
       </div>
       <div class="side-extra">
         <div class="lookup" id="lookup">
-          <h3>내 예약 확인 · 취소</h3>
+          <h3><span class="part-no" aria-hidden="true">2</span>내 예약 확인 · 취소</h3>
           <form id="lookupForm" novalidate>
             <div class="field"><label for="lCode">예약번호</label><input id="lCode" name="code" maxlength="6" autocomplete="off" placeholder="6자리"></div>
             <div class="field"><label for="lTel">연락처</label><input id="lTel" name="tel" type="tel" inputmode="tel" autocomplete="tel" placeholder="010-0000-0000"></div>
@@ -287,27 +334,42 @@
           <p class="form-error" id="lookupErr" role="alert" hidden></p>
         </div>
 
-        <div class="channels">
+        <div class="channels" id="channels">
+          <h3><span class="part-no" aria-hidden="true">3</span>다른 방법으로 예약</h3>
           <a class="channel" data-href="naverBookingUrl" href="https://booking.naver.com/" target="_blank" rel="noopener"><span><b>네이버 예약</b><br><small>네이버 예약으로도 받습니다</small></span><span aria-hidden="true">→</span></a>
           <a class="channel" data-href="kakaoUrl" href="https://pf.kakao.com/" target="_blank" rel="noopener"><span><b>카카오톡 상담</b><br><small>사진을 보내고 미리 상담</small></span><span aria-hidden="true">→</span></a>
           <div class="channel"><span><b>전화</b><br><small class="mono" data-bind="phone"></small></span><button class="icon-btn" type="button" id="copyTel">번호 복사</button></div>
         </div>
       </div>
       <div class="reserve-next">
-        <a class="next-step" href="#visit-day"><span class="ns-label">다음 단계</span><span class="ns-main"><span class="stage-no">5</span><b>오시는 날</b><small>오늘 진료 시간표, 진료시간, 오시는 길</small></span><span class="ns-arrow" aria-hidden="true">→</span></a>
+        <a class="next-step" href="#visit-day"><span class="ns-label">다음 단계</span><span class="ns-main"><span class="stage-no">5</span><b>오시는 날</b> <small>오늘 진료와 오시는 길</small></span><span class="ns-arrow" aria-hidden="true">→</span></a>
       </div>
     </div>
   </section>
   </div>
   </div>
 
-  <div class="stage" id="visit-day" data-stage="5">
-  <section class="band band-alt" id="today" aria-labelledby="td-h" data-fold>
-    <div class="wrap">
+  <div class="stage slab" id="visit-day" data-stage="5" role="region" aria-labelledby="sp5-n">
+  <header class="stage-plate wrap">
+    <span class="stage-key" aria-hidden="true">5</span>
+    <div class="sp-text">
+      <p class="sp-name" id="sp5-n">오시는 날 <span class="sp-of">5단계 중 5단계</span></p>
+      <p class="sp-role">오늘 진료와 오시는 길</p>
+    </div>
+    <nav class="sp-map" aria-label="오시는 날 안에 있는 것">
+      <a href="#today"><span class="part-no" aria-hidden="true">1</span>오늘의 병원</a>
+      <a href="#visit"><span class="part-no" aria-hidden="true">2</span>진료시간 · 길</a>
+      <a href="#notices" class="sp-notices"><span class="part-no" aria-hidden="true">3</span>공지</a>
+    </nav>
+  </header>
+  <div class="wrap parts">
+  <section class="part" id="today" aria-labelledby="td-h" data-fold>
       <div class="sec-head">
-        <div><p class="eyebrow"><span class="stage-no">5</span>오시는 날 · <span id="todayLabel"></span></p><h2 id="td-h">오늘의 W치과</h2></div>
-        <p>오늘 시간표 · 진료 의료진 · 병원 안내</p>
+        <div><p class="eyebrow part-tag"><span class="part-no" aria-hidden="true">1</span>오늘 · <span id="todayLabel"></span></p><h2 id="td-h">오늘의 W치과</h2></div>
       </div>
+      <ul class="part-map" data-shape="grid" aria-label="들어 있는 내용">
+        <li>오늘 시간표</li><li>병원 안내</li><li>오늘 의료진</li><li>다가오는 휴진</li>
+      </ul>
       <div class="today-grid">
         <article class="tcard wide" aria-labelledby="tl-h">
           <div class="tcard-head"><h3 id="tl-h">오늘 진료 시간표</h3><span class="muted small" id="tlHours"></span></div>
@@ -329,15 +391,16 @@
           <ul class="hol-list" id="holidayList"></ul>
         </article>
       </div>
-    </div>
   </section>
 
-  <section class="band" id="visit" aria-labelledby="vs-h" data-fold>
-    <div class="wrap">
+  <section class="part" id="visit" aria-labelledby="vs-h" data-fold>
       <div class="sec-head">
-        <div><p class="eyebrow">오시는 날 · 진료시간과 위치</p><h2 id="vs-h">진료시간 · 오시는 길</h2></div>
+        <div><p class="eyebrow part-tag"><span class="part-no" aria-hidden="true">2</span>진료시간과 위치</p><h2 id="vs-h">진료시간 · 오시는 길</h2></div>
         <p id="hoursLead">진료시간과 휴진일은 병원에서 바뀌는 즉시 이곳에 반영됩니다.</p>
       </div>
+      <ul class="part-map" data-shape="set" aria-label="들어 있는 내용">
+        <li>요일별 진료시간</li><li>지도 · 주차</li>
+      </ul>
       <div class="visit">
         <div>
           <table class="hours"><tbody id="hoursRows"></tbody></table>
@@ -359,20 +422,21 @@
           </div>
         </div>
       </div>
-      <div class="journey-end">
-        <p><b>더 궁금한 점이 있으신가요?</b> 챗봇에 물어보시거나 전화 주세요.</p>
-        <div class="je-acts"><a class="btn btn-primary btn-lg" href="#chat">챗봇에게 묻기</a><a class="btn btn-ghost btn-lg" href="#top">처음으로</a></div>
-      </div>
-    </div>
   </section>
 
-  <section class="band band-alt" id="notices" aria-labelledby="nt-h" hidden>
-    <div class="wrap">
-      <div class="sec-head"><div><p class="eyebrow">오시는 날 · 알림</p><h2 id="nt-h">공지사항</h2></div><p>휴진 · 진료시간 변경 안내</p></div>
+  <section class="part part-wide" id="notices" aria-labelledby="nt-h" hidden>
+      <div class="sec-head"><div><p class="eyebrow part-tag"><span class="part-no" aria-hidden="true">3</span>알림</p><h2 id="nt-h">공지사항</h2></div><p>휴진 · 진료시간 변경 안내</p></div>
       <ul class="notices" id="noticeList"></ul>
-    </div>
   </section>
   </div>
+  <div class="wrap stage-end">
+    <div class="journey-end">
+      <p><b>더 궁금한 점이 있으신가요?</b> 챗봇에 물어보시거나 전화 주세요.</p>
+      <div class="je-acts"><a class="btn btn-primary btn-lg" href="#chat">챗봇에게 묻기</a><a class="btn btn-ghost btn-lg" href="#top">처음으로</a></div>
+    </div>
+  </div>
+  </div>
+
 
   </div><!-- /homeView -->
 
@@ -397,9 +461,9 @@
             <div class="desk-menu" id="deskMenu" role="group" aria-label="데스크 메뉴">
               <button type="button" data-desk="book"><b>진료 예약</b><small id="dmBook">남은 시간 확인 중</small></button>
               <button type="button" data-desk="call"><b>전화 상담 요청</b><small id="dmCall">코디네이터가 전화드립니다</small></button>
-              <button type="button" data-desk="mine"><b>내 예약 · 요청 확인</b><small>번호로 진행 상황 조회</small></button>
-              <button type="button" data-desk="prep"><b>첫 방문 준비물</b><small>소요 시간 · 챙길 것</small></button>
-              <button type="button" data-desk="cost"><b>비용 안내</b><small>이 센터 비급여 항목</small></button>
+              <button type="button" data-desk="mine"><b>내 예약 · 요청 확인</b> <small>번호로 진행 상황 조회</small></button>
+              <button type="button" data-desk="prep"><b>첫 방문 준비물</b> <small>소요 시간 · 챙길 것</small></button>
+              <button type="button" data-desk="cost"><b>비용 안내</b> <small>이 센터 비급여 항목</small></button>
               <button type="button" data-desk="way"><b>오시는 길 · 주차</b><small data-bind="subway"></small></button>
             </div>
             <section class="desk-reply" id="deskReply" hidden tabindex="-1" aria-live="polite"></section>

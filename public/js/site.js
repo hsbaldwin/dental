@@ -523,20 +523,26 @@
     if (sec && sec._fold) sec._fold(true);
   }
   document.querySelectorAll("section[data-fold]").forEach(function (sec) {
-    // 홈 구역: .wrap 안 .sec-head 뒤를 접음 / 센터 페이지 구역: 제목(h2) 뒤를 접음
-    var wrap = sec.querySelector(".wrap") || sec, head = sec.querySelector(".wrap") ? wrap.querySelector(".sec-head") : sec.querySelector("h2");
+    // 홈 단락 카드: .sec-head(+ 구성 미리보기) 뒤를 접음 / 센터 페이지 구역: 제목(h2) 뒤를 접음
+    var head = sec.querySelector(".sec-head") || sec.querySelector("h2");
     if (!head) return;
+    var box = head.parentNode, map = box.querySelector(":scope > .part-map");
     var body = el("div", { class: "fold-body", id: sec.id + "-more", hidden: true });
-    [].slice.call(wrap.children).forEach(function (n) { if (n !== head && !n.classList.contains("next-step")) body.appendChild(n); });
+    [].slice.call(box.children).forEach(function (n) { if (n !== head && n !== map && !n.classList.contains("next-step")) body.appendChild(n); });
     var title = (sec.querySelector("h2") || {}).textContent || "";
     var btn = el("button", { type: "button", class: "fold-btn", "aria-expanded": "false", "aria-controls": body.id }, [el("span", { class: "fold-t", text: "자세히 보기" }), el("span", { class: "vh", text: " · " + title }), el("span", { class: "fold-arrow", "aria-hidden": "true", text: "▾" })]);
+    var group = sec.closest(".parts");
     sec._fold = function (on) {
       body.hidden = !on; btn.setAttribute("aria-expanded", on ? "true" : "false");
       btn.querySelector(".fold-t").textContent = on ? "접기" : "자세히 보기";
       sec.classList.toggle("folded", !on);
+      // 한 단락을 펼치면 그 단계의 카드들은 한 줄씩(읽는 자리), 모두 접으면 다시 한눈에 보는 판으로
+      if (group) group.classList.toggle("has-open", !!group.querySelector(".part[data-fold]:not(.folded)"));
     };
     btn.addEventListener("click", function () { sec._fold(body.hidden); });
-    head.after(btn); btn.after(body);
+    // 구성 미리보기를 눌러도 펼침(손가락으로 넓게 누를 수 있게). 키보드는 '자세히 보기' 버튼으로.
+    if (map) map.addEventListener("click", function () { if (body.hidden) { sec._fold(true); btn.focus({ preventScroll: true }); } });
+    (map || head).after(btn); btn.after(body);
     sec._fold(false);
   });
   // 같은 주소를 다시 눌러 hashchange가 없어도 펼침
@@ -697,6 +703,7 @@
   }
   function renderFees(fees, updatedAt) {
     var tb = $("feeRows"); tb.textContent = "";
+    var fm = $("feeMapCount"); if (fm) fm.textContent = fees.length ? "비급여 " + fees.length + "가지" : "비급여 진료비표";
     if (!fees.length) { tb.appendChild(el("tr", null, [el("td", { colspan: 3, text: "등록된 비급여 항목이 없습니다." })])); return; }
     fees.forEach(function (f) {
       var name = el("td", null, [f.name]);
@@ -705,7 +712,16 @@
     });
     $("feeCaption").textContent = "비급여 진료비 · " + (updatedAt ? updatedAt.slice(0, 10) + " 병원 수정 반영" : "병원 고지 금액");
   }
-  function renderDoctors(docs) { renderDoctorCards($("doctorList"), docs); }
+  function renderDoctors(docs) {
+    renderDoctorCards($("doctorList"), docs);
+    // 접힌 의료진 카드의 구성 미리보기: 원장님 이름 + 오늘 진료 점
+    var map = $("doctorMap"); if (!map) return;
+    map.textContent = "";
+    docs.forEach(function (d) {
+      map.appendChild(el("li", { "data-days": d.days || "" }, [el("span", { class: "pm-face", "aria-hidden": "true", text: String(d.name || "").charAt(0) }), d.name, el("span", { class: "pm-today", hidden: true, text: " · 오늘 진료" })]));
+    });
+    markDoctors();
+  }
   function renderDoctorCards(box, docs) {
     box.textContent = "";
     docs.forEach(function (d) {
@@ -728,6 +744,11 @@
       var on = !closed && C.worksOn(a.getAttribute("data-days"), live.now.weekday);
       a.classList.toggle("off", !on);
       a.querySelector(".today-mark").hidden = !on;
+    });
+    document.querySelectorAll("#doctorMap li[data-days]").forEach(function (li) {
+      var on = !closed && C.worksOn(li.getAttribute("data-days"), live.now.weekday);
+      li.classList.toggle("on", on);
+      li.querySelector(".pm-today").hidden = !on;
     });
   }
   function renderNotices(notices) {
@@ -1028,12 +1049,15 @@
   (function () {
     var rail = $("journey"); if (!rail || !window.IntersectionObserver) return;
     var links = [].slice.call(rail.querySelectorAll("a"));
+    var stages = [].slice.call(document.querySelectorAll("#homeView .stage"));
     function mark(no) {
       links.forEach(function (a) {
         var n = +a.getAttribute("data-stage");
         a.setAttribute("aria-current", n === no ? "step" : "false");
         a.classList.toggle("done", n < no);
       });
+      // 지금 보고 있는 단계 판은 한 층 더 떠오름(CSS .is-here)
+      stages.forEach(function (st) { st.classList.toggle("is-here", +st.getAttribute("data-stage") === no); });
     }
     var io = new IntersectionObserver(function (es) {
       es.forEach(function (e) { if (e.isIntersecting) mark(+e.target.getAttribute("data-stage")); });

@@ -39,6 +39,17 @@
   --radius-crown: 22px; /* 치관 쪽(위) 모서리 */
   --radius-root: 12px;  /* 치근 쪽(아래) 모서리 */
   --shadow: 0 1px 0 #10211f0a, 0 18px 40px -24px #10211f59;
+  /* 입체 층위(design/tokens.json elevation): 바닥 → 단계 판 → 단락 카드 → 떠 있는 창 · 누르는 키 */
+  --card: #FFFFFF;      /* 판 위에 올린 카드 */
+  --slab-2: #EAF4F0; --slab-2-edge: #C6DDD5; /* 2 찾기 */
+  --slab-3: #ECF2F4; --slab-3-edge: #C8D7DD; /* 3 알아보기 */
+  --slab-4: #DDF3EF; --slab-4-edge: #AFDCD2; /* 4 예약 (teal-soft) */
+  --slab-5: #F5F1E7; --slab-5-edge: #DDD2BC; /* 5 오시는 날 */
+  --key-edge: #B7C9C4;  /* 누르는 흰 키의 아랫단 */
+  --accent-edge: #06554C; /* 누르는 틸 키의 아랫단 */
+  --elev-1: inset 0 1px 0 rgba(255,255,255,.8), 0 1px 0 var(--_edge, var(--line)), 0 9px 0 -3px var(--_edge, var(--line)), 0 30px 50px -30px rgba(11,61,54,.42);
+  --elev-2: 0 1px 2px rgba(16,33,31,.06), 0 14px 28px -20px rgba(11,61,54,.40);
+  --elev-3: 0 2px 6px rgba(16,33,31,.07), 0 30px 60px -30px rgba(11,61,54,.55);
 
   --f-display: "Hahmlet", "Noto Serif KR", "Apple SD Gothic Neo", serif;
   --f-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
@@ -59,7 +70,7 @@
     --bg: #0E1716; --surface: #152220; --ink: #E6EFEC; --muted: #B1C2BD; --line: #2A3B37; --line-strong: #5E726D;
     --accent: #52C2AC; --accent-ink: #062019; --soft: #15302A; --paper: #2A2619; --paper-ink: #EFE6CF;
     --mint: #3FCB9E; --mint-soft: #143329; --gum: #EE8FA0; --gum-ink: #F4A9B6; --gum-soft: #3A1E25;
-    --ok: #4FD58C; --warn: #E3A15F; --shadow: 0 18px 40px -24px #000000b3; --live: #4FD58C; --h-ok: #1D4A3F; --h-few: #4A3519; --h-full: #1A2725; --ceramic-top: #1A2A28; --ceramic-bottom: #152220; --ceramic-sheen: rgba(255,255,255,.05); --ceramic-glaze: inset 0 1px 0 rgba(255,255,255,.06), 0 12px 28px -20px rgba(0,0,0,.7); --fresh: #102824; --aqua: #4FD1CB; --foam: rgba(255,255,255,.04); --deep: #123F38; --on-deep: #F2F8F6; --on-deep-muted: #BFD6D0; --mint-on-deep: #7FE0C2; --mint-tile: #8EE3C8;
+    --ok: #4FD58C; --warn: #E3A15F; --shadow: 0 18px 40px -24px #000000b3; --live: #4FD58C; --h-ok: #1D4A3F; --h-few: #4A3519; --h-full: #1A2725; --ceramic-top: #1A2A28; --ceramic-bottom: #152220; --ceramic-sheen: rgba(255,255,255,.05); --ceramic-glaze: inset 0 1px 0 rgba(255,255,255,.06), 0 12px 28px -20px rgba(0,0,0,.7); --fresh: #102824; --aqua: #4FD1CB; --foam: rgba(255,255,255,.04); --deep: #123F38; --on-deep: #F2F8F6; --on-deep-muted: #BFD6D0; --mint-on-deep: #7FE0C2; --mint-tile: #8EE3C8; --card: #1C2D2A; --slab-2: #132321; --slab-2-edge: #060C0B; --slab-3: #121F24; --slab-3-edge: #060B0D; --slab-4: #12302A; --slab-4-edge: #05130F; --slab-5: #1F1D16; --slab-5-edge: #0B0A07; --key-edge: #08100F; --accent-edge: #2A7F6E; --elev-1: inset 0 1px 0 rgba(255,255,255,.05), 0 9px 0 -3px var(--_edge, #000), 0 30px 50px -26px rgba(0,0,0,.85); --elev-2: inset 0 1px 0 rgba(255,255,255,.04), 0 16px 30px -18px rgba(0,0,0,.85); --elev-3: 0 30px 60px -26px rgba(0,0,0,.9);
     --c-implant-ink: #5FD0B8; --c-implant-soft: #123A33; --c-implant-solid: #5FD0B8;
     --c-ortho-ink: #9DB8F2; --c-ortho-soft: #1B2A4A; --c-ortho-solid: #9DB8F2;
     --c-endo-ink: #F0C46B; --c-endo-soft: #3A2C0E; --c-endo-solid: #F0C46B;
@@ -74,7 +85,7 @@
   --bg: #0E1716; --surface: #152220; --ink: #E6EFEC; --muted: #B1C2BD; --line: #2A3B37; --line-strong: #5E726D;
   --accent: #52C2AC; --accent-ink: #062019; --soft: #15302A; --paper: #2A2619; --paper-ink: #EFE6CF;
   --mint: #3FCB9E; --mint-soft: #143329; --gum: #EE8FA0; --gum-ink: #F4A9B6; --gum-soft: #3A1E25;
-  --ok: #4FD58C; --warn: #E3A15F; --shadow: 0 18px 40px -24px #000000b3; --live: #4FD58C; --h-ok: #1D4A3F; --h-few: #4A3519; --h-full: #1A2725; --ceramic-top: #1A2A28; --ceramic-bottom: #152220; --ceramic-sheen: rgba(255,255,255,.05); --ceramic-glaze: inset 0 1px 0 rgba(255,255,255,.06), 0 12px 28px -20px rgba(0,0,0,.7); --fresh: #102824; --aqua: #4FD1CB; --foam: rgba(255,255,255,.04); --deep: #123F38; --on-deep: #F2F8F6; --on-deep-muted: #BFD6D0; --mint-on-deep: #7FE0C2; --mint-tile: #8EE3C8;
+  --ok: #4FD58C; --warn: #E3A15F; --shadow: 0 18px 40px -24px #000000b3; --live: #4FD58C; --h-ok: #1D4A3F; --h-few: #4A3519; --h-full: #1A2725; --ceramic-top: #1A2A28; --ceramic-bottom: #152220; --ceramic-sheen: rgba(255,255,255,.05); --ceramic-glaze: inset 0 1px 0 rgba(255,255,255,.06), 0 12px 28px -20px rgba(0,0,0,.7); --fresh: #102824; --aqua: #4FD1CB; --foam: rgba(255,255,255,.04); --deep: #123F38; --on-deep: #F2F8F6; --on-deep-muted: #BFD6D0; --mint-on-deep: #7FE0C2; --mint-tile: #8EE3C8; --card: #1C2D2A; --slab-2: #132321; --slab-2-edge: #060C0B; --slab-3: #121F24; --slab-3-edge: #060B0D; --slab-4: #12302A; --slab-4-edge: #05130F; --slab-5: #1F1D16; --slab-5-edge: #0B0A07; --key-edge: #08100F; --accent-edge: #2A7F6E; --elev-1: inset 0 1px 0 rgba(255,255,255,.05), 0 9px 0 -3px var(--_edge, #000), 0 30px 50px -26px rgba(0,0,0,.85); --elev-2: inset 0 1px 0 rgba(255,255,255,.04), 0 16px 30px -18px rgba(0,0,0,.85); --elev-3: 0 30px 60px -26px rgba(0,0,0,.9);
     --c-implant-ink: #5FD0B8; --c-implant-soft: #123A33; --c-implant-solid: #5FD0B8;
     --c-ortho-ink: #9DB8F2; --c-ortho-soft: #1B2A4A; --c-ortho-solid: #9DB8F2;
     --c-endo-ink: #F0C46B; --c-endo-soft: #3A2C0E; --c-endo-solid: #F0C46B;
@@ -829,7 +840,7 @@ html.easy .menu-panel:not([hidden]) { display: block !important; }
 html.easy .lv-conn, html.easy #lvToday, html.easy .lv-time { display: none; }
 html.easy .chat-intro .lede, html.easy .chat-intro .promise { display: none; }
 html.easy .heat-box, html.easy .board-foot, html.easy .tcard.wide, html.easy .proof { display: none; }
-html.easy .principles, html.easy .cv-others { display: none; }
+html.easy .cv-others { display: none; }
 html.easy .quick-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 html.easy .qt { min-height: 7.5rem; }
 html.easy .days { flex-wrap: wrap; overflow: visible; }
@@ -1346,4 +1357,208 @@ html.easy #reserve.form-closed #reserveForm:not(.in-center) { display: none; }
   #centerGrid .cc-staff { display: none; }
   #centerGrid .ccard { padding-block: .9rem; }
   #centerGrid .cc-live { gap: .3rem; }
+}
+
+/* ===================== 입체 구성: 단계는 판, 단락은 카드, 누르는 것은 키 ===================== */
+/* 층위 네 단계 — 0 바닥(로비 · 바탕) · 1 단계 판(--elev-1) · 2 단락 카드(--elev-2) · 3 떠 있는 창(--elev-3).
+   빛은 늘 왼쪽 위에서. 누를 수 있는 것은 아랫단(lip)이 있어 도드라지고, 누르면 들어감. 읽는 것은 평평함. */
+
+/* --- 단계 판 --- */
+#homeView .stage.slab {
+  --_slab: var(--slab-2); --_edge: var(--slab-2-edge);
+  position: relative; z-index: 1; box-sizing: border-box;
+  width: min(100% - 2rem, 76rem); margin: 3rem auto 0; padding-bottom: 2.25rem;
+  background: var(--_slab); border: 0;
+  border-radius: 30px 30px 18px 18px; /* 치관 모서리를 판 크기로 */
+  box-shadow: var(--elev-1);
+  transition: box-shadow .5s ease;
+}
+#homeView #stage-learn.slab { --_slab: var(--slab-3); --_edge: var(--slab-3-edge); }
+#homeView #stage-book.slab { --_slab: var(--slab-4); --_edge: var(--slab-4-edge); }
+#homeView #visit-day.slab { --_slab: var(--slab-5); --_edge: var(--slab-5-edge); margin-bottom: 3.5rem; }
+/* 첫 판은 로비 바닥에서 솟아오르듯 아래 가장자리에 살짝 걸침 */
+#homeView #now > .hero { padding-bottom: 5.5rem; }
+#homeView #stage-find.slab { margin-top: -2.75rem; }
+/* 지금 보고 있는 판은 그림자가 한 겹 더 깊어짐(한 층 떠오름) */
+#homeView .stage.slab.is-here { box-shadow: var(--elev-1), 0 40px 70px -40px rgba(11,61,54,.45); }
+/* 판 안의 여백: 판 가장자리가 보이도록 안쪽으로 */
+#homeView .slab .wrap { padding-left: clamp(14px, 2.6vw, 2rem); padding-right: clamp(14px, 2.6vw, 2rem); }
+#homeView .slab > .band, #homeView .slab #reserve { padding-block: 1.5rem 0; background: transparent; border: 0; }
+#homeView .slab .next-step { margin-top: 1.75rem; }
+.stage-end { padding-top: .25rem; }
+.stage-end .journey-end { margin-top: 1.25rem; background: var(--card); box-shadow: var(--elev-2); }
+
+/* --- 판 머리: 번호 · 이름 · 역할 · 구성 지도 --- */
+.stage-plate { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: .75rem 1.1rem; padding-top: 1.75rem; padding-bottom: 1.25rem; border-bottom: 1px solid color-mix(in oklab, var(--_edge, var(--line)) 75%, transparent); }
+.stage-key { display: inline-grid; place-items: center; width: 3.25rem; height: 3.25rem; flex: none;
+  border-radius: 18px 18px 11px 11px; background: linear-gradient(180deg, color-mix(in oklab, var(--accent) 82%, #fff), var(--accent));
+  color: var(--accent-ink); font-family: var(--f-display); font-size: 1.625rem; font-weight: 700; line-height: 1;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.35), inset 0 -4px 0 rgba(0,0,0,.16), 0 6px 14px -8px rgba(11,61,54,.6); }
+.stage.is-here .stage-plate .stage-key { box-shadow: inset 0 1px 0 rgba(255,255,255,.35), inset 0 -4px 0 rgba(0,0,0,.16), 0 0 0 4px color-mix(in oklab, var(--aqua) 35%, transparent), 0 6px 14px -8px rgba(11,61,54,.6); }
+.sp-text { display: grid; gap: .1rem; min-width: 0; }
+.sp-name { font-family: var(--f-display); font-size: clamp(1.375rem, 1.2rem + .7vw, 1.75rem); font-weight: 700; line-height: 1.2; display: flex; flex-wrap: wrap; align-items: baseline; gap: .1rem .65rem; }
+.sp-of { font-family: var(--f-body); font-size: .875rem; font-weight: 600; color: var(--muted); }
+.sp-role { color: var(--muted); font-size: 1.0625rem; }
+.sp-map { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .5rem; }
+.sp-map a, .stair a { text-decoration: none; color: var(--ink); }
+.sp-map a { display: inline-flex; align-items: center; gap: .45rem; min-height: 2.75rem; padding: .3rem .85rem .3rem .45rem; border-radius: 12px; background: var(--card); border: 1px solid var(--line-strong); font-weight: 600; font-size: .9375rem; white-space: nowrap; box-shadow: 0 3px 0 var(--key-edge); }
+.sp-map a:hover { border-color: var(--accent); color: var(--accent); }
+/* 공지가 없으면 지도에서도 뺌 */
+#visit-day:has(#notices[hidden]) .sp-notices { display: none; }
+@media (max-width: 860px) {
+  .stage-plate { grid-template-columns: auto minmax(0, 1fr); }
+  .sp-map { grid-column: 1 / -1; justify-content: flex-start; }
+}
+@media (max-width: 560px) {
+  .stage-key { width: 2.75rem; height: 2.75rem; font-size: 1.375rem; border-radius: 15px 15px 9px 9px; }
+  .sp-role { font-size: 1rem; }
+  .sp-map { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sp-map a { white-space: normal; line-height: 1.25; }
+}
+
+/* 단락 번호(판 안 순서): 단계 번호(꽉 찬 치관 타일)와 달리 테두리 원 */
+.part-no { display: inline-grid; place-items: center; width: 1.6rem; height: 1.6rem; flex: none; margin-right: .45rem; border-radius: 50%; border: 2px solid var(--accent); background: var(--card); color: var(--accent); font-family: var(--f-body); font-size: .8125rem; font-weight: 700; line-height: 1; vertical-align: .12em; box-sizing: border-box; }
+.sp-map .part-no { margin-right: 0; }
+h2 > .part-no, h3 > .part-no { vertical-align: .2em; }
+#centerView .part-no { display: none; }
+.part-tag { display: flex; align-items: center; color: var(--accent); }
+
+/* --- 단락 카드: 판 위에 놓인 카드. 접혀 있어도 '들어 있는 것'이 보임 --- */
+.parts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.1rem; padding-top: 1.5rem; align-items: stretch; }
+.parts.has-open { grid-template-columns: minmax(0, 1fr); }
+.parts > .part { display: flex; flex-direction: column; gap: .9rem; min-width: 0; padding: 1.35rem 1.5rem 1.5rem; background: var(--card); border: 1px solid color-mix(in oklab, var(--line) 85%, transparent); border-radius: var(--radius-crown) var(--radius-crown) var(--radius-root) var(--radius-root); box-shadow: var(--elev-2); transition: box-shadow .3s ease; }
+.parts > .part:not(.folded) { box-shadow: var(--elev-3); } /* 펼친 카드 = 서랍을 꺼낸 것처럼 한 층 위로 */
+.parts > .part-wide { grid-column: 1 / -1; }
+.parts > .part .sec-head { grid-template-columns: minmax(0, 1fr); gap: .4rem; margin-bottom: 0; align-items: start; }
+.parts > .part .sec-head h2 { font-size: clamp(1.375rem, 1.2rem + .8vw, 1.75rem); margin-top: .4rem; }
+.parts > .part .fold-btn { align-self: flex-start; margin-top: auto; }
+.parts > .part.folded .fold-btn { margin-top: auto; }
+.parts > .part .fold-body { margin-top: .4rem; }
+.parts > .part:not(.folded) .part-map { display: none; }
+@media (max-width: 860px) { .parts { grid-template-columns: minmax(0, 1fr); gap: .9rem; } .parts > .part { padding: 1.1rem 1.1rem 1.25rem; } }
+html.easy .parts { grid-template-columns: minmax(0, 1fr); }
+
+/* 구성 미리보기: 카드 안에 파인 쟁반, 그 위에 들어 있는 것들을 납작한 조각으로 */
+.part-map { list-style: none; margin: 0; padding: .55rem; display: flex; flex-wrap: wrap; gap: .45rem; cursor: pointer;
+  border-radius: 14px 14px 10px 10px; background: color-mix(in oklab, var(--_slab, var(--soft)) 75%, var(--card));
+  box-shadow: inset 0 2px 5px rgba(16,33,31,.08), inset 0 0 0 1px color-mix(in oklab, var(--line) 70%, transparent); }
+.part-map li { position: relative; display: inline-flex; align-items: center; gap: .4rem; min-height: 2.5rem; padding: .3rem .8rem; border-radius: 10px; background: var(--card); color: var(--ink); font-weight: 600; font-size: .9375rem; line-height: 1.25; box-shadow: 0 1px 1px rgba(16,33,31,.07); }
+/* 모양으로 구조를 알림: 순서(→), 묶음(같은 크기 칸), 사람(얼굴 원) */
+.part-map[data-shape="set"] li { flex: 1 1 8.5rem; } /* 같은 무게의 묶음: 남는 칸 없이 고르게 */
+.part-map[data-shape="grid"] { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.part-map[data-shape="set"] li, .part-map[data-shape="grid"] li { justify-content: center; text-align: center; }
+.part-map[data-shape="seq"] { counter-reset: pm; column-gap: 1.25rem; }
+.part-map[data-shape="seq"] li { counter-increment: pm; padding-left: .4rem; }
+.part-map[data-shape="seq"] li::before { content: counter(pm); display: inline-grid; place-items: center; width: 1.35rem; height: 1.35rem; border-radius: 50%; background: var(--soft); color: var(--accent); font-size: .75rem; font-weight: 700; }
+.part-map[data-shape="seq"] li:not(:last-child)::after { content: "→"; position: absolute; right: -1.05rem; top: 50%; transform: translateY(-50%); color: var(--accent); font-weight: 700; font-size: .875rem; }
+.part-map[data-shape="people"]:empty { display: none; }
+.pm-face { display: inline-grid; place-items: center; width: 1.75rem; height: 1.75rem; border-radius: 50%; background: var(--soft); color: var(--accent); font-family: var(--f-display); font-size: .875rem; font-weight: 700; box-shadow: inset 0 0 0 2px var(--line); }
+.part-map li.on .pm-face { box-shadow: inset 0 0 0 2px var(--live); }
+.pm-today { color: var(--live); font-weight: 700; font-size: .875rem; }
+
+/* --- 첫 화면: 이 페이지의 순서(계단) --- */
+.chat-hero { grid-template-areas: "intro chat" "stair chat"; grid-template-rows: auto minmax(0, 1fr); }
+.chat-hero > .chat-intro { grid-area: intro; }
+.chat-hero > #chatHome { grid-area: chat; }
+.chat-hero > .stair { grid-area: stair; }
+@media (max-width: 960px) { .chat-hero { grid-template-areas: "intro" "chat" "stair"; grid-template-rows: none; } }
+.stair { align-self: start; margin-top: .5rem; }
+.stair-h { font-weight: 700; font-size: .9375rem; color: var(--muted); margin-bottom: .6rem; }
+.stair ol { list-style: none; margin: 0; padding: 0; display: grid; gap: .55rem; }
+/* 한 칸씩 오른쪽으로 내려가는 계단: 아래로 내려갈수록 다음 단계 */
+.stair li:nth-child(2) { margin-left: .9rem; } .stair li:nth-child(3) { margin-left: 1.8rem; } .stair li:nth-child(4) { margin-left: 2.7rem; } .stair li:nth-child(5) { margin-left: 3.6rem; }
+.stair a { display: flex; align-items: center; gap: .75rem; min-height: 3.25rem; padding: .4rem .9rem .4rem .45rem; border-radius: 14px 14px 10px 10px; background: var(--card); border: 1px solid color-mix(in oklab, var(--line-strong) 55%, transparent); box-shadow: 0 4px 0 var(--key-edge), 0 10px 18px -14px rgba(11,61,54,.55); }
+.stair a:hover { border-color: var(--accent); }
+.stair .stage-key { width: 2.35rem; height: 2.35rem; font-size: 1.125rem; border-radius: 13px 13px 8px 8px; }
+.stair a:not([aria-current="step"]) .stage-key { background: var(--soft); color: var(--accent); box-shadow: inset 0 1px 0 rgba(255,255,255,.6), inset 0 -3px 0 rgba(11,116,104,.14); }
+.st-t { display: grid; min-width: 0; line-height: 1.3; }
+.st-t b { font-size: 1.0625rem; }
+.st-t small { color: var(--muted); font-size: .875rem; }
+.st-here { margin-left: auto; flex: none; font-size: .8125rem; font-weight: 700; color: var(--accent); padding: .15rem .55rem; border-radius: 999px; background: var(--soft); }
+.stair a[aria-current="step"] { border-color: var(--accent); }
+@media (max-width: 960px) { .stair { margin-top: 0; } }
+@media (max-width: 560px) { .stair li:nth-child(n) { margin-left: 0; } .stair li:nth-child(2) { margin-left: .4rem; } .stair li:nth-child(3) { margin-left: .8rem; } .stair li:nth-child(4) { margin-left: 1.2rem; } .stair li:nth-child(5) { margin-left: 1.6rem; } }
+
+/* --- 누르는 것 = 키: 아랫단이 있고, 누르면 들어감. 고른 것은 눌린 채로. 못 누르는 것은 평평함 --- */
+.btn-primary { box-shadow: 0 3px 0 var(--accent-edge); }
+.btn-ghost { box-shadow: 0 2px 0 var(--key-edge); }
+.fold-btn { box-shadow: 0 3px 0 var(--key-edge); }
+.next-step { box-shadow: 0 4px 0 color-mix(in oklab, var(--aqua) 55%, var(--key-edge)), var(--elev-2); }
+.chat-chips button, .chat-chips a { box-shadow: 0 2px 0 color-mix(in oklab, var(--accent) 35%, var(--key-edge)); }
+.chat-chips .primary { box-shadow: 0 3px 0 var(--accent-edge); }
+.desk-menu button { box-shadow: 0 3px 0 var(--key-edge); }
+.desk-menu button[data-desk="book"] { box-shadow: 0 3px 0 var(--accent-edge); }
+.slot:not(:disabled), .day:not(:disabled), .eb-time, .eb-key, .tm-btn, .tm-unsure { box-shadow: 0 2px 0 var(--key-edge); }
+.eb-choice:not(.off) { box-shadow: 0 3px 0 var(--key-edge); }
+.ccard { box-shadow: var(--ceramic-glaze), 0 4px 0 -1px var(--key-edge); }
+.btn-primary:active:not(:disabled), .btn-ghost:active:not(:disabled), .fold-btn:active, .next-step:active, .sp-map a:active, .stair a:active,
+.chat-chips button:active, .chat-chips a:active, .desk-menu button:active, .slot:active:not(:disabled), .day:active:not(:disabled),
+.eb-time:active, .eb-key:active, .eb-choice:active:not(.off), .tm-btn:active, .tm-unsure:active, .ccard:active {
+  transform: translateY(2px); box-shadow: 0 1px 0 var(--key-edge);
+}
+/* 고른 날짜 · 시간 · 메뉴 · 아픈 곳은 눌린 채로 */
+.slot[aria-pressed="true"], .day[aria-pressed="true"], .desk-menu button[aria-pressed="true"], .tm-btn[aria-pressed="true"], .tm-unsure[aria-pressed="true"] { transform: translateY(1px); box-shadow: inset 0 2px 4px rgba(0,0,0,.22); }
+.chip input:checked + span { box-shadow: inset 0 2px 4px rgba(0,0,0,.22); }
+.chip span { box-shadow: 0 2px 0 var(--key-edge); }
+@media (prefers-reduced-motion: no-preference) {
+  .sp-map a, .stair a, .fold-btn, .chat-chips button, .chat-chips a, .desk-menu button, .slot, .day, .btn { transition: transform .12s ease, box-shadow .12s ease, border-color .15s, background .15s, color .15s; }
+  .sp-map a:hover, .stair a:hover, .fold-btn:hover { transform: translateY(-1px); }
+}
+
+/* 헤더 · 여정 표시도 떠 있는 층 */
+.site-header { box-shadow: 0 12px 26px -22px rgba(11,61,54,.55); }
+.journey ol { box-shadow: var(--elev-3); background: color-mix(in oklab, var(--card) 94%, transparent); }
+.journey a[aria-current="step"] { background: var(--card); box-shadow: 0 3px 0 var(--key-edge), 0 8px 16px -10px rgba(11,61,54,.5); outline: 1px solid var(--accent); outline-offset: -1px; }
+.journey a.done { color: var(--muted); }
+@media (min-width: 1440px) and (max-width: 1599px) { #homeView .stage.slab { width: min(100% - 18rem, 76rem); } }
+/* 첫 화면에서는 '이 페이지의 순서'가 같은 역할을 하므로 왼쪽 여정 표시는 내려감 */
+.journey { transition: opacity .25s ease, visibility .25s; }
+html.at-now .journey { opacity: 0; visibility: hidden; }
+
+/* 판 안 카드: 예약 폼 · 내 예약 확인 · 다른 방법 */
+#homeView #reserveForm, #homeView .reserve .side-extra .lookup, #homeView .channel { background: var(--card); box-shadow: var(--elev-2); }
+#homeView #reserveForm { border-color: color-mix(in oklab, var(--line) 85%, transparent); }
+.channels h3, .reserve .lookup h3 { font-family: var(--f-body); font-size: 1.0625rem; font-weight: 700; display: flex; align-items: center; }
+.channels h3 { margin-bottom: .1rem; }
+.reserve h2 { display: flex; align-items: center; }
+#homeView .reserve-next .next-step { margin-top: .5rem; }
+
+/* 휴대폰: 판은 가장자리만 살짝 보이게 */
+@media (max-width: 760px) {
+  #homeView .stage.slab { width: calc(100% - 12px); margin-top: 1.75rem; border-radius: 24px 24px 14px 14px; padding-bottom: 1.5rem; }
+  #homeView #stage-find.slab { margin-top: -2rem; }
+  #homeView #now > .hero { padding-bottom: 4rem; }
+  .stage-plate { padding-top: 1.25rem; padding-bottom: 1rem; gap: .6rem .85rem; }
+}
+
+/* --- 움직임: 판이 스크롤을 따라 비스듬히 누웠다가 제자리로 일어섬 (지원 브라우저만, 움직임 줄이기 · 크게 보기에서는 없음) --- */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    html:not(.easy) #homeView .stage.slab { transform-origin: 50% 0; animation: slab-rise linear both; animation-timeline: view(); animation-range: entry 0% entry 50vh; }
+    html:not(.easy) #homeView .parts > .part { animation: part-rise linear both; animation-timeline: view(); animation-range: entry 0% entry 26vh; }
+    html:not(.easy) #now::before { animation: foam-drift linear both; animation-timeline: scroll(root); animation-range: 0 100vh; }
+  }
+}
+@keyframes slab-rise { from { transform: perspective(1600px) translateY(60px) rotateX(11deg) scale(.965); } to { transform: none; } }
+@keyframes part-rise { from { transform: translateY(26px); } to { transform: none; } }
+@keyframes foam-drift { from { transform: none; } to { transform: translateY(10rem); } }
+
+/* 크게 보기: 판 구분은 그대로(구조가 도움이 됨), 그림자는 옅게, 움직임 없음 */
+html.easy #homeView .stage.slab { box-shadow: 0 1px 0 var(--_edge), 0 7px 0 -3px var(--_edge); }
+html.easy .parts > .part { box-shadow: none; border-color: var(--line-strong); }
+html.easy .part-map[data-shape="set"] li { flex-basis: 6.5rem; }
+/* 휴대폰: 구조 표시는 그대로, 높이만 줄임 */
+@media (max-width: 560px) {
+  .stair-h { margin-bottom: .4rem; }
+  .stair ol { gap: .4rem; }
+  .stair a { min-height: 3rem; padding-block: .3rem; gap: .6rem; }
+  .stair .stage-key { width: 2rem; height: 2rem; font-size: 1rem; border-radius: 11px 11px 7px 7px; }
+  .st-t { line-height: 1.25; }
+  .sp-map { gap: .4rem; }
+  .parts > .part { gap: .75rem; padding-top: 1rem; }
+  .parts > .part .sec-head h2 { margin-top: .25rem; }
+  .part-map { padding: .45rem; gap: .4rem; }
+  .part-map li { min-height: 2.25rem; }
+  .part-map[data-shape="seq"] { column-gap: 1.2rem; }
+  #homeView .slab .next-step { margin-top: 1.25rem; }
 }
